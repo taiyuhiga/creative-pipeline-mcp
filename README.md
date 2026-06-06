@@ -15,7 +15,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-This is `0.2.0-alpha.0`. The QC-first path runs without Blender or Premiere installed:
+This is `0.2.1-alpha.0`. The QC-first path runs without Blender or Premiere installed:
 
 - GLB/glTF metadata inspection and asset QC
 - Media metadata QC through `ffprobe` when FFmpeg is installed
@@ -24,16 +24,19 @@ This is `0.2.0-alpha.0`. The QC-first path runs without Blender or Premiere inst
 - workspace input allowlists for local file reads
 - pending approval artifacts for elevated tools
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction
+- Blender asset QC for triangle budget, origin, scale, normals, primary UVs, material count, and texture slots
+- Blender optimization size comparison metrics and safe generated Blender script artifacts for game asset jobs
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
-- Premiere CEP bridge MVP for OTIO media import, sequence creation attempts, clip insertion attempts, and status JSON
+- Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
 - approval-to-rerun flow in the dashboard for approved elevated tool requests
 - Premiere CEP status reader
 - Blender and generated-MP4 Premiere e2e examples
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
+- CI runs on Node.js 20, 22, and 24
 
-Premiere timeline mutation is queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
+Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
 ## Install
 

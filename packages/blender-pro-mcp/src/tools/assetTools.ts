@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
 import { optimizeWithCli, renderWithHeadlessBlender } from "../adapters/cli.js";
@@ -291,19 +291,38 @@ export const blenderTools: ToolDefinition[] = [
       const artifact = await context.artifactStore.writeBytes(target, new Uint8Array());
       const optimized = await optimizeWithCli(path, artifact);
       if (optimized.available && !optimized.error) {
+        const sourceBytes = statSync(path).size;
+        const optimizedBytes = statSync(artifact).size;
         return {
           ok: true,
           message: "Optimized artifact written with external glTF optimizer",
           artifacts: [artifact],
-          data: { optimizer: optimized.command, source: path }
+          data: {
+            optimizer: optimized.command,
+            source: path,
+            sourceBytes,
+            optimizedBytes,
+            deltaBytes: optimizedBytes - sourceBytes,
+            ratio: sourceBytes > 0 ? optimizedBytes / sourceBytes : null
+          }
         };
       }
       const fallback = await context.artifactStore.copyIn(path, target);
+      const sourceBytes = statSync(path).size;
+      const fallbackBytes = statSync(fallback).size;
       return {
         ok: true,
         message: "Optimized artifact written by copy fallback; glTF optimizer unavailable or failed",
         artifacts: [fallback],
-        data: { optimizer: "copy_fallback", source: path, cli: optimized }
+        data: {
+          optimizer: "copy_fallback",
+          source: path,
+          sourceBytes,
+          optimizedBytes: fallbackBytes,
+          deltaBytes: fallbackBytes - sourceBytes,
+          ratio: sourceBytes > 0 ? fallbackBytes / sourceBytes : null,
+          cli: optimized
+        }
       };
     }
   },
@@ -356,13 +375,18 @@ export const blenderTools: ToolDefinition[] = [
         target: "game_ready_glb",
         excluded: ["3D-Agent"],
         requiredQc: ["triangle_budget", "origin", "scale", "normals", "textures", "export_success"],
-        bridge: "external_blender_required"
+        bridge: "external_blender_required",
+        safeScript: "blender/create_game_asset_safe.py"
       };
       const artifact = await context.artifactStore.writeJson("blender/create_game_asset_job.json", manifest);
+      const script = await context.artifactStore.writeText(
+        "blender/create_game_asset_safe.py",
+        safeBlenderAssetScript(prompt)
+      );
       return {
         ok: true,
-        message: "Game asset job manifest written for external Blender execution",
-        artifacts: [artifact],
+        message: "Game asset job manifest and safe Blender script written",
+        artifacts: [artifact, script],
         data: manifest
       };
     }
@@ -416,3 +440,25 @@ export const blenderTools: ToolDefinition[] = [
     }
   }
 ];
+
+function safeBlenderAssetScript(prompt: string): string {
+  const name = prompt
+    .replace(/[^a-z0-9]+/giu, "_")
+    .replace(/^_+|_+$/gu, "")
+    .slice(0, 48) || "CreativePipelineAsset";
+  return `import bpy
+
+bpy.ops.object.select_all(action="SELECT")
+bpy.ops.object.delete()
+bpy.ops.mesh.primitive_cube_add(size=1)
+asset = bpy.context.object
+asset.name = ${JSON.stringify(name)}
+asset.location = (0, 0, 0)
+
+mat = bpy.data.materials.new(name=${JSON.stringify(`${name}_Material`)})
+mat.use_nodes = True
+asset.data.materials.append(mat)
+
+bpy.ops.export_scene.gltf(filepath=${JSON.stringify(`${name}.glb`)}, export_format="GLB")
+`;
+}

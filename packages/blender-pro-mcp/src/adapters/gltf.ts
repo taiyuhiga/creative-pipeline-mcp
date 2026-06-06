@@ -11,7 +11,10 @@ export interface GltfInspection {
   primitiveCount: number;
   vertexCount: number;
   triangleCount: number;
+  primitivesMissingNormals: number;
+  primitivesMissingUvs: number;
   missingTextureRefs: number;
+  materialTextureSlots: number;
   boundingBox?: { min: number[]; max: number[] };
 }
 
@@ -20,7 +23,7 @@ interface GltfJson {
   nodes?: unknown[];
   meshes?: Array<{ primitives?: Array<Record<string, unknown>> }>;
   accessors?: Array<{ count?: number; min?: number[]; max?: number[] }>;
-  materials?: unknown[];
+  materials?: Array<Record<string, unknown>>;
   textures?: Array<{ source?: number }>;
   images?: unknown[];
 }
@@ -53,12 +56,20 @@ function summarize(json: GltfJson, format: "glb" | "gltf"): GltfInspection {
   let primitiveCount = 0;
   let vertexCount = 0;
   let triangleCount = 0;
+  let primitivesMissingNormals = 0;
+  let primitivesMissingUvs = 0;
   const bbox = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
 
   for (const mesh of json.meshes ?? []) {
     for (const primitive of mesh.primitives ?? []) {
       primitiveCount += 1;
       const attributes = primitive.attributes as Record<string, number> | undefined;
+      if (typeof attributes?.NORMAL !== "number") {
+        primitivesMissingNormals += 1;
+      }
+      if (typeof attributes?.TEXCOORD_0 !== "number") {
+        primitivesMissingUvs += 1;
+      }
       const positionAccessor = attributes ? accessors[attributes.POSITION] : undefined;
       if (positionAccessor?.count) {
         vertexCount += positionAccessor.count;
@@ -83,6 +94,9 @@ function summarize(json: GltfJson, format: "glb" | "gltf"): GltfInspection {
   const missingTextureRefs = (json.textures ?? []).filter((texture) => {
     return typeof texture.source !== "number" || !images[texture.source];
   }).length;
+  const materialTextureSlots = (json.materials ?? []).reduce((count, material) => {
+    return count + countTextureSlots(material);
+  }, 0);
 
   return {
     format,
@@ -95,8 +109,24 @@ function summarize(json: GltfJson, format: "glb" | "gltf"): GltfInspection {
     primitiveCount,
     vertexCount,
     triangleCount,
+    primitivesMissingNormals,
+    primitivesMissingUvs,
     missingTextureRefs,
+    materialTextureSlots,
     boundingBox: Number.isFinite(bbox.min[0]) ? bbox : undefined
   };
 }
 
+function countTextureSlots(value: unknown): number {
+  if (!value || typeof value !== "object") {
+    return 0;
+  }
+  let count = 0;
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    if (key.endsWith("Texture") && nested && typeof nested === "object") {
+      count += 1;
+    }
+    count += countTextureSlots(nested);
+  }
+  return count;
+}

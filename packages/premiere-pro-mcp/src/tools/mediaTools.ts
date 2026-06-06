@@ -344,7 +344,9 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: {
         path: { type: "string" },
-        preset: { type: "string" }
+        preset: { type: "string" },
+        presetPath: { type: "string" },
+        outputPath: { type: "string" }
       },
       required: ["path"],
       additionalProperties: true
@@ -355,12 +357,19 @@ export const premiereTools: ToolDefinition[] = [
       const plan = {
         source: path,
         preset: String(input.preset ?? "1080x1920_h264_social"),
+        presetPath: typeof input.presetPath === "string" ? input.presetPath : "",
         bridge: "external_premiere_cep_required",
         requiresApproval: true,
-        output: `exports/${parse(basename(path)).name}_final.mp4`
+        outputPath: String(input.outputPath ?? `${context.artifactStore.root}/premiere/exports/${parse(basename(path)).name}_final.mp4`)
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_export_plan.json"), plan);
-      return { ok: true, message: "Export plan written", artifacts: [artifact], data: plan };
+      const queued = await enqueuePremiereCommand("export_sequence", plan);
+      return {
+        ok: true,
+        message: "Export plan written and Premiere CEP export command queued",
+        artifacts: [artifact, queued.path],
+        data: { plan, command: queued.command }
+      };
     }
   },
   {
@@ -394,9 +403,9 @@ export const premiereTools: ToolDefinition[] = [
   },
   {
     name: "premiere.apply_brand_package",
-    description: "Create a brand package application manifest for captions, colors, fonts, and graphics.",
+    description: "Queue a brand package application command for captions, colors, fonts, and graphics.",
     category: "premiere",
-    risk: "safe_write",
+    risk: "project_write",
     inputSchema: {
       type: "object",
       properties: { path: { type: "string" }, brand: { type: "object" } },
@@ -413,7 +422,13 @@ export const premiereTools: ToolDefinition[] = [
         bridge: "external_premiere_cep_required"
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_brand_package.json"), manifest);
-      return { ok: true, message: "Brand package manifest written", artifacts: [artifact], data: manifest };
+      const queued = await enqueuePremiereCommand("apply_brand_package", manifest);
+      return {
+        ok: true,
+        message: "Brand package manifest written and Premiere CEP command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest, command: queued.command }
+      };
     }
   },
   {

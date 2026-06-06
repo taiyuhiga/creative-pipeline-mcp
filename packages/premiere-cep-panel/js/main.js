@@ -21,18 +21,33 @@
       var fullPath = path.join(dir, file);
       var command = JSON.parse(fs.readFileSync(fullPath, "utf8"));
       cs.evalScript("CreativePipelineMCP.dispatch(" + JSON.stringify(JSON.stringify(command)) + ")", function (result) {
-        append(file + ": " + result);
+        var status = CreativePipelineMCPPanel.parseStatus(result);
+        append(file + ": " + status.status + " - " + status.message);
         var statusDir = path.join(path.dirname(dir), "cep_status");
         if (!fs.existsSync(statusDir)) {
           fs.mkdirSync(statusDir, { recursive: true });
         }
-        fs.writeFileSync(path.join(statusDir, file), JSON.stringify({
-          command: command,
-          result: result,
-          processedAt: new Date().toISOString()
-        }, null, 2));
+        status.command = command;
+        status.processedAt = new Date().toISOString();
+        fs.writeFileSync(path.join(statusDir, file), JSON.stringify(status, null, 2));
         fs.renameSync(fullPath, path.join(dir, file + ".processed"));
       });
     });
   });
 })();
+
+var CreativePipelineMCPPanel = {
+  parseStatus: function (result) {
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      return {
+        schema: "creative.pipeline.premiere.status.v1",
+        commandType: "unknown",
+        status: "error",
+        message: String(result),
+        details: { parseError: String(error) }
+      };
+    }
+  }
+};

@@ -59,10 +59,31 @@ export async function inspectAndReport(path: string, maxTriangles = 50000) {
       value: inspection.materialCount
     },
     {
+      id: "geometry.normals",
+      status: inspection.primitivesMissingNormals === 0 ? "pass" : "warn",
+      message: `${inspection.primitivesMissingNormals} primitives missing normals`,
+      value: inspection.primitivesMissingNormals
+    },
+    {
+      id: "uv.primary",
+      status: inspection.primitivesMissingUvs === 0 ? "pass" : "warn",
+      message: `${inspection.primitivesMissingUvs} primitives missing TEXCOORD_0`,
+      value: inspection.primitivesMissingUvs
+    },
+    {
       id: "textures.references",
       status: inspection.missingTextureRefs === 0 ? "pass" : "fail",
       message: `${inspection.missingTextureRefs} missing texture references`,
       value: inspection.missingTextureRefs
+    },
+    {
+      id: "materials.texture_slots",
+      status: inspection.materialCount > 0 && inspection.materialTextureSlots > 0 ? "pass" : "warn",
+      message:
+        inspection.materialCount === 0
+          ? "No materials available for texture-slot checks"
+          : `${inspection.materialTextureSlots} PBR texture slots found`,
+      value: inspection.materialTextureSlots
     },
     {
       id: "bounds.present",
@@ -76,4 +97,3 @@ export async function inspectAndReport(path: string, maxTriangles = 50000) {
     inspection
   });
 }
-

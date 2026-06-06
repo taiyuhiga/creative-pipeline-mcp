@@ -18,18 +18,20 @@
 - workspace input allowlist
 - pending approval artifact queue
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
+- Blender QC coverage for normals, primary UVs, material count, and texture slots
+- Blender optimization size metrics and safe generated Blender script artifacts
 - Blender GLB e2e sample
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
-- Premiere CEP panel MVP for OTIO media import, sequence creation attempts, clip insertion attempts, and status JSON
+- Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
 - generated-MP4 Premiere QC/CEP queue e2e sample
-- CI adapter check plus optional Blender e2e execution when Blender is present
+- CI adapter check, Node.js 20/22/24 matrix, and optional Blender e2e execution when Blender is present
 
 ## External Adapter Work
 
 - full live Blender bridge beyond headless CLI jobs
-- signed production Premiere CEP installer and project-specific timeline builders
+- signed production Premiere CEP installer and project-specific timeline/export builders
 - VMAF integration
 - rendered dashboard previews and richer job-history screens
