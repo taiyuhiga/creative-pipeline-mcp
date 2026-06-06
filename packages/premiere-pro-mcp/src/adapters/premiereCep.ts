@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 export interface PremiereCepCommand {
@@ -25,3 +25,22 @@ export async function enqueuePremiereCommand(
   return { command, path };
 }
 
+export async function listPremiereStatuses(): Promise<Array<{ id: string; path: string; status: unknown }>> {
+  const statusDir = resolve(process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR ?? "artifacts/premiere/cep_status");
+  let entries: string[];
+  try {
+    entries = await readdir(statusDir);
+  } catch {
+    return [];
+  }
+  const statuses = [];
+  for (const entry of entries.filter((file) => file.endsWith(".json"))) {
+    const path = join(statusDir, entry);
+    try {
+      statuses.push({ id: entry, path, status: JSON.parse(await readFile(path, "utf8")) });
+    } catch {
+      statuses.push({ id: entry, path, status: { unreadable: true } });
+    }
+  }
+  return statuses;
+}

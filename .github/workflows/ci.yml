@@ -16,5 +16,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npm run check:adapters
+      - run: |
+          if command -v blender >/dev/null 2>&1; then
+            node examples/blender-e2e.mjs
+          else
+            echo "Skipping Blender e2e: blender is not installed on this runner."
+          fi
       - run: npm pack --dry-run
-

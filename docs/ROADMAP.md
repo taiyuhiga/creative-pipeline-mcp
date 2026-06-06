@@ -22,10 +22,14 @@
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
 - Premiere CEP panel MVP for OTIO media import, sequence creation attempts, clip insertion attempts, and status JSON
+- Dashboard approval-to-rerun flow for approved elevated tool requests
+- Premiere CEP status reader
+- generated-MP4 Premiere QC/CEP queue e2e sample
+- CI adapter check plus optional Blender e2e execution when Blender is present
 
 ## External Adapter Work
 
 - full live Blender bridge beyond headless CLI jobs
 - signed production Premiere CEP installer and project-specific timeline builders
 - VMAF integration
-- rendered dashboard previews
+- rendered dashboard previews and richer job-history screens

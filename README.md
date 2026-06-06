@@ -15,7 +15,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-This is `0.1.1-alpha.0`. The QC-first path runs without Blender or Premiere installed:
+This is `0.2.0-alpha.0`. The QC-first path runs without Blender or Premiere installed:
 
 - GLB/glTF metadata inspection and asset QC
 - Media metadata QC through `ffprobe` when FFmpeg is installed
@@ -27,6 +27,9 @@ This is `0.1.1-alpha.0`. The QC-first path runs without Blender or Premiere inst
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
 - Premiere CEP bridge MVP for OTIO media import, sequence creation attempts, clip insertion attempts, and status JSON
+- approval-to-rerun flow in the dashboard for approved elevated tool requests
+- Premiere CEP status reader
+- Blender and generated-MP4 Premiere e2e examples
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 
@@ -46,6 +49,13 @@ Blender e2e sample:
 ```bash
 npm run build
 node examples/blender-e2e.mjs
+```
+
+Premiere media QC / CEP queue sample:
+
+```bash
+npm run build
+node examples/premiere-qc-e2e.mjs
 ```
 
 ## Run MCP Servers

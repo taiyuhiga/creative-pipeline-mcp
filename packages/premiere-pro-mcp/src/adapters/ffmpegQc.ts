@@ -30,7 +30,7 @@ export async function runFfmpegQc(path: string): Promise<FfmpegQcResult> {
   }
 }
 
-export async function extractThumbnail(path: string, outputPath: string, time = "00:00:01"): Promise<FfmpegQcResult> {
+export async function extractThumbnail(path: string, outputPath: string, time = "00:00:00.100"): Promise<FfmpegQcResult> {
   try {
     await mkdir(dirname(outputPath), { recursive: true });
     await execFileAsync("ffmpeg", ["-hide_banner", "-y", "-ss", time, "-i", path, "-frames:v", "1", outputPath]);
@@ -43,4 +43,3 @@ export async function extractThumbnail(path: string, outputPath: string, time = 
 function countMatches(value: string, pattern: RegExp): number {
   return [...value.matchAll(pattern)].length;
 }
-

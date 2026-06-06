@@ -3,10 +3,29 @@ import type { ToolDefinition } from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail } from "../adapters/ffmpegQc.js";
-import { enqueuePremiereCommand } from "../adapters/premiereCep.js";
+import { enqueuePremiereCommand, listPremiereStatuses } from "../adapters/premiereCep.js";
 import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
 
 export const premiereTools: ToolDefinition[] = [
+  {
+    name: "premiere.read_cep_status",
+    description: "Read Premiere CEP status JSON files produced by the panel scaffold.",
+    category: "premiere",
+    risk: "read",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false
+    },
+    async execute() {
+      const statuses = await listPremiereStatuses();
+      return {
+        ok: true,
+        message: `${statuses.length} Premiere CEP status records found`,
+        data: { statuses }
+      };
+    }
+  },
   {
     name: "premiere.transcribe_media",
     description: "Run WhisperX when available, otherwise write a transcription adapter manifest.",
@@ -437,7 +456,7 @@ export const premiereTools: ToolDefinition[] = [
       const path = requireMediaPath(input);
       await context.artifactStore.assertReadableFile(path);
       const count = typeof input.count === "number" ? input.count : 3;
-      const thumbnail = await context.artifactStore.writeBytes(premiereArtifactName(path, "_thumbnail_1.jpg"), new Uint8Array());
+      const thumbnail = await context.artifactStore.writeBytes(premiereArtifactName(path, "_thumbnail_1.png"), new Uint8Array());
       const extracted = await extractThumbnail(path, thumbnail);
       const plan = {
         source: path,

@@ -10,7 +10,7 @@ Creative Pipeline MCP is split into small packages:
 - `premiere-windows-adapter`: CEP/WebSocket reference checks for Windows
 - `dashboard`: artifact, QC report, and approval queue viewer
 
-The dashboard reads `artifacts/approvals/pending` and resolves approve/reject decisions into `artifacts/approvals/resolved`.
+The dashboard reads `artifacts/approvals/pending`, resolves approve/reject decisions into `artifacts/approvals/resolved`, and reruns approved elevated tool requests with the approved risk level.
 
 The public tool surface stays small. Low-level OSS integrations are adapter capabilities selected behind macro tools.
 

@@ -5,5 +5,11 @@
     "rootDir": "src",
     "outDir": "dist"
   },
+  "references": [
+    { "path": "../core" },
+    { "path": "../blender-pro-mcp" },
+    { "path": "../premiere-pro-mcp" },
+    { "path": "../director-agent" }
+  ],
   "include": ["src/**/*.ts"]
 }

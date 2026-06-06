@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -20,7 +20,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.0-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -69,6 +69,28 @@ test("Premiere optional adapter tool writes a manifest", async () => {
   assert.match(result.message, /transcription|adapter manifest/i);
 });
 
+test("Premiere CEP status reader returns panel status records", async () => {
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-status-"));
+  const statusPath = join(statusRoot, "command.json");
+  await mkdir(statusRoot, { recursive: true });
+  await writeFile(statusPath, JSON.stringify({ result: "inserted 1 clips" }), "utf8");
+  const previous = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = statusRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.read_cep_status");
+    assert.ok(tool);
+    const result = await tool.execute(await context(statusRoot), {});
+    assert.equal(result.ok, true);
+    assert.equal(result.data.statuses.length, 1);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = previous;
+    }
+  }
+});
+
 test("ArtifactStore blocks artifact path traversal", async () => {
   const store = new ArtifactStore(await mkdtemp(join(tmpdir(), "creative-mcp-artifacts-")));
   await assert.rejects(() => store.writeText("../outside.txt", "nope"), /Unsafe artifact path/);
@@ -82,7 +104,7 @@ test("ArtifactStore blocks input files outside workspace roots", async () => {
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.0-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -94,7 +116,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.0-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

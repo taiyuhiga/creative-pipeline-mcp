@@ -1,6 +1,19 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import {
+  ApprovalPolicy,
+  ArtifactStore,
+  coreTools,
+  defaultLicenseManifest,
+  Router,
+  ToolRegistry,
+  type PermissionLevel,
+  type ToolRisk
+} from "@creative-pipeline-mcp/core";
+import { blenderTools } from "@creative-pipeline-mcp/blender-pro-mcp";
+import { premiereTools } from "@creative-pipeline-mcp/premiere-pro-mcp";
+import { directorTools } from "@creative-pipeline-mcp/director-agent";
 
 const artifactRoot = resolve(process.env.CREATIVE_MCP_ARTIFACTS ?? "artifacts");
 const port = Number(process.env.PORT ?? 4173);
@@ -52,20 +65,52 @@ async function listApprovals(): Promise<Array<{ id: string; path: string; reques
   return approvals;
 }
 
-async function resolveApproval(id: string, decision: "approved" | "rejected"): Promise<{ ok: boolean; path?: string }> {
+async function resolveApproval(id: string, decision: "approved" | "rejected"): Promise<{ ok: boolean; path?: string; rerun?: unknown }> {
   const safeId = basename(id);
   const source = join(artifactRoot, "approvals", "pending", safeId);
   const targetDir = join(artifactRoot, "approvals", "resolved");
   await mkdir(targetDir, { recursive: true });
   const target = join(targetDir, `${Date.now()}-${decision}-${safeId}`);
   const request = JSON.parse(await readFile(source, "utf8")) as Record<string, unknown>;
+  const rerun = decision === "approved" ? await rerunApprovedTool(request) : undefined;
   await writeFile(
     target,
-    `${JSON.stringify({ ...request, decision, resolvedAt: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify({ ...request, decision, resolvedAt: new Date().toISOString(), rerun }, null, 2)}\n`,
     "utf8"
   );
   await rename(source, `${source}.resolved`);
-  return { ok: true, path: target };
+  return { ok: true, path: target, rerun };
+}
+
+async function rerunApprovedTool(request: Record<string, unknown>): Promise<unknown> {
+  const action = String(request.action ?? "");
+  const input = isRecord(request.input) ? request.input : {};
+  const registry = new ToolRegistry();
+  registry.registerMany([...coreTools, ...blenderTools, ...premiereTools, ...directorTools]);
+  const router = new Router(registry);
+  const store = new ArtifactStore(artifactRoot);
+  return router.run(action, {
+    artifactStore: store,
+    approvalPolicy: new ApprovalPolicy(permissionForRisk(String(request.risk ?? "safe_write") as ToolRisk)),
+    licenseManifest: defaultLicenseManifest(),
+    logger: {
+      log(event, detail) {
+        void store.writeJson(`logs/${Date.now()}-${event}.json`, detail);
+      }
+    }
+  }, input);
+}
+
+function permissionForRisk(risk: ToolRisk): PermissionLevel {
+  if (risk === "read") return "read_only";
+  if (risk === "safe_write") return "safe_write";
+  if (risk === "project_write") return "project_write";
+  if (risk === "destructive") return "destructive";
+  return "admin";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function readBody(req: IncomingMessage): Promise<string> {

@@ -21,3 +21,11 @@ MCP tools:
 - `premiere.detect_scenes`: uses PySceneDetect when available, otherwise writes an adapter manifest
 - `premiere.measure_loudness`: uses pyloudnorm when available, otherwise writes an adapter manifest
 - `premiere.build_timeline_from_otio`: writes a CEP queue command for the panel scaffold
+- `premiere.read_cep_status`: reads status JSON written by the CEP panel scaffold
+
+Generated sample:
+
+```bash
+npm run build
+node examples/premiere-qc-e2e.mjs
+```
