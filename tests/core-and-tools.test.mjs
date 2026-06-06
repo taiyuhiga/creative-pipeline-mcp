@@ -21,7 +21,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -33,6 +33,7 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_timeline_from_otio"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.await_cep_status"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.finalize_export_qc"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.measure_vmaf"));
 });
 
 test("Blender asset QC writes a report", async () => {
@@ -120,6 +121,27 @@ test("Premiere optional adapter tool writes a manifest", async () => {
   const result = await tool.execute(await context(mediaRoot), { path: mediaPath });
   assert.equal(result.artifacts.length, 1);
   assert.match(result.message, /transcription|adapter manifest/i);
+});
+
+test("Premiere VMAF tool writes an adapter report when FFmpeg VMAF cannot run", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-media-"));
+  const mediaPath = join(mediaRoot, "placeholder.mp4");
+  const referencePath = join(mediaRoot, "reference.mp4");
+  await writeFile(mediaPath, new Uint8Array([0]));
+  await writeFile(referencePath, new Uint8Array([0]));
+  const tool = premiereTools.find((candidate) => candidate.name === "premiere.measure_vmaf");
+  assert.ok(tool);
+  const result = await tool.execute(await context(mediaRoot), {
+    path: mediaPath,
+    referencePath,
+    targetMinVmaf: 90
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.artifacts.length, 1);
+  const report = JSON.parse(await readFile(result.artifacts[0], "utf8"));
+  assert.equal(report.source, mediaPath);
+  assert.equal(report.reference, referencePath);
+  assert.equal(report.targetMinVmaf, 90);
 });
 
 test("Premiere CEP status reader returns panel status records", async () => {
@@ -247,7 +269,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -259,7 +281,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -274,7 +296,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -289,7 +311,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

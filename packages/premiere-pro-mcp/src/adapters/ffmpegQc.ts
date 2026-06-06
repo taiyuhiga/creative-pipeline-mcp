@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { promisify } from "node:util";
 
@@ -11,6 +11,17 @@ export interface FfmpegQcResult {
   silenceEvents?: number;
   loudnessMeasured?: boolean;
   thumbnails?: string[];
+  error?: string;
+}
+
+export interface VmafResult {
+  available: boolean;
+  mean?: number;
+  min?: number;
+  max?: number;
+  harmonicMean?: number;
+  logPath?: string;
+  modelPath?: string;
   error?: string;
 }
 
@@ -40,6 +51,56 @@ export async function extractThumbnail(path: string, outputPath: string, time = 
   }
 }
 
+export async function runVmafAdapter(
+  distortedPath: string,
+  referencePath: string,
+  logPath: string,
+  modelPath?: string
+): Promise<VmafResult> {
+  try {
+    await mkdir(dirname(logPath), { recursive: true });
+    const filterOptions = [
+      "log_fmt=json",
+      `log_path=${escapeFilterValue(logPath)}`,
+      modelPath ? `model_path=${escapeFilterValue(modelPath)}` : undefined
+    ].filter(Boolean).join(":");
+    await execFileAsync("ffmpeg", [
+      "-hide_banner",
+      "-i", distortedPath,
+      "-i", referencePath,
+      "-lavfi", `[0:v][1:v]libvmaf=${filterOptions}`,
+      "-f", "null",
+      "-"
+    ]);
+    const log = JSON.parse(await readFile(logPath, "utf8"));
+    const vmaf = log?.pooled_metrics?.vmaf;
+    return {
+      available: true,
+      mean: numberOrUndefined(vmaf?.mean),
+      min: numberOrUndefined(vmaf?.min),
+      max: numberOrUndefined(vmaf?.max),
+      harmonicMean: numberOrUndefined(vmaf?.harmonic_mean),
+      logPath,
+      modelPath
+    };
+  } catch (error) {
+    return {
+      available: false,
+      logPath,
+      modelPath,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 function countMatches(value: string, pattern: RegExp): number {
   return [...value.matchAll(pattern)].length;
+}
+
+function numberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function escapeFilterValue(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll(":", "\\:").replaceAll("'", "\\'");
 }

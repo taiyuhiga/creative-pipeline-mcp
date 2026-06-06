@@ -26,6 +26,7 @@
 - template-based Blender basic repair for scale, normals, triangulation, and GLB export
 - Blender GLB e2e sample
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
+- optional FFmpeg libvmaf adapter tool
 - Dashboard approval queue UI
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
@@ -45,5 +46,4 @@
 
 - full live Blender bridge beyond headless CLI jobs
 - signed production Premiere CEP installer and project-specific timeline/export builders
-- VMAF integration
 - rendered dashboard previews and richer job-history screens

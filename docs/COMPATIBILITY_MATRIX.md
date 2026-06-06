@@ -10,6 +10,7 @@ This matrix tracks what must be verified before v1.
 | npm pack | CI covered | `package-test` |
 | FFmpeg installed | CI covered | `premiere-qc-e2e` installs FFmpeg |
 | FFmpeg missing | Partial | adapter check reports missing tools without failing |
+| FFmpeg libvmaf installed/missing | Adapter check | `ffmpeg-libvmaf` availability report |
 | Blender installed | Local/optional CI | `blender-e2e-optional` runs when available |
 | Blender missing | Partial | renderer/optimizer fallbacks are tested through unit paths |
 | macOS + Blender | Local covered | local e2e evidence |

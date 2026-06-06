@@ -19,6 +19,12 @@
       "status": "pass",
       "message": "1s; max 2s",
       "value": 1
+    },
+    {
+      "id": "video.vmaf",
+      "status": "not_applicable",
+      "message": "No reference media supplied for VMAF",
+      "value": null
     }
   ]
 }

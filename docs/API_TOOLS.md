@@ -35,6 +35,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `premiere.transcribe_media`
 - `premiere.detect_scenes`
 - `premiere.measure_loudness`
+- `premiere.measure_vmaf`
 - `premiere.build_timeline_from_otio`
 - `premiere.ingest_media`
 - `premiere.index_media`

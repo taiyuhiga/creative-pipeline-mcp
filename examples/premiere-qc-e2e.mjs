@@ -31,7 +31,9 @@ callTool("premiere.run_delivery_qc", {
   path: source,
   targetWidth: 320,
   targetHeight: 240,
-  maxDuration: 2
+  maxDuration: 2,
+  referencePath: source,
+  targetMinVmaf: 99
 });
 callTool("premiere.generate_thumbnail_plan", { path: source, count: 1 });
 
@@ -73,4 +75,3 @@ function run(command, args) {
     throw new Error(result.stderr || `${command} failed`);
   }
 }
-

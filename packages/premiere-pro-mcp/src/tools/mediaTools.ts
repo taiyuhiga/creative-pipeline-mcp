@@ -3,7 +3,7 @@ import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
-import { extractThumbnail } from "../adapters/ffmpegQc.js";
+import { extractThumbnail, runVmafAdapter } from "../adapters/ffmpegQc.js";
 import { enqueuePremiereCommand, findPremiereStatus, listPremiereStatuses, type PremiereCepStatus } from "../adapters/premiereCep.js";
 import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
 
@@ -256,7 +256,10 @@ export const premiereTools: ToolDefinition[] = [
         targetWidth: { type: "number" },
         targetHeight: { type: "number" },
         maxDuration: { type: "number" },
-        captionPath: { type: "string" }
+        captionPath: { type: "string" },
+        referencePath: { type: "string" },
+        targetMinVmaf: { type: "number" },
+        modelPath: { type: "string" }
       },
       required: ["path"],
       additionalProperties: false
@@ -267,13 +270,71 @@ export const premiereTools: ToolDefinition[] = [
       if (typeof input.captionPath === "string") {
         await context.artifactStore.assertReadableFile(input.captionPath);
       }
-      const report = await mediaQcReport(path, input);
+      if (typeof input.referencePath === "string") {
+        await context.artifactStore.assertReadableFile(input.referencePath);
+      }
+      if (typeof input.modelPath === "string") {
+        await context.artifactStore.assertReadableFile(input.modelPath);
+      }
+      const vmafLogPath = `${context.artifactStore.root}/premiere/${parse(basename(path)).name}_delivery_vmaf_log.json`;
+      const report = await mediaQcReport(path, {
+        ...input,
+        vmafLogPath
+      });
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_delivery_qc_report.json"), report);
+      const artifacts = existsSync(vmafLogPath) ? [artifact, vmafLogPath] : [artifact];
       return {
         ok: report.summary.status !== "fail",
         message: `Delivery QC report written: ${report.summary.status}`,
-        artifacts: [artifact],
+        artifacts,
         data: report as unknown as Record<string, unknown>
+      };
+    }
+  },
+  {
+    name: "premiere.measure_vmaf",
+    description: "Run FFmpeg libvmaf against a reference file, or write an adapter report when libvmaf is unavailable.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        referencePath: { type: "string" },
+        targetMinVmaf: { type: "number" },
+        modelPath: { type: "string" }
+      },
+      required: ["path", "referencePath"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      const referencePath = typeof input.referencePath === "string" ? input.referencePath : "";
+      await context.artifactStore.assertReadableFile(path);
+      await context.artifactStore.assertReadableFile(referencePath);
+      if (typeof input.modelPath === "string") {
+        await context.artifactStore.assertReadableFile(input.modelPath);
+      }
+      const targetMinVmaf = typeof input.targetMinVmaf === "number" ? input.targetMinVmaf : 93;
+      const logPath = `${context.artifactStore.root}/premiere/${parse(basename(path)).name}_vmaf_log.json`;
+      const result = await runVmafAdapter(path, referencePath, logPath, typeof input.modelPath === "string" ? input.modelPath : undefined);
+      const report = {
+        source: path,
+        reference: referencePath,
+        targetMinVmaf,
+        result,
+        status: result.available && typeof result.mean === "number"
+          ? result.mean >= targetMinVmaf ? "pass" : "warn"
+          : "adapter_unavailable"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_vmaf_report.json"), report);
+      return {
+        ok: report.status === "pass",
+        message: result.available
+          ? `VMAF report written: ${result.mean ?? "unknown"}`
+          : "VMAF adapter report written; FFmpeg libvmaf unavailable or failed",
+        artifacts: result.available && result.logPath ? [artifact, result.logPath] : [artifact],
+        data: report
       };
     }
   },
@@ -433,7 +494,10 @@ export const premiereTools: ToolDefinition[] = [
         targetWidth: { type: "number" },
         targetHeight: { type: "number" },
         maxDuration: { type: "number" },
-        captionPath: { type: "string" }
+        captionPath: { type: "string" },
+        referencePath: { type: "string" },
+        targetMinVmaf: { type: "number" },
+        modelPath: { type: "string" }
       },
       additionalProperties: false
     },
@@ -473,15 +537,26 @@ export const premiereTools: ToolDefinition[] = [
       if (typeof input.captionPath === "string") {
         await context.artifactStore.assertReadableFile(input.captionPath);
       }
-      const report = await mediaQcReport(outputPath, input);
+      if (typeof input.referencePath === "string") {
+        await context.artifactStore.assertReadableFile(input.referencePath);
+      }
+      if (typeof input.modelPath === "string") {
+        await context.artifactStore.assertReadableFile(input.modelPath);
+      }
+      const vmafLogPath = `${context.artifactStore.root}/premiere/${parse(basename(outputPath)).name}_export_vmaf_log.json`;
+      const report = await mediaQcReport(outputPath, {
+        ...input,
+        vmafLogPath
+      });
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(outputPath, "_export_delivery_qc_report.json"), {
         cepStatus: statusRecord?.status ?? null,
         report
       });
+      const artifacts = existsSync(vmafLogPath) ? [artifact, vmafLogPath] : [artifact];
       return {
         ok: report.summary.status !== "fail",
         message: `Export delivery QC report written: ${report.summary.status}`,
-        artifacts: [artifact],
+        artifacts,
         data: { status: statusRecord?.status ?? null, report }
       };
     }

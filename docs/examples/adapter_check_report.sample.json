@@ -1,8 +1,8 @@
 {
   "generatedAt": "2026-01-01T00:00:00.000Z",
   "summary": {
-    "available": 4,
-    "total": 8
+    "available": 3,
+    "total": 9
   },
   "adapters": {
     "ffprobe": {
@@ -15,6 +15,12 @@
       "command": "ffmpeg",
       "status": 0
     },
+    "ffmpeg-libvmaf": {
+      "available": false,
+      "command": "ffmpeg",
+      "status": 0,
+      "requiredOutput": "libvmaf"
+    },
     "blender": {
       "available": false,
       "command": "blender",
@@ -25,6 +31,30 @@
       "available": true,
       "command": "gltf-transform",
       "status": 0
+    },
+    "gltfpack": {
+      "available": false,
+      "command": "gltfpack",
+      "status": null,
+      "stderr": ""
+    },
+    "whisperx": {
+      "available": false,
+      "command": "whisperx",
+      "status": null,
+      "stderr": ""
+    },
+    "scenedetect": {
+      "available": false,
+      "command": "scenedetect",
+      "status": null,
+      "stderr": ""
+    },
+    "pyloudnorm+soundfile": {
+      "available": false,
+      "command": "python3",
+      "status": 1,
+      "stderr": "ModuleNotFoundError: No module named 'pyloudnorm'"
     }
   }
 }

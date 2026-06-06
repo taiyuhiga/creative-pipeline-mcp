@@ -4,7 +4,7 @@ import { basename, parse } from "node:path";
 import type { QcCheck } from "@creative-pipeline-mcp/core";
 import { buildQcReport, sha256File } from "@creative-pipeline-mcp/core";
 import { probeMedia } from "../adapters/ffprobe.js";
-import { runFfmpegQc } from "../adapters/ffmpegQc.js";
+import { runFfmpegQc, runVmafAdapter, type VmafResult } from "../adapters/ffmpegQc.js";
 import { countCaptionOverlaps, parseSrt } from "../adapters/srt.js";
 
 export function requireMediaPath(input: Record<string, unknown>): string {
@@ -28,8 +28,18 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
   const targetHeight = typeof options.targetHeight === "number" ? options.targetHeight : undefined;
   const maxDuration = typeof options.maxDuration === "number" ? options.maxDuration : undefined;
   const captionPath = typeof options.captionPath === "string" ? options.captionPath : undefined;
+  const referencePath = typeof options.referencePath === "string" ? options.referencePath : undefined;
+  const vmafLogPath = typeof options.vmafLogPath === "string" ? options.vmafLogPath : undefined;
+  const modelPath = typeof options.modelPath === "string" ? options.modelPath : undefined;
+  const targetMinVmaf = typeof options.targetMinVmaf === "number" ? options.targetMinVmaf : 93;
   const probe = await probeMedia(path);
   const ffmpegQc = await runFfmpegQc(path);
+  let vmaf: VmafResult | undefined;
+  if (referencePath) {
+    vmaf = vmafLogPath
+      ? await runVmafAdapter(path, referencePath, vmafLogPath, modelPath)
+      : { available: false, error: "vmafLogPath required for delivery QC VMAF check" };
+  }
   const captionOverlap = captionPath ? await countOverlaps(captionPath) : undefined;
   const checks: QcCheck[] = [
     {
@@ -103,6 +113,22 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
       value: ffmpegQc.silenceEvents ?? "external_adapter_required"
     },
     {
+      id: "video.vmaf",
+      status:
+        !referencePath
+          ? "not_applicable"
+          : vmaf?.available && typeof vmaf.mean === "number"
+            ? vmaf.mean >= targetMinVmaf ? "pass" : "warn"
+            : "warn",
+      message:
+        !referencePath
+          ? "No reference media supplied for VMAF"
+          : vmaf?.available && typeof vmaf.mean === "number"
+            ? `VMAF mean ${vmaf.mean}; target ${targetMinVmaf}`
+            : `VMAF requires FFmpeg libvmaf: ${vmaf?.error ?? "unavailable"}`,
+      value: vmaf?.mean ?? null
+    },
+    {
       id: "captions.overlap",
       status: captionOverlap === undefined ? "not_applicable" : captionOverlap === 0 ? "pass" : "fail",
       message:
@@ -112,7 +138,7 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
       value: captionOverlap ?? null
     }
   ];
-  return buildQcReport("media", path, checks, { sha256: await sha256File(path), probe, ffmpegQc });
+  return buildQcReport("media", path, checks, { sha256: await sha256File(path), probe, ffmpegQc, vmaf });
 }
 
 async function countOverlaps(captionPath: string): Promise<number> {

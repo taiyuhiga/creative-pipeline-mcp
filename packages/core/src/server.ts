@@ -1,3 +1,3 @@
 import { coreTools, McpServer } from "./index.js";
 
-new McpServer("creative-mcp-core", "0.2.6-alpha.0", coreTools).runStdio();
+new McpServer("creative-mcp-core", "0.2.7-alpha.0", coreTools).runStdio();

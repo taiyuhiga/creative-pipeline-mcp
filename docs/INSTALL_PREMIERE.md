@@ -13,17 +13,20 @@ Recommended external tools:
 - PySceneDetect
 - Auto-Editor
 - pyloudnorm
-- VMAF
+- FFmpeg with `libvmaf` for reference-based quality scoring
 
 MCP tools:
 
 - `premiere.transcribe_media`: uses WhisperX when available, otherwise writes an adapter manifest
 - `premiere.detect_scenes`: uses PySceneDetect when available, otherwise writes an adapter manifest
 - `premiere.measure_loudness`: uses pyloudnorm when available, otherwise writes an adapter manifest
+- `premiere.measure_vmaf`: uses FFmpeg `libvmaf` when available, otherwise writes an adapter report
 - `premiere.build_timeline_from_otio`: writes a CEP queue command for the panel scaffold
 - `premiere.export_video`: writes an export plan and queues `export_sequence`
 - `premiere.apply_brand_package`: writes a brand package manifest and queues `apply_brand_package`
 - `premiere.read_cep_status`: reads status JSON written by the CEP panel scaffold
+- `premiere.await_cep_status`: polls for a matching CEP status by command id or command type
+- `premiere.finalize_export_qc`: resolves an export status and runs delivery QC after the exported file exists
 
 Generated sample:
 

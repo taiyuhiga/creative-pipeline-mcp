@@ -8,6 +8,8 @@ npm run check:adapters -- --json
 
 Missing adapters are allowed unless the workflow explicitly depends on them.
 
+If `ffmpeg-libvmaf` is missing, install an FFmpeg build that includes the `libvmaf` filter. `premiere.measure_vmaf` still writes an adapter report when the filter is unavailable.
+
 ## Dashboard
 
 If the dashboard refuses API requests, confirm the token:
