@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.12-alpha.0`
+Current version: `0.2.13-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -43,6 +43,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
+- guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
 
 Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
@@ -144,6 +145,14 @@ Release assets:
 ```bash
 npm run release:assets
 ```
+
+npm publishing:
+
+```bash
+npm publish --dry-run --provenance
+```
+
+For GitHub Actions publishing, configure npm trusted publishing for `.github/workflows/npm-publish.yml`, then set `NPM_TRUSTED_PUBLISHING_ENABLED=true` in repository variables.
 
 Detailed docs:
 

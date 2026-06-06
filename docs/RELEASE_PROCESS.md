@@ -48,11 +48,22 @@ npm pack --dry-run
 npm publish --dry-run --provenance
 ```
 
-Publish only after CI is green and the GitHub release exists:
+Local publishing requires an authenticated npm session:
 
 ```bash
 npm publish --provenance --access public
 ```
+
+GitHub Actions publishing uses npm trusted publishing. Configure npmjs.com with:
+
+```text
+Owner: taiyuhiga
+Repository: creative-pipeline-mcp
+Workflow: npm-publish.yml
+Environment: leave empty unless a GitHub environment is added
+```
+
+Then set the repository variable `NPM_TRUSTED_PUBLISHING_ENABLED=true`. The workflow publishes from release tags only after tests, adapter checks, Premiere project-delivery example, CEP package verification, npm pack dry-run, and package-version/tag matching pass.
 
 ## Semver
 

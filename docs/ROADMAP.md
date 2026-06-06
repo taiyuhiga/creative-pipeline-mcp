@@ -39,6 +39,7 @@
 - split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
 - dashboard and Premiere real-project e2e docs
 - release asset generation script and npm publish readiness docs
+- npm trusted-publishing workflow with OIDC, release tag/package version guard, and publish gates
 - CEP status, artifact schema, and troubleshooting docs
 - strict public top-level tool schemas with enum and length guards
 - API tool list and compatibility matrix docs
