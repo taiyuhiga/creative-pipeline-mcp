@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.8-alpha.0`
+Current version: `0.2.9-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -28,6 +28,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - workspace input allowlists for local file reads
 - pending approval artifacts for elevated tools
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction, FFmpeg `libvmaf` scoring
+- Blender bridge queue/status IPC for trusted external scene and asset adapters
 - Blender asset QC for triangle budget, origin, scale, normals, primary UVs, material count, and texture slots
 - Blender optimization size comparison metrics and safe generated Blender script artifacts for game asset jobs
 - template-based basic Blender repair for GLB/glTF assets when Blender is installed
@@ -49,6 +50,7 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | --- | --- |
 | GLB/glTF metadata QC | Working |
 | Headless Blender preview | Working when Blender is installed |
+| Blender bridge queue/status | Alpha file-based IPC |
 | glTF optimization | Working with `gltf-transform`; optional `gltfpack` |
 | Basic Blender repair | Working when Blender is installed |
 | Premiere media QC | Working when FFmpeg is installed |
@@ -74,6 +76,13 @@ Blender e2e sample:
 ```bash
 npm run build
 node examples/blender-e2e.mjs
+```
+
+Blender bridge queue sample:
+
+```bash
+npm run build
+node examples/blender-bridge-queue.mjs
 ```
 
 Premiere media QC / CEP queue sample:

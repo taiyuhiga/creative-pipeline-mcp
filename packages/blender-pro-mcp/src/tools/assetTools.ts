@@ -1,11 +1,81 @@
 import { existsSync, statSync } from "node:fs";
 import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
+import {
+  enqueueBlenderBridgeCommand,
+  findBlenderBridgeStatus,
+  listBlenderBridgeStatuses
+} from "../adapters/blenderBridge.js";
 import { optimizeWithCli, renderWithHeadlessBlender, runHeadlessBlenderScript } from "../adapters/cli.js";
 import { placeholderPng } from "../adapters/preview.js";
 import { artifactName, inspectAndReport, requirePath } from "./shared.js";
 
 export const blenderTools: ToolDefinition[] = [
+  {
+    name: "blender.read_bridge_status",
+    description: "Read Blender bridge status JSON files produced by a trusted bridge adapter.",
+    category: "blender",
+    risk: "read",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false
+    },
+    async execute() {
+      const statuses = await listBlenderBridgeStatuses();
+      return {
+        ok: true,
+        message: `${statuses.length} Blender bridge status records found`,
+        data: { statuses }
+      };
+    }
+  },
+  {
+    name: "blender.await_bridge_status",
+    description: "Poll Blender bridge status files until a matching command status is available.",
+    category: "blender",
+    risk: "read",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        commandType: {
+          type: "string",
+          enum: ["create_scene", "create_asset", "modify_asset", "apply_material", "run_safe_script"]
+        },
+        timeoutMs: { type: "number" },
+        pollIntervalMs: { type: "number" }
+      },
+      additionalProperties: false
+    },
+    async execute(_context, input) {
+      const timeoutMs = Math.max(0, Math.min(typeof input.timeoutMs === "number" ? input.timeoutMs : 0, 120000));
+      const pollIntervalMs = Math.max(100, Math.min(typeof input.pollIntervalMs === "number" ? input.pollIntervalMs : 1000, 10000));
+      const deadline = Date.now() + timeoutMs;
+      do {
+        const match = await findBlenderBridgeStatus({
+          commandId: typeof input.commandId === "string" ? input.commandId : undefined,
+          commandType: isBlenderBridgeCommandType(input.commandType) ? input.commandType : undefined
+        });
+        if (match) {
+          return {
+            ok: true,
+            message: `Blender bridge status found: ${match.status.status}`,
+            data: match
+          };
+        }
+        if (Date.now() >= deadline) {
+          break;
+        }
+        await sleep(pollIntervalMs);
+      } while (true);
+      return {
+        ok: false,
+        message: "Blender bridge status not found before timeout",
+        data: { commandId: input.commandId, commandType: input.commandType, timeoutMs }
+      };
+    }
+  },
   {
     name: "blender.create_scene",
     description: "Create a scene-generation manifest for an external Blender bridge.",
@@ -25,10 +95,16 @@ export const blenderTools: ToolDefinition[] = [
         prompt: String(input.prompt ?? ""),
         targetEngine: String(input.targetEngine ?? "WebGL"),
         outputs: ["scene.glb", "scene_preview.png", "scene_qc_report.json"],
-        bridge: "external_blender_required"
+        bridge: "queued_blender_bridge_required"
       };
       const artifact = await context.artifactStore.writeJson("blender/create_scene_manifest.json", manifest);
-      return { ok: true, message: "Scene manifest written", artifacts: [artifact], data: manifest };
+      const queued = await enqueueBlenderBridgeCommand("create_scene", manifest);
+      return {
+        ok: true,
+        message: "Scene manifest written and Blender bridge command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest, command: queued.command }
+      };
     }
   },
   {
@@ -47,7 +123,13 @@ export const blenderTools: ToolDefinition[] = [
       await context.artifactStore.assertReadableFile(path);
       const manifest = { source: path, material: input.material ?? {}, adapter: "MaterialX_or_Blender_bridge" };
       const artifact = await context.artifactStore.writeJson(artifactName(path, "_material_apply_manifest.json"), manifest);
-      return { ok: true, message: "Material application manifest written", artifacts: [artifact], data: manifest };
+      const queued = await enqueueBlenderBridgeCommand("apply_material", manifest);
+      return {
+        ok: true,
+        message: "Material application manifest written and Blender bridge command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest, command: queued.command }
+      };
     }
   },
   {
@@ -71,7 +153,13 @@ export const blenderTools: ToolDefinition[] = [
         requiredQcAfterModify: true
       };
       const artifact = await context.artifactStore.writeJson(artifactName(path, "_modify_manifest.json"), manifest);
-      return { ok: true, message: "Asset modification manifest written", artifacts: [artifact], data: manifest };
+      const queued = await enqueueBlenderBridgeCommand("modify_asset", manifest);
+      return {
+        ok: true,
+        message: "Asset modification manifest written and Blender bridge command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest, command: queued.command }
+      };
     }
   },
   {
@@ -89,10 +177,16 @@ export const blenderTools: ToolDefinition[] = [
       const manifest = {
         prompt: String(input.prompt ?? ""),
         outputs: ["asset.glb", "asset_preview.png", "asset_qc_report.json"],
-        bridge: "external_blender_required"
+        bridge: "queued_blender_bridge_required"
       };
       const artifact = await context.artifactStore.writeJson("blender/create_asset_manifest.json", manifest);
-      return { ok: true, message: "Asset creation manifest written", artifacts: [artifact], data: manifest };
+      const queued = await enqueueBlenderBridgeCommand("create_asset", manifest);
+      return {
+        ok: true,
+        message: "Asset creation manifest written and Blender bridge command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest, command: queued.command }
+      };
     }
   },
   {
@@ -386,11 +480,15 @@ export const blenderTools: ToolDefinition[] = [
         "blender/create_game_asset_safe.py",
         safeBlenderAssetScript(prompt)
       );
+      const queued = await enqueueBlenderBridgeCommand("run_safe_script", {
+        ...manifest,
+        scriptPath: script
+      });
       return {
         ok: true,
-        message: "Game asset job manifest and safe Blender script written",
-        artifacts: [artifact, script],
-        data: manifest
+        message: "Game asset job manifest and safe Blender bridge command written",
+        artifacts: [artifact, script, queued.path],
+        data: { manifest, command: queued.command }
       };
     }
   },
@@ -548,4 +646,18 @@ for obj in list(bpy.context.scene.objects):
 
 bpy.ops.export_scene.gltf(filepath=target, export_format="GLB")
 `;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isBlenderBridgeCommandType(
+  value: unknown
+): value is "create_scene" | "create_asset" | "modify_asset" | "apply_material" | "run_safe_script" {
+  return value === "create_scene"
+    || value === "create_asset"
+    || value === "modify_asset"
+    || value === "apply_material"
+    || value === "run_safe_script";
 }

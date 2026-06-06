@@ -10,6 +10,8 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 
 ## Blender
 
+- `blender.read_bridge_status`
+- `blender.await_bridge_status`
 - `blender.create_scene`
 - `blender.apply_material`
 - `blender.modify_asset`

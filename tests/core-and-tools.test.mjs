@@ -22,7 +22,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -41,6 +41,8 @@ test("Blender asset QC writes a report", async () => {
   const tool = blenderTools.find((candidate) => candidate.name === "blender.validate_asset");
   assert.ok(tool);
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.repair_basic_asset"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.read_bridge_status"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.await_bridge_status"));
   const result = await tool.execute(await context(), {
     path: resolve("examples/minimal.gltf"),
     maxTriangles: 10
@@ -52,15 +54,68 @@ test("Blender asset QC writes a report", async () => {
 test("Blender game asset generation writes a safe script artifact", async () => {
   const tool = blenderTools.find((candidate) => candidate.name === "blender.create_game_asset");
   assert.ok(tool);
-  const result = await tool.execute(await context(), {
-    prompt: "low-poly prop crate"
-  });
-  assert.equal(result.ok, true);
-  assert.equal(result.artifacts.length, 2);
-  assert.ok(result.artifacts.some((artifact) => artifact.endsWith("create_game_asset_safe.py")));
-  const scriptPath = result.artifacts.find((artifact) => artifact.endsWith("create_game_asset_safe.py"));
-  const script = await readFile(scriptPath, "utf8");
-  assert.match(script, /bpy\.ops\.export_scene\.gltf/);
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-queue-"));
+  const previous = process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
+  process.env.CREATIVE_MCP_BLENDER_IPC_DIR = queueRoot;
+  try {
+    const result = await tool.execute(await context(), {
+      prompt: "low-poly prop crate"
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.artifacts.length, 3);
+    assert.ok(result.artifacts.some((artifact) => artifact.endsWith("create_game_asset_safe.py")));
+    const scriptPath = result.artifacts.find((artifact) => artifact.endsWith("create_game_asset_safe.py"));
+    const script = await readFile(scriptPath, "utf8");
+    assert.match(script, /bpy\.ops\.export_scene\.gltf/);
+    const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
+    assert.equal(queueFiles.length, 1);
+    const queued = JSON.parse(await readFile(join(queueRoot, queueFiles[0]), "utf8"));
+    assert.equal(queued.type, "run_safe_script");
+    assert.equal(queued.payload.scriptPath, scriptPath);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
+    } else {
+      process.env.CREATIVE_MCP_BLENDER_IPC_DIR = previous;
+    }
+  }
+});
+
+test("Blender bridge status tools read and await bridge records", async () => {
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-status-"));
+  await mkdir(statusRoot, { recursive: true });
+  await writeFile(join(statusRoot, "cmd-1.json"), JSON.stringify({
+    schema: "creative.pipeline.blender.status.v1",
+    commandId: "cmd-1",
+    commandType: "create_asset",
+    status: "success",
+    message: "asset created",
+    details: { outputPath: "asset.glb" }
+  }), "utf8");
+  const previous = process.env.CREATIVE_MCP_BLENDER_STATUS_DIR;
+  process.env.CREATIVE_MCP_BLENDER_STATUS_DIR = statusRoot;
+  try {
+    const readTool = blenderTools.find((candidate) => candidate.name === "blender.read_bridge_status");
+    const awaitTool = blenderTools.find((candidate) => candidate.name === "blender.await_bridge_status");
+    assert.ok(readTool);
+    assert.ok(awaitTool);
+    const readResult = await readTool.execute(await context(statusRoot), {});
+    assert.equal(readResult.ok, true);
+    assert.equal(readResult.data.statuses.length, 1);
+    const awaitResult = await awaitTool.execute(await context(statusRoot), {
+      commandId: "cmd-1",
+      commandType: "create_asset",
+      timeoutMs: 0
+    });
+    assert.equal(awaitResult.ok, true);
+    assert.equal(awaitResult.data.status.commandId, "cmd-1");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_BLENDER_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_BLENDER_STATUS_DIR = previous;
+    }
+  }
 });
 
 test("Premiere rough cut writes an OTIO plan even when ffprobe cannot parse the placeholder media", async () => {
@@ -270,7 +325,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -282,7 +337,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -297,7 +352,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -312,7 +367,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,
