@@ -46,6 +46,7 @@
 - API tool list and compatibility matrix docs
 - Premiere CEP development install/uninstall script
 - Premiere CEP unsigned package generation, manifest validation, checksum output, ZIP verification, and optional ZXP signing hook
+- Premiere CEP zip/ZXP install fallback for local CEP extension target installation
 - Premiere CEP queue watcher UI for selected/all pending commands
 
 ## External Adapter Work

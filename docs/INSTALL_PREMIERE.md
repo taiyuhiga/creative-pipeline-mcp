@@ -69,3 +69,12 @@ zxp-checksums.txt
 ```
 
 Keep `.p12` signing certificates under `certs/` or another ignored local path. These files include private keys and must not be committed or uploaded to GitHub release assets.
+
+CEP install fallback:
+
+```bash
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.15-alpha.0.zip
+npm run install:premiere-cep -- --zxp dist/zxp/creative-pipeline-mcp-premiere-cep.zxp
+```
+
+The fallback installer extracts the package, validates `CSXS/manifest.xml`, `index.html`, `js/main.js`, `jsx/host.jsx`, and `package.json`, then copies the extension into the local Adobe CEP extensions folder. This is useful when Adobe Extension Manager or UPI command-line installation is unavailable.

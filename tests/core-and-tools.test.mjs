@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createServer as createNetServer } from "node:net";
 import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -22,7 +23,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.14-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.15-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -334,15 +335,51 @@ test("Premiere CEP package script writes a verified unsigned package", async () 
   assert.equal(result.status, 0, result.stderr);
   const summary = JSON.parse(result.stdout);
   assert.equal(summary.ok, true);
-  assert.equal(summary.version, "0.2.14-alpha.0");
-  assert.equal(summary.cepVersion, "0.2.14");
-  assert.match(summary.package, /creative-pipeline-mcp-premiere-cep-panel-0\.2\.14-alpha\.0\.zip$/);
+  assert.equal(summary.version, "0.2.15-alpha.0");
+  assert.equal(summary.cepVersion, "0.2.15");
+  assert.match(summary.package, /creative-pipeline-mcp-premiere-cep-panel-0\.2\.15-alpha\.0\.zip$/);
   assert.ok(summary.checksums.endsWith("premiere-cep-checksums.txt"));
   const listing = spawnSync("unzip", ["-l", summary.package], { encoding: "utf8" });
   assert.equal(listing.status, 0, listing.stderr);
   assert.match(listing.stdout, /CSXS\/manifest\.xml/);
   assert.match(listing.stdout, /jsx\/host\.jsx/);
   assert.match(listing.stdout, /js\/main\.js/);
+});
+
+test("Premiere CEP install script installs from packaged zip", async () => {
+  const packageResult = spawnSync("node", ["scripts/package-premiere-cep.mjs", "--verify"], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(packageResult.status, 0, packageResult.stderr);
+  const summary = JSON.parse(packageResult.stdout);
+  const installRoot = await mkdtemp(join(tmpdir(), "creative-mcp-cep-install-"));
+  const target = join(installRoot, "panel");
+  const installResult = spawnSync("node", [
+    "scripts/install-premiere-cep.mjs",
+    "--package",
+    summary.package,
+    "--target",
+    target
+  ], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(installResult.status, 0, installResult.stderr);
+  assert.equal(existsSync(join(target, "CSXS", "manifest.xml")), true);
+  assert.equal(existsSync(join(target, "jsx", "host.jsx")), true);
+  assert.equal(existsSync(join(target, "js", "main.js")), true);
+  const uninstallResult = spawnSync("node", [
+    "scripts/install-premiere-cep.mjs",
+    "--uninstall",
+    "--target",
+    target
+  ], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(uninstallResult.status, 0, uninstallResult.stderr);
+  assert.equal(existsSync(target), false);
 });
 
 test("npm publish workflow is configured for guarded trusted publishing", async () => {
@@ -515,7 +552,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.14-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.15-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -527,7 +564,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.14-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.15-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -542,7 +579,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.14-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.15-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -557,7 +594,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.14-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.15-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,
