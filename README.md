@@ -2,7 +2,7 @@
 
 QC-first MCP pipeline for Blender asset workflows and Adobe Premiere media workflows.
 
-This repository implements the structure described in [MCP.md](./MCP.md):
+This repository implements a split creative pipeline architecture:
 
 - `creative-mcp-core`: tool registry, router, approval policy, artifact store, QC reports, license manifest
 - `blender-pro-mcp`: Blender/glTF asset inspection, preview artifacts, validation, optimization/export fallbacks
@@ -14,15 +14,19 @@ This repository implements the structure described in [MCP.md](./MCP.md):
 
 ## Status
 
-This is a production-shaped alpha scaffold. The QC-first path runs without Blender or Premiere installed:
+This is `0.1.0-alpha.0`. The QC-first path runs without Blender or Premiere installed:
 
 - GLB/glTF metadata inspection and asset QC
 - Media metadata QC through `ffprobe` when FFmpeg is installed
 - Artifact writing, logs, license manifest, and approval policy
+- server-side JSON Schema validation
+- workspace input allowlists for local file reads
+- pending approval artifacts for elevated tools
+- real CLI adapters when optional tools are installed: headless Blender preview, `gltf-transform`/`gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 
-Real Blender rendering, Premiere timeline mutation, WhisperX, PySceneDetect, pyloudnorm, VMAF, glTF-Transform, and GPL tools are intentionally external adapters.
+Premiere timeline mutation is queued through a trusted CEP file-based IPC adapter. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
 ## Install
 
@@ -30,6 +34,7 @@ Real Blender rendering, Premiere timeline mutation, WhisperX, PySceneDetect, pyl
 npm install
 npm run build
 npm test
+npm run check:adapters
 ```
 
 ## Run MCP Servers
@@ -59,10 +64,11 @@ Example Premiere QC call:
 ```
 
 Artifacts are written to `artifacts/` unless `CREATIVE_MCP_ARTIFACTS` is set.
+Input files must be under `CREATIVE_MCP_WORKSPACE_ROOTS`; by default that is the current working directory.
 
 ## Safety
 
-Default permission is `safe_write`. Tools marked `project_write`, `destructive`, or `admin` require a higher permission level:
+Default permission is `safe_write`. Tools marked `project_write`, `destructive`, or `admin` write a pending approval artifact unless a higher permission level is configured:
 
 ```bash
 CREATIVE_MCP_PERMISSION=project_write npm run start:premiere

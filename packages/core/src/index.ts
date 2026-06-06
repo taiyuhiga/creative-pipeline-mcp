@@ -6,6 +6,6 @@ export * from "./licenseManifest.js";
 export * from "./mcpServer.js";
 export * from "./qcReport.js";
 export * from "./router.js";
+export * from "./schemaValidator.js";
 export * from "./toolRegistry.js";
 export * from "./types.js";
-

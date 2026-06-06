@@ -51,6 +51,7 @@ export interface ArtifactStoreLike {
   writeText(relativePath: string, value: string): Promise<string>;
   writeBytes(relativePath: string, value: Uint8Array): Promise<string>;
   copyIn(sourcePath: string, relativePath: string): Promise<string>;
+  assertReadableFile(sourcePath: string): Promise<string>;
 }
 
 export interface ApprovalPolicyLike {

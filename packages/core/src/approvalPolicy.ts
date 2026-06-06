@@ -21,10 +21,18 @@ export class ApprovalPolicy {
 
   async assertAllowed(action: string, risk: ToolRisk): Promise<void> {
     if (permissionRank[this.permissionLevel] < riskRank[risk]) {
-      throw new Error(
-        `Approval required for ${action}; risk=${risk}, current_permission=${this.permissionLevel}`
-      );
+      throw new ApprovalRequiredError(action, risk, this.permissionLevel);
     }
+  }
+}
+
+export class ApprovalRequiredError extends Error {
+  constructor(
+    public readonly action: string,
+    public readonly risk: ToolRisk,
+    public readonly permissionLevel: PermissionLevel
+  ) {
+    super(`Approval required for ${action}; risk=${risk}, current_permission=${permissionLevel}`);
   }
 }
 
@@ -41,4 +49,3 @@ export function permissionFromEnv(): PermissionLevel {
   }
   return "safe_write";
 }
-

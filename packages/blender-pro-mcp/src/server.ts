@@ -1,5 +1,4 @@
 import { coreTools, McpServer } from "@creative-pipeline-mcp/core";
 import { blenderTools } from "./tools/assetTools.js";
 
-new McpServer("blender-pro-mcp", "1.0.0", [...coreTools, ...blenderTools]).runStdio();
-
+new McpServer("blender-pro-mcp", "0.1.0-alpha.0", [...coreTools, ...blenderTools]).runStdio();

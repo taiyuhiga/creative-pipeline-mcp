@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
+import { optimizeWithCli, renderWithHeadlessBlender } from "../adapters/cli.js";
 import { placeholderPng } from "../adapters/preview.js";
 import { artifactName, inspectAndReport, requirePath } from "./shared.js";
 
@@ -40,6 +41,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const manifest = { source: path, material: input.material ?? {}, adapter: "MaterialX_or_Blender_bridge" };
       const artifact = await context.artifactStore.writeJson(artifactName(path, "_material_apply_manifest.json"), manifest);
       return { ok: true, message: "Material application manifest written", artifacts: [artifact], data: manifest };
@@ -58,6 +60,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const manifest = {
         source: path,
         instructions: String(input.instructions ?? ""),
@@ -100,8 +103,9 @@ export const blenderTools: ToolDefinition[] = [
       required: ["path"],
       additionalProperties: false
     },
-    async execute(_context, input) {
+    async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       if (!existsSync(path)) {
         throw new Error(`Asset not found: ${path}`);
       }
@@ -150,6 +154,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const manifest = {
         source: path,
         outputs: ["asset.usd", "asset_manifest.json"],
@@ -173,6 +178,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const manifest = {
         source: path,
         look: String(input.look ?? "neutral_pbr"),
@@ -196,6 +202,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const plan = {
         source: path,
         animationBrief: String(input.animationBrief ?? ""),
@@ -222,6 +229,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const maxTriangles = typeof input.maxTriangles === "number" ? input.maxTriangles : 50000;
       const report = await inspectAndReport(path, maxTriangles);
       const artifact = await context.artifactStore.writeJson(artifactName(path, "_asset_qc_report.json"), report);
@@ -246,12 +254,22 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const artifact = await context.artifactStore.writeBytes(artifactName(path, "_preview.png"), placeholderPng());
+      const render = await renderWithHeadlessBlender(path, artifact);
+      if (render.available && !render.error) {
+        return {
+          ok: true,
+          message: "Headless Blender preview rendered",
+          artifacts: [artifact],
+          data: { renderer: "blender_headless", command: render.command }
+        };
+      }
       return {
         ok: true,
-        message: "Preview placeholder written; set an external Blender bridge for rendered previews",
+        message: "Preview placeholder written; Blender headless renderer unavailable",
         artifacts: [artifact],
-        data: { renderer: "placeholder", source: path }
+        data: { renderer: "placeholder", source: path, blender: render }
       };
     }
   },
@@ -268,13 +286,24 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const target = artifactName(path, "_optimized.glb");
-      const artifact = await context.artifactStore.copyIn(path, target);
+      const artifact = await context.artifactStore.writeBytes(target, new Uint8Array());
+      const optimized = await optimizeWithCli(path, artifact);
+      if (optimized.available && !optimized.error) {
+        return {
+          ok: true,
+          message: "Optimized artifact written with external glTF optimizer",
+          artifacts: [artifact],
+          data: { optimizer: optimized.command, source: path }
+        };
+      }
+      const fallback = await context.artifactStore.copyIn(path, target);
       return {
         ok: true,
-        message: "Optimized artifact written by copy fallback; configure glTF-Transform/gltfpack for real optimization",
-        artifacts: [artifact],
-        data: { optimizer: "copy_fallback", source: path }
+        message: "Optimized artifact written by copy fallback; glTF optimizer unavailable or failed",
+        artifacts: [fallback],
+        data: { optimizer: "copy_fallback", source: path, cli: optimized }
       };
     }
   },
@@ -294,6 +323,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const report = await inspectAndReport(path, typeof input.maxTriangles === "number" ? input.maxTriangles : 50000);
       const exported = await context.artifactStore.copyIn(path, artifactName(path, "_game_ready.glb"));
       const qc = await context.artifactStore.writeJson(artifactName(path, "_game_ready_qc.json"), report);
@@ -370,6 +400,7 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
       const report = await inspectAndReport(path);
       const plan = {
         source: basename(path),

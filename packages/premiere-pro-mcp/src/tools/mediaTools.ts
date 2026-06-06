@@ -2,8 +2,36 @@ import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
+import { extractThumbnail } from "../adapters/ffmpegQc.js";
+import { enqueuePremiereCommand } from "../adapters/premiereCep.js";
 
 export const premiereTools: ToolDefinition[] = [
+  {
+    name: "premiere.build_timeline_from_otio",
+    description: "Queue a Premiere CEP command to build a timeline from an OTIO plan.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: { otioPath: { type: "string" }, sequenceName: { type: "string" } },
+      required: ["otioPath"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const otioPath = String(input.otioPath ?? "");
+      await context.artifactStore.assertReadableFile(otioPath);
+      const queued = await enqueuePremiereCommand("build_timeline_from_otio", {
+        otioPath,
+        sequenceName: String(input.sequenceName ?? "Creative Pipeline Rough Cut")
+      });
+      return {
+        ok: true,
+        message: "Premiere CEP timeline command queued",
+        artifacts: [queued.path],
+        data: queued.command
+      };
+    }
+  },
   {
     name: "premiere.ingest_media",
     description: "Copy media into the artifact store and write an ingest manifest.",
@@ -17,6 +45,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const copy = await context.artifactStore.copyIn(path, `premiere/ingest/${basename(path)}`);
       const manifest = await context.artifactStore.writeJson(premiereArtifactName(path, "_ingest.json"), {
         source: path,
@@ -39,6 +68,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const probe = await probeMedia(path);
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_media_index.json"), probe);
       return {
@@ -60,13 +90,18 @@ export const premiereTools: ToolDefinition[] = [
         path: { type: "string" },
         targetWidth: { type: "number" },
         targetHeight: { type: "number" },
-        maxDuration: { type: "number" }
+        maxDuration: { type: "number" },
+        captionPath: { type: "string" }
       },
       required: ["path"],
       additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      if (typeof input.captionPath === "string") {
+        await context.artifactStore.assertReadableFile(input.captionPath);
+      }
       const report = await mediaQcReport(path, input);
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_delivery_qc_report.json"), report);
       return {
@@ -94,6 +129,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const probe = await probeMedia(path);
       const duration = Math.min(
         typeof input.targetDuration === "number" ? input.targetDuration : 60,
@@ -145,6 +181,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const text = typeof input.transcript === "string" && input.transcript.trim()
         ? input.transcript.trim()
         : "[ASR adapter required: configure WhisperX, faster-whisper, or whisper.cpp]";
@@ -169,6 +206,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const plan = {
         source: path,
         targetLufs: typeof input.targetLufs === "number" ? input.targetLufs : -14,
@@ -195,6 +233,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const plan = {
         source: path,
         preset: String(input.preset ?? "1080x1920_h264_social"),
@@ -219,6 +258,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const platforms = Array.isArray(input.platforms) ? input.platforms : ["youtube_shorts", "tiktok", "instagram_reels", "youtube_16x9"];
       const manifest = {
         source: path,
@@ -247,6 +287,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const manifest = {
         source: path,
         brand: input.brand ?? {},
@@ -270,6 +311,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const languages = Array.isArray(input.languages) ? input.languages : ["en", "ja"];
       const manifest = {
         source: path,
@@ -294,10 +336,15 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const count = typeof input.count === "number" ? input.count : 3;
+      const thumbnail = await context.artifactStore.writeBytes(premiereArtifactName(path, "_thumbnail_1.jpg"), new Uint8Array());
+      const extracted = await extractThumbnail(path, thumbnail);
       const plan = {
         source: path,
         count,
+        extractedThumbnail: extracted.available ? thumbnail : null,
+        extraction: extracted,
         candidates: Array.from({ length: count }, (_, index) => ({
           name: `thumbnail_variant_${index + 1}`,
           source: "scene_still_or_generated_background",
@@ -321,6 +368,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const plan = {
         source: path,
         targetDuration: typeof input.targetDuration === "number" ? input.targetDuration : 60,
@@ -344,6 +392,7 @@ export const premiereTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
       const report = await mediaQcReport(path, input);
       const plan = {
         source: path,

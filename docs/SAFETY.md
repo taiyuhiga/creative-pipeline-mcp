@@ -9,6 +9,8 @@ Permission levels:
 - `admin`: shell, plugin install, system settings
 
 Set the level with `CREATIVE_MCP_PERMISSION`. Default is `safe_write`.
+If a tool requires more permission than the current level, the router writes an approval request under `artifacts/approvals/pending/` instead of running the tool.
+
+Set readable input roots with `CREATIVE_MCP_WORKSPACE_ROOTS`. Multiple roots use the platform path delimiter (`:` on macOS/Linux, `;` on Windows). By default only the current working directory is readable.
 
 Always test against copies of production files.
-

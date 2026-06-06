@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/dashboard",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/server.js",
@@ -9,4 +9,3 @@
     "creative-mcp-dashboard": "dist/server.js"
   }
 }
-

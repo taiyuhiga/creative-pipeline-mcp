@@ -1,12 +1,14 @@
 {
   "name": "@creative-pipeline-mcp/core",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "creative-mcp-core": "dist/server.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
   }
 }
-

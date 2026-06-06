@@ -1,8 +1,11 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { basename, parse } from "node:path";
 import type { QcCheck } from "@creative-pipeline-mcp/core";
 import { buildQcReport, sha256File } from "@creative-pipeline-mcp/core";
 import { probeMedia } from "../adapters/ffprobe.js";
+import { runFfmpegQc } from "../adapters/ffmpegQc.js";
+import { countCaptionOverlaps, parseSrt } from "../adapters/srt.js";
 
 export function requireMediaPath(input: Record<string, unknown>): string {
   const path = input.path ?? input.mediaPath ?? input.sourcePath;
@@ -24,7 +27,10 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
   const targetWidth = typeof options.targetWidth === "number" ? options.targetWidth : undefined;
   const targetHeight = typeof options.targetHeight === "number" ? options.targetHeight : undefined;
   const maxDuration = typeof options.maxDuration === "number" ? options.maxDuration : undefined;
+  const captionPath = typeof options.captionPath === "string" ? options.captionPath : undefined;
   const probe = await probeMedia(path);
+  const ffmpegQc = await runFfmpegQc(path);
+  const captionOverlap = captionPath ? await countOverlaps(captionPath) : undefined;
   const checks: QcCheck[] = [
     {
       id: "probe.ffprobe_available",
@@ -74,23 +80,42 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
     },
     {
       id: "audio.loudness",
-      status: "warn",
-      message: "Integrated LUFS requires pyloudnorm or ffmpeg loudnorm pass; adapter is optional",
-      value: "external_adapter_required"
+      status: ffmpegQc.available && ffmpegQc.loudnessMeasured ? "pass" : "warn",
+      message: ffmpegQc.available
+        ? "FFmpeg loudnorm first pass completed"
+        : "Integrated LUFS requires ffmpeg loudnorm or pyloudnorm",
+      value: ffmpegQc.loudnessMeasured ?? "external_adapter_required"
     },
     {
       id: "video.black_frames",
-      status: "warn",
-      message: "Black frame detection requires ffmpeg blackdetect pass; adapter is optional",
-      value: "external_adapter_required"
+      status: ffmpegQc.available ? (ffmpegQc.blackFrames === 0 ? "pass" : "warn") : "warn",
+      message: ffmpegQc.available
+        ? `${ffmpegQc.blackFrames ?? 0} black frame events detected`
+        : "Black frame detection requires ffmpeg blackdetect",
+      value: ffmpegQc.blackFrames ?? "external_adapter_required"
+    },
+    {
+      id: "audio.silence_gaps",
+      status: ffmpegQc.available ? (ffmpegQc.silenceEvents === 0 ? "pass" : "warn") : "warn",
+      message: ffmpegQc.available
+        ? `${ffmpegQc.silenceEvents ?? 0} silence events detected`
+        : "Silence detection requires ffmpeg silencedetect",
+      value: ffmpegQc.silenceEvents ?? "external_adapter_required"
     },
     {
       id: "captions.overlap",
-      status: "not_applicable",
-      message: "No caption file supplied for overlap validation",
-      value: null
+      status: captionOverlap === undefined ? "not_applicable" : captionOverlap === 0 ? "pass" : "fail",
+      message:
+        captionOverlap === undefined
+          ? "No caption file supplied for overlap validation"
+          : `${captionOverlap} caption overlaps detected`,
+      value: captionOverlap ?? null
     }
   ];
-  return buildQcReport("media", path, checks, { sha256: await sha256File(path), probe });
+  return buildQcReport("media", path, checks, { sha256: await sha256File(path), probe, ffmpegQc });
 }
 
+async function countOverlaps(captionPath: string): Promise<number> {
+  const content = await readFile(captionPath, "utf8");
+  return countCaptionOverlaps(parseSrt(content));
+}

@@ -13,11 +13,15 @@
 - Phase 10 dashboard
 - Phase 11 public repository files
 - Phase 15 v2.0+ manifests for USD/MaterialX/engine profiles, brand packages, social variants, multilingual subtitles, thumbnails, podcast repurposing, Director Agent handoff, production report, and multi-agent review
+- server-side JSON Schema validation
+- artifact path traversal hardening
+- workspace input allowlist
+- pending approval artifact queue
+- headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
 
 ## External Adapter Work
 
-- real Blender bridge
-- real Premiere CEP panel
-- glTF-Transform/gltfpack integration
+- full live Blender bridge beyond headless CLI jobs
+- complete Premiere CEP panel implementation that consumes queued commands
 - WhisperX/PySceneDetect/pyloudnorm/VMAF integration
 - rendered dashboard previews
