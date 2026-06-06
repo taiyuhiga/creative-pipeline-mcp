@@ -22,6 +22,7 @@
 - adapter availability JSON report
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
 - Blender bridge queue/status adapter surface
+- Blender bridge worker process for queue draining, status writing, processed-command archival, and headless Blender script execution
 - Blender QC coverage for normals, primary UVs, material count, and texture slots
 - Blender optimization size metrics and safe generated Blender script artifacts
 - template-based Blender basic repair for scale, normals, triangulation, and GLB export
@@ -45,5 +46,4 @@
 
 ## External Adapter Work
 
-- full live Blender bridge process beyond file-based queue/status IPC
 - signed production Premiere CEP installer and project-specific timeline/export builders

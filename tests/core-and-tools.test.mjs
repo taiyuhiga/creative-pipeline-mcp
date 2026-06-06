@@ -22,7 +22,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.10-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -116,6 +116,43 @@ test("Blender bridge status tools read and await bridge records", async () => {
       process.env.CREATIVE_MCP_BLENDER_STATUS_DIR = previous;
     }
   }
+});
+
+test("Blender bridge worker drains queued commands and writes status", async () => {
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-worker-queue-"));
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-worker-status-"));
+  const command = {
+    id: "cmd-worker-1",
+    type: "create_asset",
+    payload: { prompt: "worker sample asset" },
+    createdAt: new Date().toISOString()
+  };
+  await writeFile(join(queueRoot, `${command.id}.json`), JSON.stringify(command), "utf8");
+  const result = spawnSync("node", [
+    "scripts/blender-bridge-worker.mjs",
+    "--once",
+    "--dry-run",
+    "--queue",
+    queueRoot,
+    "--status",
+    statusRoot
+  ], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const summary = JSON.parse(result.stdout);
+  assert.equal(summary.processed, 1);
+  const status = JSON.parse(await readFile(join(statusRoot, `${command.id}.json`), "utf8"));
+  assert.equal(status.schema, "creative.pipeline.blender.status.v1");
+  assert.equal(status.commandId, command.id);
+  assert.equal(status.commandType, "create_asset");
+  assert.equal(status.status, "success");
+  assert.equal(status.details.dryRun, true);
+  const remainingQueueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
+  assert.equal(remainingQueueFiles.length, 0);
+  const archived = (await readdir(join(queueRoot, "processed"))).filter((file) => file.endsWith(".json"));
+  assert.deepEqual(archived, [`${command.id}.json`]);
 });
 
 test("Premiere rough cut writes an OTIO plan even when ffprobe cannot parse the placeholder media", async () => {
@@ -325,7 +362,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.10-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -337,7 +374,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.10-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -352,7 +389,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.10-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -367,7 +404,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.9-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.10-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,
