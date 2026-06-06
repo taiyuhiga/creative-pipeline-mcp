@@ -4,8 +4,107 @@ import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail } from "../adapters/ffmpegQc.js";
 import { enqueuePremiereCommand } from "../adapters/premiereCep.js";
+import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
 
 export const premiereTools: ToolDefinition[] = [
+  {
+    name: "premiere.transcribe_media",
+    description: "Run WhisperX when available, otherwise write a transcription adapter manifest.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: { path: { type: "string" } },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const outputDir = `${context.artifactStore.root}/premiere/transcripts`;
+      const result = await runWhisperAdapter(path, outputDir);
+      const manifest = {
+        source: path,
+        adapter: "WhisperX",
+        outputDir,
+        result,
+        install: "pip install whisperx"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_transcription_adapter.json"), manifest);
+      return {
+        ok: result.available && !result.error,
+        message: result.available && !result.error ? "WhisperX transcription completed" : "WhisperX adapter manifest written",
+        artifacts: [artifact],
+        data: manifest
+      };
+    }
+  },
+  {
+    name: "premiere.detect_scenes",
+    description: "Run PySceneDetect when available, otherwise write a scene detection adapter manifest.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: { path: { type: "string" } },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const outputDir = `${context.artifactStore.root}/premiere/scenes`;
+      const result = await runSceneDetectAdapter(path, outputDir);
+      const manifest = {
+        source: path,
+        adapter: "PySceneDetect",
+        outputDir,
+        result,
+        install: "pip install scenedetect[opencv]"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_scene_detect_adapter.json"), manifest);
+      return {
+        ok: result.available && !result.error,
+        message: result.available && !result.error ? "PySceneDetect completed" : "PySceneDetect adapter manifest written",
+        artifacts: [artifact],
+        data: manifest
+      };
+    }
+  },
+  {
+    name: "premiere.measure_loudness",
+    description: "Run pyloudnorm when available, otherwise write a loudness adapter manifest.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: { path: { type: "string" } },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const output = await context.artifactStore.writeJson(premiereArtifactName(path, "_pyloudnorm_result.json"), {
+        status: "pending"
+      });
+      const result = await runPyloudnormAdapter(path, output);
+      const manifest = {
+        source: path,
+        adapter: "pyloudnorm",
+        output,
+        result,
+        install: "pip install pyloudnorm soundfile"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_loudness_adapter.json"), manifest);
+      return {
+        ok: result.available && !result.error,
+        message: result.available && !result.error ? "pyloudnorm measurement completed" : "pyloudnorm adapter manifest written",
+        artifacts: [artifact, output],
+        data: manifest
+      };
+    }
+  },
   {
     name: "premiere.build_timeline_from_otio",
     description: "Queue a Premiere CEP command to build a timeline from an OTIO plan.",

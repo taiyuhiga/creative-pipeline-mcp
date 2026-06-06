@@ -8,7 +8,9 @@ Creative Pipeline MCP is split into small packages:
 - `premiere-cep-panel`: minimal CEP panel scaffold for file-based Premiere IPC commands
 - `blender-gpl-adapters`: optional GPL process-boundary manifests
 - `premiere-windows-adapter`: CEP/WebSocket reference checks for Windows
-- `dashboard`: artifact and QC report viewer
+- `dashboard`: artifact, QC report, and approval queue viewer
+
+The dashboard reads `artifacts/approvals/pending` and resolves approve/reject decisions into `artifacts/approvals/resolved`.
 
 The public tool surface stays small. Low-level OSS integrations are adapter capabilities selected behind macro tools.
 

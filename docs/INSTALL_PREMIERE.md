@@ -14,3 +14,10 @@ Recommended external tools:
 - Auto-Editor
 - pyloudnorm
 - VMAF
+
+MCP tools:
+
+- `premiere.transcribe_media`: uses WhisperX when available, otherwise writes an adapter manifest
+- `premiere.detect_scenes`: uses PySceneDetect when available, otherwise writes an adapter manifest
+- `premiere.measure_loudness`: uses pyloudnorm when available, otherwise writes an adapter manifest
+- `premiere.build_timeline_from_otio`: writes a CEP queue command for the panel scaffold

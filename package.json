@@ -1,6 +1,6 @@
 {
   "name": "creative-pipeline-mcp",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.1-alpha.0",
   "private": false,
   "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
   "license": "Apache-2.0",
@@ -8,10 +8,44 @@
   "workspaces": [
     "packages/*"
   ],
+  "files": [
+    "packages/*/dist/**",
+    "packages/*/src/**",
+    "packages/*/package.json",
+    "packages/premiere-cep-panel/CSXS",
+    "packages/premiere-cep-panel/index.html",
+    "packages/premiere-cep-panel/js",
+    "packages/premiere-cep-panel/jsx",
+    "packages/premiere-cep-panel/README.md",
+    "docs",
+    "examples",
+    "scripts",
+    "third_party_licenses",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "SECURITY.md"
+  ],
+  "bin": {
+    "creative-mcp-core": "packages/core/dist/server.js",
+    "blender-pro-mcp": "packages/blender-pro-mcp/dist/server.js",
+    "premiere-pro-mcp": "packages/premiere-pro-mcp/dist/server.js",
+    "creative-pipeline-director": "packages/director-agent/dist/server.js",
+    "creative-mcp-dashboard": "packages/dashboard/dist/server.js"
+  },
+  "exports": {
+    "./core": "./packages/core/dist/index.js",
+    "./blender": "./packages/blender-pro-mcp/dist/index.js",
+    "./premiere": "./packages/premiere-pro-mcp/dist/index.js",
+    "./director": "./packages/director-agent/dist/index.js",
+    "./blender-gpl-adapters": "./packages/blender-gpl-adapters/dist/index.js",
+    "./premiere-windows-adapter": "./packages/premiere-windows-adapter/dist/index.js"
+  },
   "scripts": {
     "build": "tsc -b packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
     "clean": "tsc -b --clean packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
     "test": "npm run build && node --test tests/*.mjs",
+    "prepack": "npm run build",
     "check:adapters": "node scripts/check-adapters.mjs",
     "start:core": "node packages/core/dist/server.js",
     "start:blender": "node packages/blender-pro-mcp/dist/server.js",

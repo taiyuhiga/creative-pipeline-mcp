@@ -22,8 +22,17 @@
       var command = JSON.parse(fs.readFileSync(fullPath, "utf8"));
       cs.evalScript("CreativePipelineMCP.dispatch(" + JSON.stringify(JSON.stringify(command)) + ")", function (result) {
         append(file + ": " + result);
+        var statusDir = path.join(path.dirname(dir), "cep_status");
+        if (!fs.existsSync(statusDir)) {
+          fs.mkdirSync(statusDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(statusDir, file), JSON.stringify({
+          command: command,
+          result: result,
+          processedAt: new Date().toISOString()
+        }, null, 2));
+        fs.renameSync(fullPath, path.join(dir, file + ".processed"));
       });
     });
   });
 })();
-

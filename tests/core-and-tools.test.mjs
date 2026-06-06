@@ -20,9 +20,16 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "1.0.0", blenderTools);
+  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
+});
+
+test("Premiere tool surface includes optional real adapter tools", async () => {
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.transcribe_media"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.detect_scenes"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.measure_loudness"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_timeline_from_otio"));
 });
 
 test("Blender asset QC writes a report", async () => {
@@ -51,6 +58,17 @@ test("Premiere rough cut writes an OTIO plan even when ffprobe cannot parse the 
   assert.equal(result.artifacts.length, 1);
 });
 
+test("Premiere optional adapter tool writes a manifest", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-media-"));
+  const mediaPath = join(mediaRoot, "placeholder.mp4");
+  await writeFile(mediaPath, new Uint8Array([0]));
+  const tool = premiereTools.find((candidate) => candidate.name === "premiere.transcribe_media");
+  assert.ok(tool);
+  const result = await tool.execute(await context(mediaRoot), { path: mediaPath });
+  assert.equal(result.artifacts.length, 1);
+  assert.match(result.message, /transcription|adapter manifest/i);
+});
+
 test("ArtifactStore blocks artifact path traversal", async () => {
   const store = new ArtifactStore(await mkdtemp(join(tmpdir(), "creative-mcp-artifacts-")));
   await assert.rejects(() => store.writeText("../outside.txt", "nope"), /Unsafe artifact path/);
@@ -64,7 +82,7 @@ test("ArtifactStore blocks input files outside workspace roots", async () => {
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "1.0.0", blenderTools);
+  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -76,7 +94,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "1.0.0", blenderTools);
+  const server = new McpServer("test", "0.1.1-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

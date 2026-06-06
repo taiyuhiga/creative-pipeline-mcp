@@ -18,11 +18,14 @@
 - workspace input allowlist
 - pending approval artifact queue
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
-- minimal Premiere CEP panel scaffold
+- Blender GLB e2e sample
+- optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
+- Dashboard approval queue UI
+- Premiere CEP panel MVP for OTIO media import, sequence creation attempts, clip insertion attempts, and status JSON
 
 ## External Adapter Work
 
 - full live Blender bridge beyond headless CLI jobs
 - signed production Premiere CEP installer and project-specific timeline builders
-- WhisperX/PySceneDetect/pyloudnorm/VMAF integration
+- VMAF integration
 - rendered dashboard previews
