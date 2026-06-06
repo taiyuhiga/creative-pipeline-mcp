@@ -1,0 +1,9 @@
+{
+  "name": "@creative-pipeline-mcp/premiere-cep-panel",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": true,
+  "description": "Minimal CEP panel scaffold for consuming Creative Pipeline MCP Premiere IPC commands."
+}
+

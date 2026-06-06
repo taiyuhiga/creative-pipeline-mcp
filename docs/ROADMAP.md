@@ -18,10 +18,11 @@
 - workspace input allowlist
 - pending approval artifact queue
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
+- minimal Premiere CEP panel scaffold
 
 ## External Adapter Work
 
 - full live Blender bridge beyond headless CLI jobs
-- complete Premiere CEP panel implementation that consumes queued commands
+- signed production Premiere CEP installer and project-specific timeline builders
 - WhisperX/PySceneDetect/pyloudnorm/VMAF integration
 - rendered dashboard previews

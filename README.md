@@ -9,6 +9,7 @@ This repository implements a split creative pipeline architecture:
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
 - `premiere-windows-adapter`: Windows CEP/WebSocket reference guardrails
+- `premiere-cep-panel`: minimal CEP panel scaffold for consuming Premiere IPC commands
 - `director-agent`: production planning, Blender to Premiere handoff, full production reports, multi-agent review
 - `dashboard`: local artifact/QC report viewer
 
@@ -22,11 +23,11 @@ This is `0.1.0-alpha.0`. The QC-first path runs without Blender or Premiere inst
 - server-side JSON Schema validation
 - workspace input allowlists for local file reads
 - pending approval artifacts for elevated tools
-- real CLI adapters when optional tools are installed: headless Blender preview, `gltf-transform`/`gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction
+- real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 
-Premiere timeline mutation is queued through a trusted CEP file-based IPC adapter. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
+Premiere timeline mutation is queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
 ## Install
 

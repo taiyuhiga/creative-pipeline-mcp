@@ -20,7 +20,8 @@
     "start:dashboard": "node packages/dashboard/dist/server.js"
   },
   "dependencies": {
-    "ajv": "^8.17.1"
+    "@gltf-transform/cli": "4.3.0",
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
@@ -28,8 +29,5 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "ajv": "^8.20.0"
   }
 }
