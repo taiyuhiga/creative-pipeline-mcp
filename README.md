@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.7-alpha.0`
+Current version: `0.2.8-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -32,7 +32,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - Blender optimization size comparison metrics and safe generated Blender script artifacts for game asset jobs
 - template-based basic Blender repair for GLB/glTF assets when Blender is installed
 - optional WhisperX, PySceneDetect, pyloudnorm, and VMAF adapter tools
-- Dashboard approval queue UI
+- Dashboard approval queue UI, artifact previews, and job history
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
 - approval-to-rerun flow in the dashboard for approved elevated tool requests
 - Premiere CEP status reader
@@ -54,7 +54,7 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Premiere media QC | Working when FFmpeg is installed |
 | Premiere VMAF scoring | Working when FFmpeg includes `libvmaf` |
 | Adapter availability report | Working with text and JSON output |
-| Dashboard approvals | Localhost-only, token-protected alpha |
+| Dashboard approvals/previews | Localhost-only, token-protected alpha |
 | Premiere timeline creation | CEP scaffold |
 | Premiere final export | Alpha queue command |
 | Full professional editing | Not v1 complete |

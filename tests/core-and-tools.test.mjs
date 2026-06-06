@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer as createNetServer } from "node:net";
 import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -21,7 +22,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -269,7 +270,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -281,7 +282,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -296,7 +297,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -311,7 +312,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.7-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.8-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,
@@ -346,3 +347,74 @@ test("Director agent writes a production plan", async () => {
   assert.equal(result.ok, true);
   assert.equal(result.artifacts.length, 1);
 });
+
+test("Dashboard exposes token-protected artifacts and job history APIs", async () => {
+  const artifactRoot = await mkdtemp(join(tmpdir(), "creative-mcp-dashboard-"));
+  await mkdir(join(artifactRoot, "logs"), { recursive: true });
+  await mkdir(join(artifactRoot, "premiere", "cep_status"), { recursive: true });
+  await writeFile(join(artifactRoot, "report.json"), JSON.stringify({ summary: { status: "pass" } }), "utf8");
+  await writeFile(join(artifactRoot, "logs", "tool.json"), JSON.stringify({ action: "core.write_run_log", status: "success" }), "utf8");
+  await writeFile(join(artifactRoot, "premiere", "cep_status", "cmd.json"), JSON.stringify({
+    schema: "creative.pipeline.premiere.status.v1",
+    commandId: "cmd",
+    commandType: "export_sequence",
+    status: "success",
+    message: "done",
+    details: {}
+  }), "utf8");
+  const port = await getFreePort();
+  const child = spawn("node", ["packages/dashboard/dist/server.js"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      PORT: String(port),
+      CREATIVE_MCP_ARTIFACTS: artifactRoot,
+      CREATIVE_MCP_DASHBOARD_TOKEN: "secret"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  const exit = new Promise((resolveExit) => child.once("exit", resolveExit));
+  try {
+    await waitForDashboard(port);
+    const unauthorized = await fetch(`http://127.0.0.1:${port}/api/artifacts`);
+    assert.equal(unauthorized.status, 401);
+    const headers = { "x-creative-mcp-dashboard-token": "secret" };
+    const artifactsResponse = await fetch(`http://127.0.0.1:${port}/api/artifacts`, { headers });
+    assert.equal(artifactsResponse.status, 200);
+    const artifacts = await artifactsResponse.json();
+    assert.ok(artifacts.artifacts.some((artifact) => artifact.relativePath === "report.json"));
+    const jobsResponse = await fetch(`http://127.0.0.1:${port}/api/jobs`, { headers });
+    assert.equal(jobsResponse.status, 200);
+    const jobs = await jobsResponse.json();
+    assert.ok(jobs.jobs.some((job) => job.kind === "log"));
+    assert.ok(jobs.jobs.some((job) => job.kind === "cep_status"));
+  } finally {
+    child.kill();
+    await Promise.race([exit, new Promise((resolveDelay) => setTimeout(resolveDelay, 1000))]);
+  }
+});
+
+async function getFreePort() {
+  return new Promise((resolvePort) => {
+    const server = createNetServer();
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      const port = typeof address === "object" && address ? address.port : 0;
+      server.close(() => resolvePort(port));
+    });
+  });
+}
+
+async function waitForDashboard(port) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/jobs`);
+      if (response.status === 401) {
+        return;
+      }
+    } catch {
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+    }
+  }
+  throw new Error("Dashboard did not start");
+}
