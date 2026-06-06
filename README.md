@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.13-alpha.0`
+Current version: `0.2.14-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -36,6 +36,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - Dashboard approval queue UI, artifact previews, and job history
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
 - Premiere project-specific delivery builder for timeline, brand package, export plan, and CEP queue generation
+- Premiere CEP host simulator for queue/status validation without a live Premiere runtime
 - Premiere CEP unsigned package generation and optional ZXP signing hook
 - approval-to-rerun flow in the dashboard for approved elevated tool requests
 - Premiere CEP status reader
@@ -100,6 +101,7 @@ Premiere media QC / CEP queue sample:
 npm run build
 node examples/premiere-qc-e2e.mjs
 node examples/premiere-project-delivery.mjs
+npm run simulate:premiere-cep -- --queue artifacts/examples/premiere-project-delivery/cep_queue --status artifacts/examples/premiere-project-delivery/cep_status
 ```
 
 Typical artifacts:

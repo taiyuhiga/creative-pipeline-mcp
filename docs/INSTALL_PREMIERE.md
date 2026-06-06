@@ -35,10 +35,19 @@ Generated sample:
 npm run build
 node examples/premiere-qc-e2e.mjs
 node examples/premiere-project-delivery.mjs
+npm run simulate:premiere-cep -- --queue artifacts/examples/premiere-project-delivery/cep_queue --status artifacts/examples/premiere-project-delivery/cep_status
 ```
 
 For a real Premiere project walkthrough, see `docs/PREMIERE_E2E_TEST.md`.
 For CEP status records, see `docs/CEP_STATUS_SCHEMA.md`.
+
+CEP simulator:
+
+```bash
+npm run simulate:premiere-cep -- --queue artifacts/premiere/cep_queue --status artifacts/premiere/cep_status
+```
+
+The simulator loads `packages/premiere-cep-panel/jsx/host.jsx` into a Node VM with a fake Premiere app, dispatches queued commands through the same host functions, writes normalized status JSON, and archives processed command files. It is not a replacement for a real Premiere run, but it verifies host-side command parsing, OTIO clip collection, sequence creation, brand package status, export status, and queue/status file behavior before live testing.
 
 CEP packaging:
 

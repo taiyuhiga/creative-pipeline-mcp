@@ -1,12 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const root = process.cwd();
 const mediaDir = resolve(root, "artifacts", "examples", "premiere-project-delivery");
 const queueDir = resolve(root, "artifacts", "examples", "premiere-project-delivery", "cep_queue");
+const statusDir = resolve(root, "artifacts", "examples", "premiere-project-delivery", "cep_status");
+rmSync(queueDir, { recursive: true, force: true });
+rmSync(statusDir, { recursive: true, force: true });
 mkdirSync(mediaDir, { recursive: true });
 mkdirSync(queueDir, { recursive: true });
+mkdirSync(statusDir, { recursive: true });
 
 const mediaPath = join(mediaDir, "source.mp4");
 writeFileSync(mediaPath, new Uint8Array([0]));
@@ -27,6 +31,13 @@ callTool("premiere.build_project_delivery", {
   CREATIVE_MCP_PREMIERE_IPC_DIR: queueDir,
   CREATIVE_MCP_WORKSPACE_ROOTS: root
 });
+run("node", [
+  "scripts/simulate-premiere-cep.mjs",
+  "--queue",
+  queueDir,
+  "--status",
+  statusDir
+]);
 
 function callTool(name, args, extraEnv = {}) {
   const request = JSON.stringify({
@@ -50,4 +61,12 @@ function callTool(name, args, extraEnv = {}) {
     throw new Error(`Tool returned not ok: ${name}`);
   }
   return response.result;
+}
+
+function run(command, args) {
+  const result = spawnSync(command, args, { cwd: root, encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || `${command} failed`);
+  }
+  process.stdout.write(result.stdout);
 }

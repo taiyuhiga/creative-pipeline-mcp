@@ -36,6 +36,7 @@
 - Premiere CEP status polling and export delivery QC finalization
 - generated-MP4 Premiere QC/CEP queue e2e sample
 - Premiere project-specific delivery builder for template, OTIO timeline, brand package, export plan, and CEP command queue generation
+- Premiere CEP host simulator for queue draining, host.jsx dispatch, status writing, processed-command archival, and project-delivery preflight validation
 - split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
 - dashboard and Premiere real-project e2e docs
 - release asset generation script and npm publish readiness docs
@@ -49,4 +50,4 @@
 
 ## External Adapter Work
 
-- project certificate-backed signed Premiere CEP installer and live project-specific Premiere validation
+- project certificate-backed signed Premiere CEP installer and live Premiere runtime validation
