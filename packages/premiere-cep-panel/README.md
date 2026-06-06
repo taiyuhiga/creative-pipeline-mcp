@@ -6,4 +6,16 @@ Install the folder as a CEP extension during development, open the panel in Prem
 
 The host script is intentionally conservative: it validates command types and creates/logs sequence/export/brand requests without allowing arbitrary ExtendScript.
 
-This scaffold is not a signed production installer.
+Create a distributable unsigned package from the repository root:
+
+```bash
+npm run package:premiere-cep -- --verify
+```
+
+The package script validates required files, manifest id/version, and ZIP integrity. If Adobe `ZXPSignCmd` and signing credentials are available, sign a ZXP with:
+
+```bash
+ZXPSIGNCMD_BIN=/path/to/ZXPSignCmd CEP_SIGN_CERT=/path/to/cert.p12 CEP_SIGN_PASSWORD=secret npm run package:premiere-cep -- --sign
+```
+
+The scaffold can be signed and packaged, but production deployment still depends on the project's Adobe extension signing certificate and installer policy.

@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.10-alpha.0`
+Current version: `0.2.11-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -35,6 +35,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - optional WhisperX, PySceneDetect, pyloudnorm, and VMAF adapter tools
 - Dashboard approval queue UI, artifact previews, and job history
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
+- Premiere CEP unsigned package generation and optional ZXP signing hook
 - approval-to-rerun flow in the dashboard for approved elevated tool requests
 - Premiere CEP status reader
 - Blender and generated-MP4 Premiere e2e examples
@@ -133,6 +134,7 @@ Premiere CEP panel scaffold:
 
 ```bash
 npm run install:premiere-cep
+npm run package:premiere-cep -- --verify
 ```
 
 Release assets:

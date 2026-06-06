@@ -42,8 +42,9 @@
 - strict public top-level tool schemas with enum and length guards
 - API tool list and compatibility matrix docs
 - Premiere CEP development install/uninstall script
+- Premiere CEP unsigned package generation, manifest validation, checksum output, ZIP verification, and optional ZXP signing hook
 - Premiere CEP queue watcher UI for selected/all pending commands
 
 ## External Adapter Work
 
-- signed production Premiere CEP installer and project-specific timeline/export builders
+- project certificate-backed signed Premiere CEP installer and project-specific timeline/export builders

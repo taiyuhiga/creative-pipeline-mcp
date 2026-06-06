@@ -7,6 +7,7 @@ npm test
 npm run check:adapters -- --json
 node examples/blender-e2e.mjs
 node examples/premiere-qc-e2e.mjs
+npm run package:premiere-cep -- --verify
 npm pack --dry-run
 ```
 
@@ -25,6 +26,9 @@ dist/release/
   creative-pipeline-mcp-<version>.tgz
   creative-pipeline-mcp-example-artifacts-<version>.zip
   checksums.txt
+dist/premiere-cep/
+  creative-pipeline-mcp-premiere-cep-panel-<version>.zip
+  premiere-cep-checksums.txt
 ```
 
 Upload:

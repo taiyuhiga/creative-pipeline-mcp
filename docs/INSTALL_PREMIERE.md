@@ -37,3 +37,15 @@ node examples/premiere-qc-e2e.mjs
 
 For a real Premiere project walkthrough, see `docs/PREMIERE_E2E_TEST.md`.
 For CEP status records, see `docs/CEP_STATUS_SCHEMA.md`.
+
+CEP packaging:
+
+```bash
+npm run package:premiere-cep -- --verify
+```
+
+This writes an unsigned package and checksums under `dist/premiere-cep`. To produce a signed ZXP, install Adobe `ZXPSignCmd` and provide a project signing certificate:
+
+```bash
+ZXPSIGNCMD_BIN=/path/to/ZXPSignCmd CEP_SIGN_CERT=/path/to/cert.p12 CEP_SIGN_PASSWORD=secret npm run package:premiere-cep -- --sign
+```
