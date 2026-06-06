@@ -16,10 +16,14 @@
 - server-side JSON Schema validation
 - artifact path traversal hardening
 - workspace input allowlist
+- symlink realpath escape rejection by default
 - pending approval artifact queue
+- Dashboard localhost bind and token-protected API
+- adapter availability JSON report
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
 - Blender QC coverage for normals, primary UVs, material count, and texture slots
 - Blender optimization size metrics and safe generated Blender script artifacts
+- template-based Blender basic repair for scale, normals, triangulation, and GLB export
 - Blender GLB e2e sample
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
@@ -27,7 +31,8 @@
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
 - generated-MP4 Premiere QC/CEP queue e2e sample
-- CI adapter check, Node.js 20/22/24 matrix, and optional Blender e2e execution when Blender is present
+- split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
+- dashboard and Premiere real-project e2e docs
 
 ## External Adapter Work
 

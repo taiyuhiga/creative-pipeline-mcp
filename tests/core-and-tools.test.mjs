@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -20,7 +21,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.2-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -35,6 +36,7 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
 test("Blender asset QC writes a report", async () => {
   const tool = blenderTools.find((candidate) => candidate.name === "blender.validate_asset");
   assert.ok(tool);
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.repair_basic_asset"));
   const result = await tool.execute(await context(), {
     path: resolve("examples/minimal.gltf"),
     maxTriangles: 10
@@ -154,8 +156,29 @@ test("ArtifactStore blocks input files outside workspace roots", async () => {
   await assert.rejects(() => store.assertReadableFile(outside), /outside CREATIVE_MCP_WORKSPACE_ROOTS/);
 });
 
+test("ArtifactStore blocks symlinks that resolve outside workspace roots by default", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "creative-mcp-workspace-"));
+  const outside = await mkdtemp(join(tmpdir(), "creative-mcp-outside-"));
+  const outsideFile = join(outside, "secret.txt");
+  const linkPath = join(workspace, "linked-secret.txt");
+  await writeFile(outsideFile, "secret");
+  await symlink(outsideFile, linkPath);
+  const previous = process.env.CREATIVE_MCP_ALLOW_SYMLINKS;
+  delete process.env.CREATIVE_MCP_ALLOW_SYMLINKS;
+  try {
+    const store = new ArtifactStore(await mkdtemp(join(tmpdir(), "creative-mcp-artifacts-")), workspace);
+    await assert.rejects(() => store.assertReadableFile(linkPath), /resolves outside CREATIVE_MCP_WORKSPACE_ROOTS/);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_ALLOW_SYMLINKS;
+    } else {
+      process.env.CREATIVE_MCP_ALLOW_SYMLINKS = previous;
+    }
+  }
+});
+
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.2-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -167,7 +190,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.1-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.2-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,
@@ -177,6 +200,22 @@ test("Router writes approval request for project_write tools", async () => {
   assert.equal(result.structuredContent.ok, false);
   assert.match(result.structuredContent.message, /Approval request written/);
   assert.equal(result.structuredContent.artifacts.length, 1);
+  assert.match(result.structuredContent.data.approvalToken, /^[0-9a-f-]{36}$/);
+  assert.ok(result.structuredContent.data.expiresAt);
+  assert.ok(result.structuredContent.data.artifactRoot);
+  assert.ok(Array.isArray(result.structuredContent.data.workspaceRoots));
+});
+
+test("MCP stdio returns JSON-RPC method-not-found errors", () => {
+  const child = spawnSync("node", ["packages/core/dist/server.js"], {
+    input: '{"jsonrpc":"2.0","id":9,"method":"missing/method"}\n',
+    encoding: "utf8",
+    timeout: 5000
+  });
+  assert.equal(child.status, 0);
+  const response = JSON.parse(child.stdout.trim());
+  assert.equal(response.id, 9);
+  assert.equal(response.error.code, -32601);
 });
 
 test("Director agent writes a production plan", async () => {

@@ -13,6 +13,12 @@ interface JsonRpcRequest {
   params?: Record<string, unknown>;
 }
 
+class JsonRpcError extends Error {
+  constructor(public readonly code: number, message: string) {
+    super(message);
+  }
+}
+
 export class McpServer {
   private readonly registry = new ToolRegistry();
   private readonly router = new Router(this.registry);
@@ -37,6 +43,9 @@ export class McpServer {
   }
 
   async handle(request: JsonRpcRequest): Promise<unknown> {
+    if (!isRecord(request) || request.jsonrpc !== undefined && request.jsonrpc !== "2.0" || typeof request.method !== "string") {
+      throw new JsonRpcError(-32600, "Invalid JSON-RPC request");
+    }
     if (request.method === "initialize") {
       return {
         protocolVersion: "2025-06-18",
@@ -58,15 +67,29 @@ export class McpServer {
     }
     if (request.method === "tools/call") {
       const params = request.params ?? {};
+      if (!isRecord(params) || typeof params.name !== "string") {
+        throw new JsonRpcError(-32602, "tools/call requires params.name");
+      }
       const name = String(params.name ?? "");
       const input = (params.arguments ?? {}) as Record<string, unknown>;
-      const result = await this.router.run(name, this.context, input);
+      if (!isRecord(input)) {
+        throw new JsonRpcError(-32602, "tools/call params.arguments must be an object");
+      }
+      let result;
+      try {
+        result = await this.router.run(name, this.context, input);
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Unknown tool:")) {
+          throw new JsonRpcError(-32602, error.message);
+        }
+        throw error;
+      }
       return {
         content: [{ type: "text", text: result.message }],
         structuredContent: result
       };
     }
-    throw new Error(`Unsupported method: ${request.method}`);
+    throw new JsonRpcError(-32601, `Method not found: ${request.method}`);
   }
 
   runStdio(): void {
@@ -82,18 +105,27 @@ export class McpServer {
   private async respond(line: string): Promise<void> {
     let request: JsonRpcRequest | undefined;
     try {
-      request = JSON.parse(line) as JsonRpcRequest;
+      try {
+        request = JSON.parse(line) as JsonRpcRequest;
+      } catch (error) {
+        throw new JsonRpcError(-32700, error instanceof Error ? error.message : String(error));
+      }
       const result = await this.handle(request);
       process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id ?? null, result })}\n`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const code = error instanceof JsonRpcError ? error.code : -32000;
       process.stdout.write(
         `${JSON.stringify({
           jsonrpc: "2.0",
           id: request?.id ?? null,
-          error: { code: -32000, message }
+          error: { code, message }
         })}\n`
       );
     }
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

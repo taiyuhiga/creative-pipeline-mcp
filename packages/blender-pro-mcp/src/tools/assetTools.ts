@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
-import { optimizeWithCli, renderWithHeadlessBlender } from "../adapters/cli.js";
+import { optimizeWithCli, renderWithHeadlessBlender, runHeadlessBlenderScript } from "../adapters/cli.js";
 import { placeholderPng } from "../adapters/preview.js";
 import { artifactName, inspectAndReport, requirePath } from "./shared.js";
 
@@ -438,6 +438,54 @@ export const blenderTools: ToolDefinition[] = [
       );
       return { ok: true, message: "Asset repair plan written", artifacts: [artifact], data: plan };
     }
+  },
+  {
+    name: "blender.repair_basic_asset",
+    description: "Run a template-based Blender repair pass for scale, normals, triangulation, and GLB export.",
+    category: "blender",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        maxTriangles: { type: "number" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const repairedTarget = artifactName(path, "_repaired.glb");
+      const repaired = `${context.artifactStore.root}/${repairedTarget}`;
+      const scriptText = repairBasicAssetScript(path, repaired);
+      const script = await context.artifactStore.writeText(artifactName(path, "_repair_basic.py"), scriptText);
+      const run = await runHeadlessBlenderScript(scriptText);
+      if (!run.available || run.error) {
+        return {
+          ok: false,
+          message: "Basic repair script written; headless Blender repair was not completed",
+          artifacts: [script],
+          data: { blender: run }
+        };
+      }
+      if (!existsSync(repaired)) {
+        return {
+          ok: false,
+          message: "Basic repair script ran but did not produce a repaired GLB",
+          artifacts: [script],
+          data: { blender: run, expectedOutput: repaired }
+        };
+      }
+      const report = await inspectAndReport(repaired, typeof input.maxTriangles === "number" ? input.maxTriangles : 50000);
+      const qc = await context.artifactStore.writeJson(artifactName(path, "_repaired_qc.json"), report);
+      return {
+        ok: report.summary.status !== "fail",
+        message: `Basic Blender repair completed: ${report.summary.status}`,
+        artifacts: [script, repaired, qc],
+        data: { blender: run, qc: report }
+      };
+    }
   }
 ];
 
@@ -460,5 +508,41 @@ mat.use_nodes = True
 asset.data.materials.append(mat)
 
 bpy.ops.export_scene.gltf(filepath=${JSON.stringify(`${name}.glb`)}, export_format="GLB")
+`;
+}
+
+function repairBasicAssetScript(source: string, target: string): string {
+  return `import bpy
+
+source = ${JSON.stringify(source)}
+target = ${JSON.stringify(target)}
+
+bpy.ops.object.select_all(action="SELECT")
+bpy.ops.object.delete()
+
+if source.lower().endswith((".glb", ".gltf")):
+    bpy.ops.import_scene.gltf(filepath=source)
+else:
+    raise RuntimeError("repair_basic_asset supports .glb and .gltf inputs")
+
+for obj in list(bpy.context.scene.objects):
+    if obj.type != "MESH":
+        continue
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    try:
+        bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
+    except Exception:
+        pass
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    modifier = obj.modifiers.new(name="CreativePipelineTriangulate", type="TRIANGULATE")
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+bpy.ops.export_scene.gltf(filepath=target, export_format="GLB")
 `;
 }

@@ -47,6 +47,7 @@ export interface ToolDefinition {
 
 export interface ArtifactStoreLike {
   root: string;
+  workspaceRoots?: string[];
   writeJson(relativePath: string, value: unknown): Promise<string>;
   writeText(relativePath: string, value: string): Promise<string>;
   writeBytes(relativePath: string, value: Uint8Array): Promise<string>;

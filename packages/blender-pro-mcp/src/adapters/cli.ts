@@ -104,6 +104,23 @@ bpy.ops.render.render(write_still=True)
   }
 }
 
+export async function runHeadlessBlenderScript(script: string): Promise<CliResult> {
+  const blender = process.env.BLENDER_BIN ?? "blender";
+  const blenderCommand = resolveCommand(blender);
+  if (!(await commandExists(blender))) {
+    return { available: false, command: blenderCommand, error: "Blender executable not found" };
+  }
+  const tempDir = await mkdtemp(join(tmpdir(), "creative-mcp-blender-"));
+  const scriptPath = join(tempDir, "script.py");
+  await writeFile(scriptPath, script, "utf8");
+  try {
+    const { stdout, stderr } = await execFileAsync(blenderCommand, ["--background", "--factory-startup", "--python", scriptPath]);
+    return { available: true, command: blenderCommand, stdout, stderr };
+  } catch (error) {
+    return { available: true, command: blenderCommand, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 function resolveCommand(command: string): string {
   if (command.includes("/") || command.includes("\\")) {
     return command;

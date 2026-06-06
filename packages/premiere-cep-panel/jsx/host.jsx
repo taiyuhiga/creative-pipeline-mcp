@@ -6,19 +6,19 @@ CreativePipelineMCP.dispatch = function (json) {
     return "invalid command";
   }
   if (command.type === "build_timeline_from_otio") {
-    return CreativePipelineMCP.buildTimelineFromOtio(command.payload);
+    return CreativePipelineMCP.buildTimelineFromOtio(command);
   }
   if (command.type === "export_sequence") {
-    return CreativePipelineMCP.exportSequence(command.payload);
+    return CreativePipelineMCP.exportSequence(command);
   }
   if (command.type === "apply_brand_package") {
-    return CreativePipelineMCP.applyBrandPackage(command.payload);
+    return CreativePipelineMCP.applyBrandPackage(command);
   }
   return CreativePipelineMCP.status(command, "error", "unsupported command: " + command.type, {});
 };
 
-CreativePipelineMCP.buildTimelineFromOtio = function (payload) {
-  var command = { type: "build_timeline_from_otio" };
+CreativePipelineMCP.buildTimelineFromOtio = function (command) {
+  var payload = command.payload || {};
   if (!app.project) {
     return CreativePipelineMCP.status(command, "error", "no active project", {});
   }
@@ -78,8 +78,8 @@ CreativePipelineMCP.buildTimelineFromOtio = function (payload) {
   });
 };
 
-CreativePipelineMCP.exportSequence = function (payload) {
-  var command = { type: "export_sequence" };
+CreativePipelineMCP.exportSequence = function (command) {
+  var payload = command.payload || {};
   if (!app.project || !app.project.activeSequence) {
     return CreativePipelineMCP.status(command, "error", "no active sequence to export", {});
   }
@@ -99,8 +99,8 @@ CreativePipelineMCP.exportSequence = function (payload) {
   }
 };
 
-CreativePipelineMCP.applyBrandPackage = function (payload) {
-  var command = { type: "apply_brand_package" };
+CreativePipelineMCP.applyBrandPackage = function (command) {
+  var payload = command.payload || {};
   if (!app.project) {
     return CreativePipelineMCP.status(command, "error", "no active project", {});
   }
@@ -198,9 +198,11 @@ CreativePipelineMCP.findProjectItemByMediaPath = function (root, mediaPath) {
 CreativePipelineMCP.status = function (command, status, message, details) {
   return JSON.stringify({
     schema: "creative.pipeline.premiere.status.v1",
+    commandId: command.id || null,
     commandType: command.type || "unknown",
     status: status,
     message: message,
-    details: details || {}
+    details: details || {},
+    finishedAt: new Date().toISOString()
   });
 };

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { ToolRegistry } from "./toolRegistry.js";
 import type { ToolExecutionContext, ToolResult } from "./types.js";
 import { ApprovalRequiredError } from "./approvalPolicy.js";
@@ -29,6 +30,14 @@ export class Router {
           risk: error.risk,
           currentPermission: error.permissionLevel,
           requestedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          approvalToken: randomUUID(),
+          artifactRoot: context.artifactStore.root,
+          workspaceRoots: context.artifactStore.workspaceRoots ?? [],
+          expectedOutputs: {
+            artifacts: "tool-dependent",
+            sideEffects: error.risk
+          },
           input
         };
         const artifact = await context.artifactStore.writeJson(

@@ -1,10 +1,11 @@
-import { access, copyFile, mkdir, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, realpath, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, relative, resolve } from "node:path";
 
 export class ArtifactStore {
   public readonly root: string;
   public readonly workspaceRoots: string[];
+  private readonly allowSymlinks: boolean;
 
   constructor(
     root = process.env.CREATIVE_MCP_ARTIFACTS ?? "artifacts",
@@ -15,6 +16,7 @@ export class ArtifactStore {
       .split(delimiter)
       .filter(Boolean)
       .map((workspaceRoot) => resolve(workspaceRoot));
+    this.allowSymlinks = process.env.CREATIVE_MCP_ALLOW_SYMLINKS === "true";
   }
 
   async writeJson(relativePath: string, value: unknown): Promise<string> {
@@ -52,6 +54,17 @@ export class ArtifactStore {
       );
     }
     await access(source, constants.R_OK);
+    if (!this.allowSymlinks) {
+      const realSource = await realpath(source);
+      const realRoots = await Promise.all(this.workspaceRoots.map((workspaceRoot) => realpath(workspaceRoot)));
+      if (!this.isInsideAnyRoot(realSource, realRoots)) {
+        throw new Error(
+          `Input path resolves outside CREATIVE_MCP_WORKSPACE_ROOTS: ${sourcePath}. ` +
+            "Set CREATIVE_MCP_ALLOW_SYMLINKS=true only for trusted workspaces."
+        );
+      }
+      return realSource;
+    }
     return source;
   }
 
@@ -68,7 +81,11 @@ export class ArtifactStore {
   }
 
   private isInsideAllowedRoot(path: string): boolean {
-    return this.workspaceRoots.some((root) => {
+    return this.isInsideAnyRoot(path, this.workspaceRoots);
+  }
+
+  private isInsideAnyRoot(path: string, roots: string[]): boolean {
+    return roots.some((root) => {
       const rel = relative(root, path);
       return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
     });

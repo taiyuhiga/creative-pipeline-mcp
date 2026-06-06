@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import {
@@ -17,6 +17,12 @@ import { directorTools } from "@creative-pipeline-mcp/director-agent";
 
 const artifactRoot = resolve(process.env.CREATIVE_MCP_ARTIFACTS ?? "artifacts");
 const port = Number(process.env.PORT ?? 4173);
+const host = "127.0.0.1";
+const dashboardToken = process.env.CREATIVE_MCP_DASHBOARD_TOKEN;
+
+if (!dashboardToken) {
+  throw new Error("CREATIVE_MCP_DASHBOARD_TOKEN is required to start the dashboard");
+}
 
 async function listReports(): Promise<Array<{ path: string; summary?: unknown }>> {
   const reports: Array<{ path: string; summary?: unknown }> = [];
@@ -65,13 +71,20 @@ async function listApprovals(): Promise<Array<{ id: string; path: string; reques
   return approvals;
 }
 
-async function resolveApproval(id: string, decision: "approved" | "rejected"): Promise<{ ok: boolean; path?: string; rerun?: unknown }> {
+async function resolveApproval(
+  id: string,
+  decision: "approved" | "rejected",
+  approvalToken: string
+): Promise<{ ok: boolean; path?: string; rerun?: unknown }> {
   const safeId = basename(id);
   const source = join(artifactRoot, "approvals", "pending", safeId);
   const targetDir = join(artifactRoot, "approvals", "resolved");
   await mkdir(targetDir, { recursive: true });
   const target = join(targetDir, `${Date.now()}-${decision}-${safeId}`);
   const request = JSON.parse(await readFile(source, "utf8")) as Record<string, unknown>;
+  if (typeof request.approvalToken === "string" && request.approvalToken !== approvalToken) {
+    throw new Error("Invalid approval token");
+  }
   const rerun = decision === "approved" ? await rerunApprovedTool(request) : undefined;
   await writeFile(
     target,
@@ -123,25 +136,53 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
+function isLocalHostHeader(req: IncomingMessage): boolean {
+  const header = String(req.headers.host ?? "");
+  return header.startsWith("127.0.0.1:") || header.startsWith("localhost:") || header === "127.0.0.1" || header === "localhost";
+}
+
+function requestToken(req: IncomingMessage, url: URL): string {
+  return String(req.headers["x-creative-mcp-dashboard-token"] ?? url.searchParams.get("token") ?? "");
+}
+
+function isAuthorized(req: IncomingMessage, url: URL): boolean {
+  return requestToken(req, url) === dashboardToken;
+}
+
+function writeJson(res: ServerResponse, statusCode: number, value: unknown): void {
+  res.statusCode = statusCode;
+  res.setHeader("content-type", "application/json");
+  res.end(JSON.stringify(value, null, 2));
+}
+
 createServer((req, res) => {
-  if (req.url === "/api/reports") {
+  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? `${host}:${port}`}`);
+  if (!isLocalHostHeader(req)) {
+    writeJson(res, 403, { ok: false, error: "Dashboard only accepts localhost requests" });
+    return;
+  }
+  if (url.pathname.startsWith("/api/") && !isAuthorized(req, url)) {
+    writeJson(res, 401, { ok: false, error: "Missing or invalid dashboard token" });
+    return;
+  }
+  if (url.pathname === "/api/reports") {
     void listReports().then((reports) => {
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ artifactRoot, reports }, null, 2));
     });
     return;
   }
-  if (req.url === "/api/approvals" && req.method === "GET") {
+  if (url.pathname === "/api/approvals" && req.method === "GET") {
     void listApprovals().then((approvals) => {
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ approvals }, null, 2));
     });
     return;
   }
-  if (req.url === "/api/approvals/resolve" && req.method === "POST") {
+  if (url.pathname === "/api/approvals/resolve" && req.method === "POST") {
     void readBody(req)
-      .then((body) => JSON.parse(body) as { id: string; decision: "approved" | "rejected" })
-      .then(({ id, decision }) => resolveApproval(id, decision))
+      .then((body) => JSON.parse(body) as { id: string; decision: "approved" | "rejected"; approvalToken: string })
+      .then(({ id, decision, approvalToken }) => resolveApproval(id, decision, approvalToken))
       .then((result) => {
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify(result, null, 2));
@@ -180,25 +221,28 @@ createServer((req, res) => {
     <table id="reports"><thead><tr><th>Report</th><th>Summary</th></tr></thead><tbody></tbody></table>
   </section>
   <script>
-    function resolveApproval(id, decision) {
+    const token = new URLSearchParams(location.search).get('token') || localStorage.getItem('creativeMcpDashboardToken') || '';
+    if (token) localStorage.setItem('creativeMcpDashboardToken', token);
+    const headers = { 'content-type': 'application/json', 'x-creative-mcp-dashboard-token': token };
+    function resolveApproval(id, decision, approvalToken) {
       fetch('/api/approvals/resolve', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id, decision })
+        headers,
+        body: JSON.stringify({ id, decision, approvalToken })
       }).then(() => location.reload());
     }
-    fetch('/api/approvals').then(r => r.json()).then(data => {
+    fetch('/api/approvals', { headers }).then(r => r.json()).then(data => {
       const tbody = document.querySelector('#approvals tbody');
       for (const approval of data.approvals) {
         const row = document.createElement('tr');
         row.innerHTML = '<td><pre>' + JSON.stringify(approval.request, null, 2) + '</pre></td>' +
           '<td><button data-decision="approved">Approve</button><button data-decision="rejected">Reject</button></td>';
-        row.querySelector('[data-decision="approved"]').onclick = () => resolveApproval(approval.id, 'approved');
-        row.querySelector('[data-decision="rejected"]').onclick = () => resolveApproval(approval.id, 'rejected');
+        row.querySelector('[data-decision="approved"]').onclick = () => resolveApproval(approval.id, 'approved', approval.request.approvalToken || '');
+        row.querySelector('[data-decision="rejected"]').onclick = () => resolveApproval(approval.id, 'rejected', approval.request.approvalToken || '');
         tbody.appendChild(row);
       }
     });
-    fetch('/api/reports').then(r => r.json()).then(data => {
+    fetch('/api/reports', { headers }).then(r => r.json()).then(data => {
       const tbody = document.querySelector('#reports tbody');
       for (const report of data.reports) {
         const row = document.createElement('tr');
@@ -209,6 +253,6 @@ createServer((req, res) => {
   </script>
 </body>
 </html>`);
-}).listen(port, () => {
-  console.log(`Creative Pipeline MCP dashboard listening on http://127.0.0.1:${port}`);
+}).listen(port, host, () => {
+  console.log(`Creative Pipeline MCP dashboard listening on http://${host}:${port}`);
 });

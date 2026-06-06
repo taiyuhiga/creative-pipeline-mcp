@@ -1,5 +1,7 @@
 # Creative Pipeline MCP
 
+[![CI](https://github.com/taiyuhiga/creative-pipeline-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/taiyuhiga/creative-pipeline-mcp/actions/workflows/ci.yml)
+
 QC-first MCP pipeline for Blender asset workflows and Adobe Premiere media workflows.
 
 This repository implements a split creative pipeline architecture:
@@ -15,7 +17,9 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-This is `0.2.1-alpha.0`. The QC-first path runs without Blender or Premiere installed:
+Current version: `0.2.2-alpha.0`
+
+This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
 - GLB/glTF metadata inspection and asset QC
 - Media metadata QC through `ffprobe` when FFmpeg is installed
@@ -26,6 +30,7 @@ This is `0.2.1-alpha.0`. The QC-first path runs without Blender or Premiere inst
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction
 - Blender asset QC for triangle budget, origin, scale, normals, primary UVs, material count, and texture slots
 - Blender optimization size comparison metrics and safe generated Blender script artifacts for game asset jobs
+- template-based basic Blender repair for GLB/glTF assets when Blender is installed
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - Dashboard approval queue UI
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
@@ -34,9 +39,24 @@ This is `0.2.1-alpha.0`. The QC-first path runs without Blender or Premiere inst
 - Blender and generated-MP4 Premiere e2e examples
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
-- CI runs on Node.js 20, 22, and 24
+- CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 
 Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
+
+## Capability Status
+
+| Feature | Status |
+| --- | --- |
+| GLB/glTF metadata QC | Working |
+| Headless Blender preview | Working when Blender is installed |
+| glTF optimization | Working with `gltf-transform`; optional `gltfpack` |
+| Basic Blender repair | Working when Blender is installed |
+| Premiere media QC | Working when FFmpeg is installed |
+| Adapter availability report | Working with text and JSON output |
+| Dashboard approvals | Localhost-only, token-protected alpha |
+| Premiere timeline creation | CEP scaffold |
+| Premiere final export | Alpha queue command |
+| Full professional editing | Not v1 complete |
 
 ## Install
 
@@ -45,6 +65,7 @@ npm install
 npm run build
 npm test
 npm run check:adapters
+npm run check:adapters -- --json
 ```
 
 Blender e2e sample:
@@ -61,12 +82,35 @@ npm run build
 node examples/premiere-qc-e2e.mjs
 ```
 
+Typical artifacts:
+
+```text
+artifacts/
+  adapter_check_report.json
+  blender/
+    cube_preview.png
+    cube_asset_qc_report.json
+    cube_optimized.glb
+  premiere/
+    source_rough_cut.otio
+    source_delivery_qc_report.json
+    source_thumbnail_1.png
+    cep_queue/
+```
+
 ## Run MCP Servers
 
 ```bash
 npm run start:core
 npm run start:blender
 npm run start:premiere
+```
+
+Dashboard:
+
+```bash
+CREATIVE_MCP_DASHBOARD_TOKEN=change-me npm run start:dashboard
+open "http://127.0.0.1:4173/?token=change-me"
 ```
 
 Example `tools/list` request:

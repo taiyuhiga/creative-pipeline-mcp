@@ -10,12 +10,14 @@ export interface PremiereCepCommand {
 
 export interface PremiereCepStatus {
   schema: "creative.pipeline.premiere.status.v1";
+  commandId?: string | null;
   commandType: PremiereCepCommand["type"] | "unknown";
   status: "success" | "accepted" | "error" | string;
   message: string;
   details: Record<string, unknown>;
   command?: PremiereCepCommand;
   processedAt?: string;
+  finishedAt?: string;
 }
 
 export async function enqueuePremiereCommand(

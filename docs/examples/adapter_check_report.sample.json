@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "summary": {
+    "available": 4,
+    "total": 8
+  },
+  "adapters": {
+    "ffprobe": {
+      "available": true,
+      "command": "ffprobe",
+      "status": 0
+    },
+    "ffmpeg": {
+      "available": true,
+      "command": "ffmpeg",
+      "status": 0
+    },
+    "blender": {
+      "available": false,
+      "command": "blender",
+      "status": null,
+      "stderr": ""
+    },
+    "gltf-transform": {
+      "available": true,
+      "command": "gltf-transform",
+      "status": 0
+    }
+  }
+}

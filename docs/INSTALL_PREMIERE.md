@@ -21,6 +21,8 @@ MCP tools:
 - `premiere.detect_scenes`: uses PySceneDetect when available, otherwise writes an adapter manifest
 - `premiere.measure_loudness`: uses pyloudnorm when available, otherwise writes an adapter manifest
 - `premiere.build_timeline_from_otio`: writes a CEP queue command for the panel scaffold
+- `premiere.export_video`: writes an export plan and queues `export_sequence`
+- `premiere.apply_brand_package`: writes a brand package manifest and queues `apply_brand_package`
 - `premiere.read_cep_status`: reads status JSON written by the CEP panel scaffold
 
 Generated sample:
@@ -29,3 +31,5 @@ Generated sample:
 npm run build
 node examples/premiere-qc-e2e.mjs
 ```
+
+For a real Premiere project walkthrough, see `docs/PREMIERE_E2E_TEST.md`.
