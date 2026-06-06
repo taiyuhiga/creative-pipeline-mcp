@@ -7,6 +7,7 @@ npm test
 npm run check:adapters -- --json
 node examples/blender-e2e.mjs
 node examples/premiere-qc-e2e.mjs
+node examples/premiere-project-delivery.mjs
 npm run package:premiere-cep -- --verify
 npm pack --dry-run
 ```

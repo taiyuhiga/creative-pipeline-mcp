@@ -392,6 +392,149 @@ export const premiereTools: ToolDefinition[] = [
     }
   },
   {
+    name: "premiere.build_project_delivery",
+    description: "Build a project-specific timeline, brand, and export delivery plan, then queue CEP commands.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        template: {
+          type: "string",
+          enum: ["youtube_shorts", "youtube_16x9", "podcast_clip", "course_lesson", "ad_creative"]
+        },
+        sequenceName: { type: "string", maxLength: 120 },
+        targetDuration: { type: "number" },
+        preset: { type: "string", enum: ["1080x1920_h264_social", "1920x1080_h264", "1080x1080_h264"] },
+        outputPath: { type: "string" },
+        brand: { type: "object" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const probe = await probeMedia(path);
+      const templateName = isProjectTemplate(input.template) ? input.template : "youtube_shorts";
+      const template = projectTemplates[templateName];
+      const fps = probe.video?.fps ?? 30;
+      const sourceDuration = probe.format?.duration ?? template.defaultDuration;
+      const duration = Math.max(1, Math.min(
+        typeof input.targetDuration === "number" ? input.targetDuration : template.defaultDuration,
+        sourceDuration
+      ));
+      const baseName = parse(basename(path)).name;
+      const sequenceName = typeof input.sequenceName === "string" && input.sequenceName.trim()
+        ? input.sequenceName.trim()
+        : `${template.label} - ${baseName}`;
+      const outputPath = typeof input.outputPath === "string" && input.outputPath
+        ? input.outputPath
+        : `${context.artifactStore.root}/premiere/exports/${baseName}_${templateName}.mp4`;
+      const preset = typeof input.preset === "string" ? input.preset : template.preset;
+      const brand = input.brand && typeof input.brand === "object" ? input.brand as Record<string, unknown> : {};
+
+      const projectTemplate = {
+        source: path,
+        template: templateName,
+        sequenceName,
+        dimensions: { width: template.width, height: template.height },
+        fps,
+        duration,
+        safeAreas: template.safeAreas,
+        audio: { targetLufs: template.targetLufs },
+        brand,
+        generatedAt: new Date().toISOString()
+      };
+      const otio = {
+        OTIO_SCHEMA: "Timeline.1",
+        name: sequenceName,
+        metadata: {
+          generatedBy: "premiere-pro-mcp",
+          template: templateName,
+          dimensions: { width: template.width, height: template.height },
+          deliveryPreset: preset,
+          brand
+        },
+        tracks: [
+          {
+            OTIO_SCHEMA: "Track.1",
+            kind: "Video",
+            children: [
+              {
+                OTIO_SCHEMA: "Clip.2",
+                name: basename(path),
+                media_reference: { target_url: path },
+                source_range: {
+                  start_time: { value: 0, rate: fps },
+                  duration: { value: Math.round(duration * fps), rate: fps }
+                },
+                metadata: { role: "primary_picture" }
+              }
+            ]
+          }
+        ]
+      };
+      const exportPlan = {
+        source: path,
+        template: templateName,
+        sequenceName,
+        preset,
+        presetPath: "",
+        outputPath,
+        dimensions: { width: template.width, height: template.height },
+        targetLufs: template.targetLufs,
+        deliveryQcAfterExport: true,
+        bridge: "external_premiere_cep_required"
+      };
+      const brandPackage = {
+        source: path,
+        template: templateName,
+        brand,
+        appliesTo: template.brandTargets,
+        bridge: "external_premiere_cep_required"
+      };
+
+      const templateArtifact = await context.artifactStore.writeJson(`premiere/${baseName}_${templateName}_project_template.json`, projectTemplate);
+      const otioArtifact = await context.artifactStore.writeJson(`premiere/${baseName}_${templateName}_project_timeline.otio`, otio);
+      const exportArtifact = await context.artifactStore.writeJson(`premiere/${baseName}_${templateName}_project_export_plan.json`, exportPlan);
+      const brandArtifact = await context.artifactStore.writeJson(`premiere/${baseName}_${templateName}_project_brand_package.json`, brandPackage);
+      const timelineCommand = await enqueuePremiereCommand("build_timeline_from_otio", {
+        otioPath: otioArtifact,
+        sequenceName,
+        template: templateName
+      });
+      const brandCommand = await enqueuePremiereCommand("apply_brand_package", brandPackage);
+      const exportCommand = await enqueuePremiereCommand("export_sequence", exportPlan);
+
+      return {
+        ok: true,
+        message: "Project delivery timeline, brand, and export commands queued",
+        artifacts: [
+          templateArtifact,
+          otioArtifact,
+          exportArtifact,
+          brandArtifact,
+          timelineCommand.path,
+          brandCommand.path,
+          exportCommand.path
+        ],
+        data: {
+          template: projectTemplate,
+          otio,
+          exportPlan,
+          brandPackage,
+          commands: {
+            timeline: timelineCommand.command,
+            brand: brandCommand.command,
+            export: exportCommand.command
+          }
+        }
+      };
+    }
+  },
+  {
     name: "premiere.auto_caption",
     description: "Create an SRT caption file from supplied transcript text, or a placeholder when ASR is not configured.",
     category: "premiere",
@@ -734,6 +877,74 @@ function sleep(ms: number): Promise<void> {
 
 function isCepCommandType(value: unknown): value is "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" {
   return value === "build_timeline_from_otio" || value === "export_sequence" || value === "apply_brand_package";
+}
+
+type ProjectTemplate = "youtube_shorts" | "youtube_16x9" | "podcast_clip" | "course_lesson" | "ad_creative";
+
+const projectTemplates: Record<ProjectTemplate, {
+  label: string;
+  width: number;
+  height: number;
+  defaultDuration: number;
+  preset: "1080x1920_h264_social" | "1920x1080_h264" | "1080x1080_h264";
+  targetLufs: number;
+  safeAreas: string[];
+  brandTargets: string[];
+}> = {
+  youtube_shorts: {
+    label: "YouTube Shorts",
+    width: 1080,
+    height: 1920,
+    defaultDuration: 60,
+    preset: "1080x1920_h264_social",
+    targetLufs: -14,
+    safeAreas: ["center_caption", "bottom_ui_clear", "top_title_clear"],
+    brandTargets: ["captions", "thumbnail", "end_card"]
+  },
+  youtube_16x9: {
+    label: "YouTube 16x9",
+    width: 1920,
+    height: 1080,
+    defaultDuration: 600,
+    preset: "1920x1080_h264",
+    targetLufs: -14,
+    safeAreas: ["lower_third", "title_safe", "end_card"],
+    brandTargets: ["captions", "lower_thirds", "thumbnail", "end_card"]
+  },
+  podcast_clip: {
+    label: "Podcast Clip",
+    width: 1080,
+    height: 1920,
+    defaultDuration: 90,
+    preset: "1080x1920_h264_social",
+    targetLufs: -16,
+    safeAreas: ["speaker_frame", "caption_stack", "waveform_strip"],
+    brandTargets: ["captions", "speaker_labels", "thumbnail"]
+  },
+  course_lesson: {
+    label: "Course Lesson",
+    width: 1920,
+    height: 1080,
+    defaultDuration: 900,
+    preset: "1920x1080_h264",
+    targetLufs: -16,
+    safeAreas: ["slide_region", "caption_band", "chapter_marker"],
+    brandTargets: ["captions", "chapter_cards", "lower_thirds"]
+  },
+  ad_creative: {
+    label: "Ad Creative",
+    width: 1080,
+    height: 1080,
+    defaultDuration: 30,
+    preset: "1080x1080_h264",
+    targetLufs: -14,
+    safeAreas: ["product_center", "cta_band", "logo_clear"],
+    brandTargets: ["captions", "cta", "logo", "thumbnail"]
+  }
+};
+
+function isProjectTemplate(value: unknown): value is ProjectTemplate {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(projectTemplates, value);
 }
 
 function resolveExportOutputPath(input: Record<string, unknown>, status?: PremiereCepStatus): string | undefined {

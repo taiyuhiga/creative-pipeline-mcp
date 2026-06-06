@@ -43,6 +43,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `premiere.index_media`
 - `premiere.run_delivery_qc`
 - `premiere.make_rough_cut`
+- `premiere.build_project_delivery`
 - `premiere.auto_caption`
 - `premiere.mix_audio`
 - `premiere.export_video`

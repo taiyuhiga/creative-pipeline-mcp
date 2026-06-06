@@ -22,7 +22,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.11-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.12-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -34,6 +34,7 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_timeline_from_otio"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.await_cep_status"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.finalize_export_qc"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_project_delivery"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.measure_vmaf"));
 });
 
@@ -205,6 +206,49 @@ test("Premiere export and brand tools queue CEP commands", async () => {
   }
 });
 
+test("Premiere project delivery builder writes artifacts and queues CEP commands", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-media-"));
+  const mediaPath = join(mediaRoot, "placeholder.mp4");
+  await writeFile(mediaPath, new Uint8Array([0]));
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-project-queue-"));
+  const previous = process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = queueRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.build_project_delivery");
+    assert.ok(tool);
+    const result = await tool.execute(await context(mediaRoot), {
+      path: mediaPath,
+      template: "youtube_16x9",
+      sequenceName: "Project Delivery Test",
+      targetDuration: 12,
+      brand: { primaryColor: "#123456" },
+      outputPath: join(mediaRoot, "final.mp4")
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.artifacts.length, 7);
+    assert.equal(result.data.template.template, "youtube_16x9");
+    assert.equal(result.data.exportPlan.preset, "1920x1080_h264");
+    assert.equal(result.data.brandPackage.appliesTo.includes("lower_thirds"), true);
+    const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
+    assert.equal(queueFiles.length, 3);
+    const queued = await Promise.all(queueFiles.map(async (file) => JSON.parse(await readFile(join(queueRoot, file), "utf8"))));
+    assert.deepEqual(queued.map((command) => command.type).sort(), [
+      "apply_brand_package",
+      "build_timeline_from_otio",
+      "export_sequence"
+    ]);
+    const timeline = queued.find((command) => command.type === "build_timeline_from_otio");
+    assert.equal(timeline.payload.sequenceName, "Project Delivery Test");
+    assert.equal(timeline.payload.template, "youtube_16x9");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = previous;
+    }
+  }
+});
+
 test("Premiere CEP package script writes a verified unsigned package", async () => {
   const result = spawnSync("node", ["scripts/package-premiere-cep.mjs", "--verify"], {
     cwd: resolve("."),
@@ -213,9 +257,9 @@ test("Premiere CEP package script writes a verified unsigned package", async () 
   assert.equal(result.status, 0, result.stderr);
   const summary = JSON.parse(result.stdout);
   assert.equal(summary.ok, true);
-  assert.equal(summary.version, "0.2.11-alpha.0");
-  assert.equal(summary.cepVersion, "0.2.11");
-  assert.match(summary.package, /creative-pipeline-mcp-premiere-cep-panel-0\.2\.11-alpha\.0\.zip$/);
+  assert.equal(summary.version, "0.2.12-alpha.0");
+  assert.equal(summary.cepVersion, "0.2.12");
+  assert.match(summary.package, /creative-pipeline-mcp-premiere-cep-panel-0\.2\.12-alpha\.0\.zip$/);
   assert.ok(summary.checksums.endsWith("premiere-cep-checksums.txt"));
   const listing = spawnSync("unzip", ["-l", summary.package], { encoding: "utf8" });
   assert.equal(listing.status, 0, listing.stderr);
@@ -381,7 +425,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.11-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.12-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -393,7 +437,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.11-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.12-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -408,7 +452,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.11-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.12-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -423,7 +467,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.11-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.12-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

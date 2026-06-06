@@ -22,6 +22,7 @@ MCP tools:
 - `premiere.measure_loudness`: uses pyloudnorm when available, otherwise writes an adapter manifest
 - `premiere.measure_vmaf`: uses FFmpeg `libvmaf` when available, otherwise writes an adapter report
 - `premiere.build_timeline_from_otio`: writes a CEP queue command for the panel scaffold
+- `premiere.build_project_delivery`: writes a project-specific template, OTIO timeline, brand package, export plan, and queues CEP commands
 - `premiere.export_video`: writes an export plan and queues `export_sequence`
 - `premiere.apply_brand_package`: writes a brand package manifest and queues `apply_brand_package`
 - `premiere.read_cep_status`: reads status JSON written by the CEP panel scaffold
@@ -33,6 +34,7 @@ Generated sample:
 ```bash
 npm run build
 node examples/premiere-qc-e2e.mjs
+node examples/premiere-project-delivery.mjs
 ```
 
 For a real Premiere project walkthrough, see `docs/PREMIERE_E2E_TEST.md`.
