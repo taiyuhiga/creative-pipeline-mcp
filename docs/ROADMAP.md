@@ -33,6 +33,10 @@
 - generated-MP4 Premiere QC/CEP queue e2e sample
 - split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
 - dashboard and Premiere real-project e2e docs
+- release asset generation script and npm publish readiness docs
+- CEP status, artifact schema, and troubleshooting docs
+- Premiere CEP development install/uninstall script
+- Premiere CEP queue watcher UI for selected/all pending commands
 
 ## External Adapter Work
 

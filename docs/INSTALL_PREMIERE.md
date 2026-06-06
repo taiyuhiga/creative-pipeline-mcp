@@ -33,3 +33,4 @@ node examples/premiere-qc-e2e.mjs
 ```
 
 For a real Premiere project walkthrough, see `docs/PREMIERE_E2E_TEST.md`.
+For CEP status records, see `docs/CEP_STATUS_SCHEMA.md`.

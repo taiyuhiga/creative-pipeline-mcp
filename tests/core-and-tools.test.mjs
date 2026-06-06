@@ -21,7 +21,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.3-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -178,7 +178,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.3-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -190,7 +190,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.3-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

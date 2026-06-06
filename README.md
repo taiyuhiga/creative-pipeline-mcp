@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.3-alpha.0`
+Current version: `0.2.4-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -112,6 +112,27 @@ Dashboard:
 CREATIVE_MCP_DASHBOARD_TOKEN=change-me npm run start:dashboard
 open "http://127.0.0.1:4173/?token=change-me"
 ```
+
+Premiere CEP panel scaffold:
+
+```bash
+npm run install:premiere-cep
+```
+
+Release assets:
+
+```bash
+npm run release:assets
+```
+
+Detailed docs:
+
+- `docs/INSTALL_DASHBOARD.md`
+- `docs/PREMIERE_E2E_TEST.md`
+- `docs/CEP_STATUS_SCHEMA.md`
+- `docs/ARTIFACT_SCHEMA.md`
+- `docs/RELEASE_PROCESS.md`
+- `docs/TROUBLESHOOTING.md`
 
 Example `tools/list` request:
 
