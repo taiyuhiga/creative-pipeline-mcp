@@ -239,11 +239,11 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: {
         path: { type: "string" },
-        brief: { type: "string" },
+        brief: { type: "string", maxLength: 4000 },
         targetDuration: { type: "number" }
       },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -292,10 +292,10 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: {
         path: { type: "string" },
-        transcript: { type: "string" }
+        transcript: { type: "string", maxLength: 20000 }
       },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -344,12 +344,12 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: {
         path: { type: "string" },
-        preset: { type: "string" },
+        preset: { type: "string", enum: ["1080x1920_h264_social", "1920x1080_h264", "1080x1080_h264"] },
         presetPath: { type: "string" },
         outputPath: { type: "string" }
       },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -381,7 +381,7 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, platforms: { type: "array" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -410,7 +410,7 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, brand: { type: "object" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -440,7 +440,7 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, languages: { type: "array" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -465,7 +465,7 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, count: { type: "number" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);
@@ -497,7 +497,7 @@ export const premiereTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, targetDuration: { type: "number" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requireMediaPath(input);

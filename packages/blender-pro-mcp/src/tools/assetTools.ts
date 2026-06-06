@@ -13,9 +13,12 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { prompt: { type: "string" }, targetEngine: { type: "string" } },
+      properties: {
+        prompt: { type: "string", maxLength: 2000 },
+        targetEngine: { type: "string", enum: ["Roblox", "Unity", "Unreal", "WebGL"] }
+      },
       required: ["prompt"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const manifest = {
@@ -37,7 +40,7 @@ export const blenderTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" }, material: { type: "object" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requirePath(input);
@@ -54,9 +57,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { path: { type: "string" }, instructions: { type: "string" } },
+      properties: { path: { type: "string" }, instructions: { type: "string", maxLength: 4000 } },
       required: ["path", "instructions"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requirePath(input);
@@ -78,9 +81,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { prompt: { type: "string" } },
+      properties: { prompt: { type: "string", maxLength: 2000 } },
       required: ["prompt"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const manifest = {
@@ -124,9 +127,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { engine: { type: "string" } },
+      properties: { engine: { type: "string", enum: ["Roblox", "Unity", "Unreal", "WebGL"] } },
       required: ["engine"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const engine = String(input.engine ?? "WebGL");
@@ -150,7 +153,7 @@ export const blenderTools: ToolDefinition[] = [
       type: "object",
       properties: { path: { type: "string" } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requirePath(input);
@@ -172,9 +175,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { path: { type: "string" }, look: { type: "string" } },
+      properties: { path: { type: "string" }, look: { type: "string", maxLength: 200 } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requirePath(input);
@@ -196,9 +199,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { path: { type: "string" }, animationBrief: { type: "string" } },
+      properties: { path: { type: "string" }, animationBrief: { type: "string", maxLength: 4000 } },
       required: ["path"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const path = requirePath(input);
@@ -362,11 +365,11 @@ export const blenderTools: ToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {
-        prompt: { type: "string" },
+        prompt: { type: "string", maxLength: 2000 },
         budget: { type: "object" }
       },
       required: ["prompt"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const prompt = String(input.prompt ?? "");
@@ -398,9 +401,9 @@ export const blenderTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { prompt: { type: "string" } },
+      properties: { prompt: { type: "string", maxLength: 2000 } },
       required: ["prompt"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const artifact = await context.artifactStore.writeJson("blender/material_pack_manifest.json", {

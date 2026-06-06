@@ -8,9 +8,9 @@ export const directorTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { brief: { type: "string" } },
+      properties: { brief: { type: "string", maxLength: 4000 } },
       required: ["brief"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const plan = {
@@ -47,7 +47,7 @@ export const directorTools: ToolDefinition[] = [
         qcReportPath: { type: "string" }
       },
       required: ["assetPath"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const manifest = {
@@ -73,7 +73,7 @@ export const directorTools: ToolDefinition[] = [
         artifacts: { type: "array" }
       },
       required: ["project"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const report = {
@@ -94,9 +94,9 @@ export const directorTools: ToolDefinition[] = [
     risk: "safe_write",
     inputSchema: {
       type: "object",
-      properties: { project: { type: "string" } },
+      properties: { project: { type: "string", maxLength: 200 } },
       required: ["project"],
-      additionalProperties: true
+      additionalProperties: false
     },
     async execute(context, input) {
       const review = {
@@ -114,4 +114,3 @@ export const directorTools: ToolDefinition[] = [
     }
   }
 ];
-

@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/dashboard",
-  "version": "0.2.4-alpha.0",
+  "version": "0.2.5-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/server.js",
@@ -10,9 +10,9 @@
     "creative-mcp-dashboard": "dist/server.js"
   },
   "dependencies": {
-    "@creative-pipeline-mcp/blender-pro-mcp": "0.2.4-alpha.0",
-    "@creative-pipeline-mcp/core": "0.2.4-alpha.0",
-    "@creative-pipeline-mcp/director-agent": "0.2.4-alpha.0",
-    "@creative-pipeline-mcp/premiere-pro-mcp": "0.2.4-alpha.0"
+    "@creative-pipeline-mcp/blender-pro-mcp": "0.2.5-alpha.0",
+    "@creative-pipeline-mcp/core": "0.2.5-alpha.0",
+    "@creative-pipeline-mcp/director-agent": "0.2.5-alpha.0",
+    "@creative-pipeline-mcp/premiere-pro-mcp": "0.2.5-alpha.0"
   }
 }

@@ -17,7 +17,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.4-alpha.0`
+Current version: `0.2.5-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -129,6 +129,8 @@ Detailed docs:
 
 - `docs/INSTALL_DASHBOARD.md`
 - `docs/PREMIERE_E2E_TEST.md`
+- `docs/API_TOOLS.md`
+- `docs/COMPATIBILITY_MATRIX.md`
 - `docs/CEP_STATUS_SCHEMA.md`
 - `docs/ARTIFACT_SCHEMA.md`
 - `docs/RELEASE_PROCESS.md`

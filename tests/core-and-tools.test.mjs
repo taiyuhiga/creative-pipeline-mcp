@@ -21,7 +21,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -178,7 +178,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -189,8 +189,38 @@ test("Router rejects invalid schema input before execution", async () => {
   assert.match(result.structuredContent.message, /Invalid input/);
 });
 
+test("Router rejects unknown public tool properties", async () => {
+  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const result = await server.handle({
+    jsonrpc: "2.0",
+    id: 4,
+    method: "tools/call",
+    params: {
+      name: "blender.configure_engine_profile",
+      arguments: { engine: "WebGL", unexpected: true }
+    }
+  });
+  assert.equal(result.structuredContent.ok, false);
+  assert.match(result.structuredContent.message, /additional properties/);
+});
+
+test("Router rejects enum values outside the public schema", async () => {
+  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const result = await server.handle({
+    jsonrpc: "2.0",
+    id: 5,
+    method: "tools/call",
+    params: {
+      name: "blender.configure_engine_profile",
+      arguments: { engine: "UnknownEngine" }
+    }
+  });
+  assert.equal(result.structuredContent.ok, false);
+  assert.match(result.structuredContent.message, /allowed values/);
+});
+
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.4-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

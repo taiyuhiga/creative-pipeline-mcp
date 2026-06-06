@@ -35,6 +35,8 @@
 - dashboard and Premiere real-project e2e docs
 - release asset generation script and npm publish readiness docs
 - CEP status, artifact schema, and troubleshooting docs
+- strict public top-level tool schemas with enum and length guards
+- API tool list and compatibility matrix docs
 - Premiere CEP development install/uninstall script
 - Premiere CEP queue watcher UI for selected/all pending commands
 
