@@ -31,6 +31,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 ## Premiere
 
 - `premiere.read_cep_status`
+- `premiere.await_cep_status`
 - `premiere.transcribe_media`
 - `premiere.detect_scenes`
 - `premiere.measure_loudness`
@@ -42,6 +43,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `premiere.auto_caption`
 - `premiere.mix_audio`
 - `premiere.export_video`
+- `premiere.finalize_export_qc`
 - `premiere.export_social_variants`
 - `premiere.apply_brand_package`
 - `premiere.create_multilanguage_subtitles`

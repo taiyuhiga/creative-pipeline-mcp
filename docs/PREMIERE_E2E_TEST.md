@@ -37,7 +37,7 @@ Read the status:
 CREATIVE_MCP_PERMISSION=project_write npm run start:premiere
 ```
 
-Call `premiere.read_cep_status` from the MCP client.
+Call `premiere.read_cep_status` or `premiere.await_cep_status` from the MCP client.
 
 ## Export Queue
 
@@ -51,3 +51,5 @@ Call `premiere.read_cep_status` from the MCP client.
 ```
 
 The CEP host script attempts `app.encoder.encodeSequence`. If Adobe Media Encoder is unavailable, it records an accepted status instead of claiming a completed export.
+
+After the CEP panel writes an `export_sequence` status, call `premiere.finalize_export_qc` with the `commandId`. The tool resolves `details.outputPath` from the status file, checks that the exported file exists, and writes an export delivery QC report. If the file is still missing, it writes a pending artifact instead of reporting a false pass.

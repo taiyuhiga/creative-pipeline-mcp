@@ -30,6 +30,7 @@
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
+- Premiere CEP status polling and export delivery QC finalization
 - generated-MP4 Premiere QC/CEP queue e2e sample
 - split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
 - dashboard and Premiere real-project e2e docs

@@ -67,6 +67,18 @@ export async function listPremiereStatuses(): Promise<Array<{ id: string; path: 
   return statuses;
 }
 
+export async function findPremiereStatus(criteria: {
+  commandId?: string;
+  commandType?: PremiereCepCommand["type"];
+}): Promise<{ id: string; path: string; status: PremiereCepStatus } | undefined> {
+  const statuses = await listPremiereStatuses();
+  return statuses.find((entry) => {
+    const commandId = entry.status.commandId ?? entry.status.command?.id;
+    return (!criteria.commandId || commandId === criteria.commandId)
+      && (!criteria.commandType || entry.status.commandType === criteria.commandType);
+  });
+}
+
 function normalizeStatus(value: unknown): PremiereCepStatus {
   if (isStatus(value)) {
     return value;

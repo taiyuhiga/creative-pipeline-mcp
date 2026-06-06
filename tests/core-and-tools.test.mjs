@@ -21,7 +21,7 @@ async function context(workspaceRoots = process.cwd()) {
 }
 
 test("MCP server lists tools", async () => {
-  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
   const result = await server.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   assert.ok(result.tools.some((tool) => tool.name === "blender.validate_asset"));
 });
@@ -31,6 +31,8 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.detect_scenes"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.measure_loudness"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_timeline_from_otio"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.await_cep_status"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.finalize_export_qc"));
 });
 
 test("Blender asset QC writes a report", async () => {
@@ -144,6 +146,73 @@ test("Premiere CEP status reader returns panel status records", async () => {
   }
 });
 
+test("Premiere CEP status awaiter resolves matching export status", async () => {
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-status-"));
+  const statusPath = join(statusRoot, "cmd-1.json");
+  await mkdir(statusRoot, { recursive: true });
+  await writeFile(statusPath, JSON.stringify({
+    schema: "creative.pipeline.premiere.status.v1",
+    commandId: "cmd-1",
+    commandType: "export_sequence",
+    status: "success",
+    message: "export queued",
+    details: { outputPath: join(statusRoot, "missing-final.mp4") }
+  }), "utf8");
+  const previous = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = statusRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.await_cep_status");
+    assert.ok(tool);
+    const result = await tool.execute(await context(statusRoot), {
+      commandId: "cmd-1",
+      commandType: "export_sequence",
+      timeoutMs: 0
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.data.status.commandId, "cmd-1");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = previous;
+    }
+  }
+});
+
+test("Premiere export QC finalizer writes a pending artifact while output is missing", async () => {
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-status-"));
+  const outputPath = join(statusRoot, "missing-final.mp4");
+  const statusPath = join(statusRoot, "cmd-2.json");
+  await mkdir(statusRoot, { recursive: true });
+  await writeFile(statusPath, JSON.stringify({
+    schema: "creative.pipeline.premiere.status.v1",
+    commandId: "cmd-2",
+    commandType: "export_sequence",
+    status: "success",
+    message: "export complete",
+    details: { outputPath }
+  }), "utf8");
+  const previous = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = statusRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.finalize_export_qc");
+    assert.ok(tool);
+    const result = await tool.execute(await context(statusRoot), { commandId: "cmd-2" });
+    assert.equal(result.ok, false);
+    assert.match(result.message, /pending/i);
+    assert.equal(result.artifacts.length, 1);
+    const pending = JSON.parse(await readFile(result.artifacts[0], "utf8"));
+    assert.equal(pending.reason, "output_file_not_found");
+    assert.equal(pending.outputPath, outputPath);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = previous;
+    }
+  }
+});
+
 test("ArtifactStore blocks artifact path traversal", async () => {
   const store = new ArtifactStore(await mkdtemp(join(tmpdir(), "creative-mcp-artifacts-")));
   await assert.rejects(() => store.writeText("../outside.txt", "nope"), /Unsafe artifact path/);
@@ -178,7 +247,7 @@ test("ArtifactStore blocks symlinks that resolve outside workspace roots by defa
 });
 
 test("Router rejects invalid schema input before execution", async () => {
-  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 2,
@@ -190,7 +259,7 @@ test("Router rejects invalid schema input before execution", async () => {
 });
 
 test("Router rejects unknown public tool properties", async () => {
-  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 4,
@@ -205,7 +274,7 @@ test("Router rejects unknown public tool properties", async () => {
 });
 
 test("Router rejects enum values outside the public schema", async () => {
-  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 5,
@@ -220,7 +289,7 @@ test("Router rejects enum values outside the public schema", async () => {
 });
 
 test("Router writes approval request for project_write tools", async () => {
-  const server = new McpServer("test", "0.2.5-alpha.0", blenderTools);
+  const server = new McpServer("test", "0.2.6-alpha.0", blenderTools);
   const result = await server.handle({
     jsonrpc: "2.0",
     id: 3,

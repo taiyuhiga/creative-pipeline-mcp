@@ -1,9 +1,10 @@
+import { existsSync } from "node:fs";
 import { basename, parse } from "node:path";
 import type { ToolDefinition } from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail } from "../adapters/ffmpegQc.js";
-import { enqueuePremiereCommand, listPremiereStatuses } from "../adapters/premiereCep.js";
+import { enqueuePremiereCommand, findPremiereStatus, listPremiereStatuses, type PremiereCepStatus } from "../adapters/premiereCep.js";
 import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
 
 export const premiereTools: ToolDefinition[] = [
@@ -23,6 +24,52 @@ export const premiereTools: ToolDefinition[] = [
         ok: true,
         message: `${statuses.length} Premiere CEP status records found`,
         data: { statuses }
+      };
+    }
+  },
+  {
+    name: "premiere.await_cep_status",
+    description: "Poll Premiere CEP status files until a matching command status is available.",
+    category: "premiere",
+    risk: "read",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        commandType: {
+          type: "string",
+          enum: ["build_timeline_from_otio", "export_sequence", "apply_brand_package"]
+        },
+        timeoutMs: { type: "number" },
+        pollIntervalMs: { type: "number" }
+      },
+      additionalProperties: false
+    },
+    async execute(_context, input) {
+      const timeoutMs = Math.max(0, Math.min(typeof input.timeoutMs === "number" ? input.timeoutMs : 0, 120000));
+      const pollIntervalMs = Math.max(100, Math.min(typeof input.pollIntervalMs === "number" ? input.pollIntervalMs : 1000, 10000));
+      const deadline = Date.now() + timeoutMs;
+      do {
+        const match = await findPremiereStatus({
+          commandId: typeof input.commandId === "string" ? input.commandId : undefined,
+          commandType: isCepCommandType(input.commandType) ? input.commandType : undefined
+        });
+        if (match) {
+          return {
+            ok: true,
+            message: `Premiere CEP status found: ${match.status.status}`,
+            data: match
+          };
+        }
+        if (Date.now() >= deadline) {
+          break;
+        }
+        await sleep(pollIntervalMs);
+      } while (true);
+      return {
+        ok: false,
+        message: "Premiere CEP status not found before timeout",
+        data: { commandId: input.commandId, commandType: input.commandType, timeoutMs }
       };
     }
   },
@@ -360,7 +407,8 @@ export const premiereTools: ToolDefinition[] = [
         presetPath: typeof input.presetPath === "string" ? input.presetPath : "",
         bridge: "external_premiere_cep_required",
         requiresApproval: true,
-        outputPath: String(input.outputPath ?? `${context.artifactStore.root}/premiere/exports/${parse(basename(path)).name}_final.mp4`)
+        outputPath: String(input.outputPath ?? `${context.artifactStore.root}/premiere/exports/${parse(basename(path)).name}_final.mp4`),
+        deliveryQcAfterExport: true
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_export_plan.json"), plan);
       const queued = await enqueuePremiereCommand("export_sequence", plan);
@@ -369,6 +417,72 @@ export const premiereTools: ToolDefinition[] = [
         message: "Export plan written and Premiere CEP export command queued",
         artifacts: [artifact, queued.path],
         data: { plan, command: queued.command }
+      };
+    }
+  },
+  {
+    name: "premiere.finalize_export_qc",
+    description: "Resolve an export CEP status and run delivery QC when the exported file exists.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        outputPath: { type: "string" },
+        targetWidth: { type: "number" },
+        targetHeight: { type: "number" },
+        maxDuration: { type: "number" },
+        captionPath: { type: "string" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const statusRecord = typeof input.commandId === "string"
+        ? await findPremiereStatus({ commandId: input.commandId, commandType: "export_sequence" })
+        : undefined;
+      const outputPath = resolveExportOutputPath(input, statusRecord?.status);
+      if (!outputPath) {
+        const pending = await context.artifactStore.writeJson("premiere/export_qc_pending.json", {
+          commandId: input.commandId ?? null,
+          status: statusRecord?.status ?? null,
+          reason: "missing_output_path"
+        });
+        return {
+          ok: false,
+          message: "Export QC pending: outputPath is missing",
+          artifacts: [pending],
+          data: { status: statusRecord?.status ?? null }
+        };
+      }
+      if (!existsSync(outputPath)) {
+        const pending = await context.artifactStore.writeJson(premiereArtifactName(outputPath, "_export_qc_pending.json"), {
+          commandId: input.commandId ?? null,
+          outputPath,
+          status: statusRecord?.status ?? null,
+          reason: "output_file_not_found"
+        });
+        return {
+          ok: false,
+          message: "Export QC pending: output file not found",
+          artifacts: [pending],
+          data: { outputPath, status: statusRecord?.status ?? null }
+        };
+      }
+      await context.artifactStore.assertReadableFile(outputPath);
+      if (typeof input.captionPath === "string") {
+        await context.artifactStore.assertReadableFile(input.captionPath);
+      }
+      const report = await mediaQcReport(outputPath, input);
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(outputPath, "_export_delivery_qc_report.json"), {
+        cepStatus: statusRecord?.status ?? null,
+        report
+      });
+      return {
+        ok: report.summary.status !== "fail",
+        message: `Export delivery QC report written: ${report.summary.status}`,
+        artifacts: [artifact],
+        data: { status: statusRecord?.status ?? null, report }
       };
     }
   },
@@ -538,3 +652,24 @@ export const premiereTools: ToolDefinition[] = [
     }
   }
 ];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isCepCommandType(value: unknown): value is "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" {
+  return value === "build_timeline_from_otio" || value === "export_sequence" || value === "apply_brand_package";
+}
+
+function resolveExportOutputPath(input: Record<string, unknown>, status?: PremiereCepStatus): string | undefined {
+  if (typeof input.outputPath === "string" && input.outputPath) {
+    return input.outputPath;
+  }
+  if (status?.details && typeof status.details.outputPath === "string" && status.details.outputPath) {
+    return status.details.outputPath;
+  }
+  if (status?.command?.payload && typeof status.command.payload.outputPath === "string" && status.command.payload.outputPath) {
+    return status.command.payload.outputPath;
+  }
+  return undefined;
+}
