@@ -1,0 +1,6 @@
+GPL-3.0-or-later adapter package.
+
+This package intentionally contains only adapter manifests and process-boundary wrappers.
+Install and run GPL tools such as BlenderProc, BlenderGIS, and Sverchok separately, then
+connect them through command-line, socket, or Blender addon boundaries.
+

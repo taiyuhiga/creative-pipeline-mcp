@@ -1,0 +1,15 @@
+{
+  "name": "@creative-pipeline-mcp/blender-pro-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "blender-pro-mcp": "dist/server.js"
+  },
+  "dependencies": {
+    "@creative-pipeline-mcp/core": "1.0.0"
+  }
+}
+

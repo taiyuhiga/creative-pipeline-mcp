@@ -1,0 +1,9 @@
+Creative Pipeline MCP
+Copyright 2026 Creative Pipeline MCP contributors
+
+This repository is an unofficial integration scaffold and QC pipeline.
+It is not affiliated with Blender, Adobe, Premiere Pro, or 3D-Agent.
+
+Optional external tools referenced by adapter manifests keep their own licenses.
+See docs/LICENSING.md and third_party_licenses/README.md.
+

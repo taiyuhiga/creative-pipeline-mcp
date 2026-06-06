@@ -1,0 +1,28 @@
+{
+  "name": "creative-pipeline-mcp",
+  "version": "1.0.0",
+  "private": false,
+  "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
+    "clean": "tsc -b --clean packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
+    "test": "npm run build && node --test tests/*.mjs",
+    "start:core": "node packages/core/dist/server.js",
+    "start:blender": "node packages/blender-pro-mcp/dist/server.js",
+    "start:premiere": "node packages/premiere-pro-mcp/dist/server.js",
+    "start:director": "node packages/director-agent/dist/server.js",
+    "start:dashboard": "node packages/dashboard/dist/server.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
