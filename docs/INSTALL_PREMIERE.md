@@ -60,3 +60,12 @@ This writes an unsigned package and checksums under `dist/premiere-cep`. To prod
 ```bash
 ZXPSIGNCMD_BIN=/path/to/ZXPSignCmd CEP_SIGN_CERT=/path/to/cert.p12 CEP_SIGN_PASSWORD=secret npm run package:premiere-cep -- --sign
 ```
+
+Release builds may also include a signed ZXP asset:
+
+```text
+creative-pipeline-mcp-premiere-cep.zxp
+zxp-checksums.txt
+```
+
+Keep `.p12` signing certificates under `certs/` or another ignored local path. These files include private keys and must not be committed or uploaded to GitHub release assets.

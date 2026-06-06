@@ -44,4 +44,7 @@ jobs:
           node -e "const pkg=require('./package.json'); const tag=process.env.RELEASE_TAG; if (tag !== 'v' + pkg.version) throw new Error(`${tag} does not match v${pkg.version}`);"
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-      - run: npm publish --access public
+      - name: Publish to npm
+        run: |
+          NPM_DIST_TAG="$(node -e "const pkg=require('./package.json'); process.stdout.write(pkg.version.includes('-') ? 'alpha' : 'latest');")"
+          npm publish --access public --tag "$NPM_DIST_TAG"

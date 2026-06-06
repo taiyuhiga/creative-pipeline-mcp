@@ -18,4 +18,4 @@ The package script validates required files, manifest id/version, and ZIP integr
 ZXPSIGNCMD_BIN=/path/to/ZXPSignCmd CEP_SIGN_CERT=/path/to/cert.p12 CEP_SIGN_PASSWORD=secret npm run package:premiere-cep -- --sign
 ```
 
-The scaffold can be signed and packaged, but production deployment still depends on the project's Adobe extension signing certificate and installer policy.
+The scaffold can be signed and packaged, but production deployment still depends on the project's Adobe extension signing certificate and installer policy. Keep `.p12` signing certificates in ignored local paths such as `certs/`; they contain private keys and must not be committed.

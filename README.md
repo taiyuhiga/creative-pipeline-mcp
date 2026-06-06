@@ -37,7 +37,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
 - Premiere project-specific delivery builder for timeline, brand package, export plan, and CEP queue generation
 - Premiere CEP host simulator for queue/status validation without a live Premiere runtime
-- Premiere CEP unsigned package generation and optional ZXP signing hook
+- Premiere CEP unsigned package generation, optional ZXP signing hook, and signed ZXP release asset support
 - approval-to-rerun flow in the dashboard for approved elevated tool requests
 - Premiere CEP status reader
 - Blender and generated-MP4 Premiere e2e examples
