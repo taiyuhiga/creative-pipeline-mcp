@@ -21,6 +21,24 @@
       "code": -32000,
       "message": "External process failed or uncaught tool execution error"
     }
+  },
+  "structuredToolErrors": {
+    "adapterMissing": {
+      "schema": "creative.pipeline.structured_tool_error.v1",
+      "code": "adapter_missing",
+      "message": "Required external adapter is unavailable",
+      "details": {
+        "adapter": "WhisperX"
+      }
+    },
+    "approvalRequired": {
+      "schema": "creative.pipeline.structured_tool_error.v1",
+      "code": "approval_required",
+      "message": "Approval required for project_write tool",
+      "details": {
+        "tool": "premiere.export_video",
+        "risk": "project_write"
+      }
+    }
   }
 }
-

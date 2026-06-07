@@ -1,7 +1,13 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, extname, parse } from "node:path";
-import type { ToolDefinition, ToolExecutionContext, ToolResult } from "@creative-pipeline-mcp/core";
+import {
+  STRUCTURED_TOOL_ERROR_CODES,
+  structuredToolError,
+  type ToolDefinition,
+  type ToolExecutionContext,
+  type ToolResult
+} from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail, runVmafAdapter } from "../adapters/ffmpegQc.js";
@@ -106,6 +112,7 @@ export const premiereTools: ToolDefinition[] = [
         adapter: "WhisperX",
         outputDir,
         result,
+        error: result.available && !result.error ? null : adapterMissingError("WhisperX", result.error ?? "WhisperX CLI not found"),
         install: "pip install whisperx"
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_transcription_adapter.json"), manifest);
@@ -138,6 +145,7 @@ export const premiereTools: ToolDefinition[] = [
         adapter: "PySceneDetect",
         outputDir,
         result,
+        error: result.available && !result.error ? null : adapterMissingError("PySceneDetect", result.error ?? "PySceneDetect CLI not found"),
         install: "pip install scenedetect[opencv]"
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_scene_detect_adapter.json"), manifest);
@@ -172,6 +180,7 @@ export const premiereTools: ToolDefinition[] = [
         adapter: "pyloudnorm",
         output,
         result,
+        error: result.available && !result.error ? null : adapterMissingError("pyloudnorm", result.error ?? "pyloudnorm dependencies not found"),
         install: "pip install pyloudnorm soundfile"
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_loudness_adapter.json"), manifest);
@@ -335,6 +344,7 @@ export const premiereTools: ToolDefinition[] = [
         reference: referencePath,
         targetMinVmaf,
         result,
+        error: result.available && !result.error ? null : adapterMissingError("ffmpeg-libvmaf", result.error ?? "FFmpeg libvmaf unavailable"),
         status: result.available && typeof result.mean === "number"
           ? result.mean >= targetMinVmaf ? "pass" : "warn"
           : "adapter_unavailable"
@@ -1101,6 +1111,14 @@ function isCepCommandType(value: unknown): value is "build_timeline_from_otio" |
     || value === "export_sequence"
     || value === "apply_brand_package"
     || value === "apply_timeline_markers";
+}
+
+function adapterMissingError(adapter: string, message: string) {
+  return structuredToolError(
+    STRUCTURED_TOOL_ERROR_CODES.adapterMissing,
+    message,
+    { adapter }
+  );
 }
 
 function buildBrandPackage(path: string, brand: unknown) {

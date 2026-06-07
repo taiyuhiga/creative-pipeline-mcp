@@ -7,7 +7,14 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { ApprovalPolicy, ArtifactStore, JSON_RPC_ERRORS, defaultLicenseManifest, McpServer } from "../packages/core/dist/index.js";
+import {
+  ApprovalPolicy,
+  ArtifactStore,
+  JSON_RPC_ERRORS,
+  STRUCTURED_TOOL_ERROR_CODES,
+  defaultLicenseManifest,
+  McpServer
+} from "../packages/core/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
@@ -628,6 +635,8 @@ test("JSON-RPC error constants match the public fixture", async () => {
   assert.equal(fixture.errors.methodNotFound.code, JSON_RPC_ERRORS.methodNotFound);
   assert.equal(fixture.errors.invalidParams.code, JSON_RPC_ERRORS.invalidParams);
   assert.equal(fixture.errors.toolExecutionError.code, JSON_RPC_ERRORS.toolExecutionError);
+  assert.equal(fixture.structuredToolErrors.adapterMissing.code, STRUCTURED_TOOL_ERROR_CODES.adapterMissing);
+  assert.equal(fixture.structuredToolErrors.approvalRequired.code, STRUCTURED_TOOL_ERROR_CODES.approvalRequired);
 });
 
 test("npm publish workflow is configured for guarded trusted publishing", async () => {
@@ -652,6 +661,9 @@ test("Premiere optional adapter tool writes a manifest", async () => {
   const result = await tool.execute(await context(mediaRoot), { path: mediaPath });
   assert.equal(result.artifacts.length, 1);
   assert.match(result.message, /transcription|adapter manifest/i);
+  if (!result.ok) {
+    assert.equal(result.data.error.code, "adapter_missing");
+  }
 });
 
 test("Premiere VMAF tool writes an adapter report when FFmpeg VMAF cannot run", async () => {
@@ -885,8 +897,10 @@ test("Router writes approval request for project_write tools", async () => {
   });
   assert.equal(result.structuredContent.ok, false);
   assert.match(result.structuredContent.message, /Approval request written/);
-  assert.equal(result.structuredContent.artifacts.length, 1);
+  assert.equal(result.structuredContent.artifacts.length, 2);
   assert.match(result.structuredContent.data.approvalToken, /^[0-9a-f-]{36}$/);
+  assert.equal(result.structuredContent.data.error.code, "approval_required");
+  assert.match(result.structuredContent.data.audit, /approvals\/audit/);
   assert.ok(result.structuredContent.data.expiresAt);
   assert.ok(result.structuredContent.data.artifactRoot);
   assert.ok(Array.isArray(result.structuredContent.data.workspaceRoots));

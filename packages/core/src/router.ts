@@ -3,6 +3,7 @@ import { ToolRegistry } from "./toolRegistry.js";
 import type { ToolExecutionContext, ToolResult } from "./types.js";
 import { ApprovalRequiredError } from "./approvalPolicy.js";
 import { validateToolInput } from "./schemaValidator.js";
+import { STRUCTURED_TOOL_ERROR_CODES, structuredToolError } from "./jsonRpcErrors.js";
 
 export class Router {
   constructor(private readonly registry: ToolRegistry) {}
@@ -18,7 +19,14 @@ export class Router {
       return {
         ok: false,
         message: `Invalid input for ${tool.name}: ${validation.errors.join("; ")}`,
-        data: { errors: validation.errors }
+        data: {
+          error: structuredToolError(
+            STRUCTURED_TOOL_ERROR_CODES.invalidToolInput,
+            `Invalid input for ${tool.name}`,
+            { tool: tool.name, errors: validation.errors }
+          ),
+          errors: validation.errors
+        }
       };
     }
     try {
@@ -44,11 +52,34 @@ export class Router {
           `approvals/pending/${Date.now()}-${tool.name.replaceAll(".", "_")}.json`,
           request
         );
+        const structuredError = structuredToolError(
+          STRUCTURED_TOOL_ERROR_CODES.approvalRequired,
+          `Approval required for ${tool.name}`,
+          {
+            tool: tool.name,
+            risk: error.risk,
+            currentPermission: error.permissionLevel,
+            approvalToken: request.approvalToken
+          }
+        );
+        const audit = await context.artifactStore.writeJson(
+          `approvals/audit/${Date.now()}-${tool.name.replaceAll(".", "_")}.json`,
+          {
+            schema: "creative.pipeline.approval_audit.v1",
+            event: "approval_required",
+            tool: tool.name,
+            risk: error.risk,
+            currentPermission: error.permissionLevel,
+            approvalToken: request.approvalToken,
+            artifact,
+            requestedAt: request.requestedAt
+          }
+        );
         return {
           ok: false,
           message: `Approval request written for ${tool.name}`,
-          artifacts: [artifact],
-          data: request
+          artifacts: [artifact, audit],
+          data: { ...request, error: structuredError, approval: request, audit }
         };
       }
       throw error;
