@@ -59,9 +59,19 @@ jobs:
       - name: Install Blender
         shell: powershell
         run: choco install blender -y --no-progress
+      - name: Resolve Blender path
+        shell: powershell
+        run: |
+          $candidate = Get-ChildItem "C:\Program Files\Blender Foundation" -Recurse -Filter blender.exe | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $candidate) {
+            throw "blender.exe was not found after Chocolatey installation"
+          }
+          "BLENDER_BIN=$($candidate.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "$($candidate.DirectoryName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          Write-Host "Resolved Blender: $($candidate.FullName)"
       - name: Verify Blender CLI
         shell: powershell
-        run: blender --version
+        run: '& "$env:BLENDER_BIN" --version'
       - name: Run Blender GLB E2E on Windows
         shell: powershell
         run: node examples/blender-e2e.mjs

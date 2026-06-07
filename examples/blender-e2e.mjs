@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const root = process.cwd();
 const artifacts = resolve(root, "artifacts", "examples", "blender-e2e");
+const blenderBin = process.env.BLENDER_BIN ?? "blender";
 mkdirSync(artifacts, { recursive: true });
 
 const cubeScript = resolve(artifacts, "create-cube.py");
@@ -21,7 +22,7 @@ bpy.ops.export_scene.gltf(filepath=${JSON.stringify(cubePath)}, export_format='G
   "utf8"
 );
 
-run("blender", ["--background", "--factory-startup", "--python", cubeScript]);
+run(blenderBin, ["--background", "--factory-startup", "--python", cubeScript]);
 callTool("blender.render_preview", { path: cubePath });
 callTool("blender.optimize_asset", { path: cubePath });
 callTool("blender.validate_asset", { path: cubePath, maxTriangles: 1000 });
@@ -50,4 +51,3 @@ function run(command, args) {
     throw new Error(result.stderr || `${command} failed`);
   }
 }
-
