@@ -59,7 +59,7 @@
 
 ## Next Release
 
-- Publish `v0.2.17-alpha.0` as a pre-release so `main` and the latest release include Windows Blender CI, the Windows Premiere self-hosted workflow, and the v1 freeze gate.
+- Publish `v0.2.18-alpha.0` as a pre-release so `main` and the latest release include the v1 stable/experimental scope split, delivery profiles, quality presets, and external MCP proxy policy docs.
 - Keep npm releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.

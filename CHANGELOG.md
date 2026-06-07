@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.18-alpha.0
+
+### Added
+
+- Added v1 scope documentation that separates stable v1 surfaces from experimental adapters and live editing flows.
+- Added typed delivery profiles for Premiere and Blender outputs, including YouTube 4K, Shorts, podcast, captioned social, game-ready GLB, marketplace asset, high-quality preview, and final EXR deliveries.
+- Added typed quality presets for ProRes, YouTube 4K, Shorts, game-ready GLB, USD/VFX handoff, and Cycles final EXR outputs.
+- Added example profile JSON files under `examples/profiles`.
+- Added Premiere external MCP reference documentation that records useful design ideas while rejecting direct external MCP proxying.
+
+### Changed
+
+- Updated external MCP adapter guidance so `dcc-mcp-blender` remains optional, disabled by default, bounded by allowlisted operations, and behind local QC and artifact capture.
+- Updated release readiness checks to require v1 scope, delivery profile, quality preset, Premiere MCP reference, and profile example documentation.
+- Exported delivery and quality profile catalogs from the core package.
+
+### Verified
+
+- CI run `27083958219` passed with Node.js 20/22/24 unit tests, package dry-run, release readiness, v1 freeze checks, Windows smoke, Premiere QC E2E, optional adapter checks, optional Blender E2E, and hosted Windows Blender E2E.
+- Local release gates passed for build, tests, schema checks, v1 freeze checks, release readiness, npm pack dry-run, and npm install smoke testing.
+
 ## 0.2.17-alpha.0
 
 ### Added
