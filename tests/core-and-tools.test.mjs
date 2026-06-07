@@ -533,6 +533,31 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
   assert.equal(archived.length, 3);
 });
 
+test("Premiere CEP simulator rejects unsupported command types", async () => {
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-cep-reject-queue-"));
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-cep-reject-status-"));
+  await writeFile(join(queueRoot, "cmd-raw.json"), JSON.stringify({
+    id: "cmd-raw",
+    type: "run_extendscript",
+    payload: { code: "app.project.closeDocument()" },
+    createdAt: new Date().toISOString()
+  }), "utf8");
+  const result = spawnSync("node", [
+    "scripts/simulate-premiere-cep.mjs",
+    "--queue",
+    queueRoot,
+    "--status",
+    statusRoot
+  ], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const status = JSON.parse(await readFile(join(statusRoot, "cmd-raw.json"), "utf8"));
+  assert.equal(status.status, "error");
+  assert.match(status.message, /unsupported command/);
+});
+
 test("Premiere CEP package script writes a verified unsigned package", async () => {
   const result = spawnSync("node", ["scripts/package-premiere-cep.mjs", "--verify"], {
     cwd: resolve("."),
@@ -904,6 +929,30 @@ test("Router writes approval request for project_write tools", async () => {
   assert.ok(result.structuredContent.data.expiresAt);
   assert.ok(result.structuredContent.data.artifactRoot);
   assert.ok(Array.isArray(result.structuredContent.data.workspaceRoots));
+});
+
+test("Raw bpy and raw ExtendScript surfaces are disabled by default", async () => {
+  const toolNames = [...blenderTools, ...premiereTools].map((tool) => tool.name);
+  assert.equal(toolNames.some((name) => /raw|execute_.*script|extendscript|bpy/u.test(name)), false);
+  const blenderAssetTool = blenderTools.find((tool) => tool.name === "blender.create_game_asset");
+  assert.ok(blenderAssetTool);
+  assert.equal(blenderAssetTool.risk, "safe_write");
+  const host = await readFile("packages/premiere-cep-panel/jsx/host.jsx", "utf8");
+  assert.match(host, /unsupported command/);
+  assert.doesNotMatch(host, /eval\(|new Function/u);
+});
+
+test("External adapter code avoids shell string execution", async () => {
+  const adapterFiles = [
+    "packages/blender-pro-mcp/src/adapters/cli.ts",
+    "packages/premiere-pro-mcp/src/adapters/ffmpegQc.ts",
+    "packages/premiere-pro-mcp/src/adapters/optionalTools.ts",
+    "packages/premiere-pro-mcp/src/adapters/premiereCep.ts"
+  ];
+  for (const file of adapterFiles) {
+    const source = await readFile(file, "utf8");
+    assert.doesNotMatch(source, /\bexec\(/u);
+  }
 });
 
 test("MCP stdio returns JSON-RPC method-not-found errors", () => {

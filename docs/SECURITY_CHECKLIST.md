@@ -20,6 +20,7 @@ Use this checklist before beta and stable releases.
 
 - CEP queue commands are typed JSON commands, not arbitrary ExtendScript.
 - Raw ExtendScript execution is not exposed through public tools.
+- Unsupported CEP command types are rejected and produce error status artifacts.
 - Queue files are processed into status files with a normalized schema.
 - Unknown or unreadable CEP results are not silently marked successful.
 
@@ -27,7 +28,14 @@ Use this checklist before beta and stable releases.
 
 - Raw `bpy` execution is not enabled by default.
 - Generated Blender scripts are written as artifacts for review.
+- Safe Blender scripts are generated from bounded templates and artifact-store paths.
 - External Blender bridge commands are opt-in and typed.
+
+## Adapter Injection Review
+
+- External adapter launches use argument arrays, not shell-concatenated command strings.
+- Optional adapters return structured `adapter_missing` errors instead of executing fallback shell snippets.
+- Any future raw script escape hatch remains disabled by default and approval-gated.
 
 ## Release
 
