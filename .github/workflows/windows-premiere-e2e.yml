@@ -1,0 +1,40 @@
+name: Windows Premiere E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout-minutes:
+        description: "Minutes to wait for the Premiere CEP panel to write status files"
+        required: true
+        default: "30"
+        type: string
+
+jobs:
+  windows-premiere-e2e:
+    runs-on: [self-hosted, Windows, premiere]
+    env:
+      CREATIVE_MCP_PERMISSION: project_write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run package:premiere-cep -- --verify
+      - run: npm run install:premiere-cep
+      - name: Queue real Premiere delivery commands
+        shell: powershell
+        run: node examples/premiere-project-delivery.mjs --no-simulate
+      - name: Operator instructions
+        shell: powershell
+        run: |
+          Write-Host "Open Premiere Pro on this self-hosted Windows runner."
+          Write-Host "Open Window -> Extensions -> Creative Pipeline MCP."
+          Write-Host "Set queue directory to artifacts/examples/premiere-project-delivery/cep_queue."
+          Write-Host "Click Refresh Queue, then Run All Pending."
+          Write-Host "This workflow will wait for status JSON files under artifacts/examples/premiere-project-delivery/cep_status."
+      - name: Wait for Premiere CEP E2E status
+        shell: powershell
+        run: node scripts/wait-premiere-e2e-status.mjs --status=artifacts/examples/premiere-project-delivery/cep_status --timeout-minutes=${{ inputs.timeout-minutes }}

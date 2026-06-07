@@ -17,7 +17,7 @@ This matrix tracks what must be verified before v1.
 | macOS + Blender | Local covered | `node examples/blender-e2e.mjs` rendered preview, optimized GLB, and wrote QC report |
 | macOS + Premiere | Local covered | Premiere Pro 2026 CEP E2E on macOS 15/Darwin 24.6.0; timeline, brand, and export status success |
 | Windows + Blender | CI covered/manual optional | `windows-blender-e2e` passed on GitHub Actions run `27082352428`; manual workstation evidence is still useful |
-| Windows + Premiere | Manual required | no current hosted verification |
+| Windows + Premiere | Self-hosted workflow required | `.github/workflows/windows-premiere-e2e.yml` can run on an interactive self-hosted Windows runner with Premiere installed |
 | WhisperX installed | Local covered | `/Users/higataiyu/.local/bin/whisperx`; adapter check reports available |
 | PySceneDetect installed | Local covered | `/Users/higataiyu/.local/bin/scenedetect`; adapter check reports available |
 | pyloudnorm installed | Local covered | `python3 -m pip install --user pyloudnorm soundfile`; adapter check reports available |

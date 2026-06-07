@@ -12,6 +12,7 @@ node examples/blender-e2e.mjs
 node examples/premiere-qc-e2e.mjs
 node examples/premiere-project-delivery.mjs
 npm run simulate:premiere-cep -- --queue artifacts/examples/premiere-project-delivery/cep_queue --status artifacts/examples/premiere-project-delivery/cep_status
+npm run wait:premiere-e2e -- --status=artifacts/examples/premiere-project-delivery/cep_status --timeout-minutes=1
 npm run package:premiere-cep -- --verify
 npm pack --dry-run
 ```

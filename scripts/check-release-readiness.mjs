@@ -17,7 +17,9 @@ const requiredFiles = [
   "docs/examples/delivery_qc_report.sample.json",
   "examples/projects/youtube-16x9/project.json",
   "examples/projects/game-asset/project.json",
+  "scripts/wait-premiere-e2e-status.mjs",
   ".github/workflows/ci.yml",
+  ".github/workflows/windows-premiere-e2e.yml",
   ".github/workflows/npm-publish.yml",
   ".github/RELEASE_NOTES_TEMPLATE.md"
 ];
@@ -31,6 +33,7 @@ assert(pkg.files.includes("examples"), "package files must include examples");
 assert(pkg.scripts["check:schemas"], "package must expose check:schemas");
 assert(pkg.scripts["check:release"], "package must expose check:release");
 assert(pkg.scripts["smoke:npm-install"], "package must expose smoke:npm-install");
+assert(pkg.scripts["wait:premiere-e2e"], "package must expose wait:premiere-e2e");
 
 for (const file of requiredFiles) {
   const text = readText(file);

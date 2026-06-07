@@ -3,6 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const root = process.cwd();
+const simulateCep = !process.argv.includes("--no-simulate");
 const mediaDir = resolve(root, "artifacts", "examples", "premiere-project-delivery");
 const queueDir = resolve(root, "artifacts", "examples", "premiere-project-delivery", "cep_queue");
 const statusDir = resolve(root, "artifacts", "examples", "premiere-project-delivery", "cep_status");
@@ -13,7 +14,7 @@ mkdirSync(queueDir, { recursive: true });
 mkdirSync(statusDir, { recursive: true });
 
 const mediaPath = join(mediaDir, "source.mp4");
-writeFileSync(mediaPath, new Uint8Array([0]));
+writeSampleMedia(mediaPath);
 
 callTool("premiere.build_project_delivery", {
   path: mediaPath,
@@ -31,13 +32,17 @@ callTool("premiere.build_project_delivery", {
   CREATIVE_MCP_PREMIERE_IPC_DIR: queueDir,
   CREATIVE_MCP_WORKSPACE_ROOTS: root
 });
-run("node", [
-  "scripts/simulate-premiere-cep.mjs",
-  "--queue",
-  queueDir,
-  "--status",
-  statusDir
-]);
+if (simulateCep) {
+  run("node", [
+    "scripts/simulate-premiere-cep.mjs",
+    "--queue",
+    queueDir,
+    "--status",
+    statusDir
+  ]);
+} else {
+  console.log(JSON.stringify({ queueDir, statusDir, message: "CEP simulation skipped; run the queue in Premiere." }, null, 2));
+}
 
 function callTool(name, args, extraEnv = {}) {
   const request = JSON.stringify({
@@ -69,4 +74,25 @@ function run(command, args) {
     throw new Error(result.stderr || `${command} failed`);
   }
   process.stdout.write(result.stdout);
+}
+
+function writeSampleMedia(path) {
+  const result = spawnSync("ffmpeg", [
+    "-hide_banner",
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "testsrc=duration=1:size=640x360:rate=30",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=880:duration=1",
+    "-shortest",
+    path
+  ], { cwd: root, encoding: "utf8" });
+  if (result.status === 0) {
+    return;
+  }
+  writeFileSync(path, new Uint8Array([0]));
 }

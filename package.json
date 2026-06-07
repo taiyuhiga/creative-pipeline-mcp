@@ -58,6 +58,7 @@
     "release:assets": "node scripts/release-assets.mjs",
     "blender:bridge-worker": "node scripts/blender-bridge-worker.mjs",
     "simulate:premiere-cep": "node scripts/simulate-premiere-cep.mjs",
+    "wait:premiere-e2e": "node scripts/wait-premiere-e2e-status.mjs",
     "package:premiere-cep": "node scripts/package-premiere-cep.mjs",
     "install:premiere-cep": "node scripts/install-premiere-cep.mjs",
     "uninstall:premiere-cep": "node scripts/install-premiere-cep.mjs --uninstall",

@@ -35,6 +35,8 @@ Pass criteria:
 
 Premiere Pro is not available on hosted GitHub runners, so this remains a manual workstation test.
 
+For GitHub Actions evidence, configure an interactive self-hosted Windows runner with labels `self-hosted`, `Windows`, and `premiere`, then run the `Windows Premiere E2E` workflow manually. The runner must be attached to a desktop session where Premiere Pro can open CEP panels.
+
 Prerequisites:
 
 - Windows 11
@@ -49,7 +51,7 @@ npm ci
 npm run build
 npm run package:premiere-cep -- --verify
 npm run install:premiere-cep
-node examples/premiere-project-delivery.mjs
+node examples/premiere-project-delivery.mjs --no-simulate
 ```
 
 Then in Premiere:
@@ -60,6 +62,12 @@ Then in Premiere:
 4. Click `Refresh Queue`.
 5. Click `Run All Pending`.
 6. Click `Refresh Status`.
+
+If running outside GitHub Actions, wait for status files with:
+
+```powershell
+npm run wait:premiere-e2e -- --status=artifacts/examples/premiere-project-delivery/cep_status --timeout-minutes=30
+```
 
 Pass criteria:
 
