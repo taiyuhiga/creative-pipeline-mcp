@@ -117,6 +117,15 @@
           "prompt": {
             "maxLength": 2000,
             "type": "string"
+          },
+          "template": {
+            "enum": [
+              "auto",
+              "lowpoly_crate",
+              "sci_fi_door",
+              "product_turntable_scene"
+            ],
+            "type": "string"
           }
         },
         "required": [

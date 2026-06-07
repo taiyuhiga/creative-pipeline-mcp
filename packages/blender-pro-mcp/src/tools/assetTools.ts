@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
-import { basename, parse } from "node:path";
-import type { ToolDefinition } from "@creative-pipeline-mcp/core";
+import { basename, join, parse } from "node:path";
+import type { ToolDefinition, ToolExecutionContext } from "@creative-pipeline-mcp/core";
 import {
   enqueueBlenderBridgeCommand,
   findBlenderBridgeStatus,
@@ -462,6 +462,10 @@ export const blenderTools: ToolDefinition[] = [
       type: "object",
       properties: {
         prompt: { type: "string", maxLength: 2000 },
+        template: {
+          type: "string",
+          enum: ["auto", "lowpoly_crate", "sci_fi_door", "product_turntable_scene"]
+        },
         budget: { type: "object" }
       },
       required: ["prompt"],
@@ -469,28 +473,61 @@ export const blenderTools: ToolDefinition[] = [
     },
     async execute(context, input) {
       const prompt = String(input.prompt ?? "");
+      const template = selectGameAssetTemplate(prompt, input.template);
+      const name = assetName(prompt, template);
+      const outputTarget = `blender/${name}.glb`;
+      const outputPath = join(context.artifactStore.root, outputTarget);
+      const maxTriangles = readBudgetNumber(input.budget, "maxTriangles", 50000);
+      const maxDimension = readBudgetNumber(input.budget, "maxDimension", undefined);
       const manifest = {
         prompt,
+        template,
         target: "game_ready_glb",
+        outputs: [
+          outputTarget,
+          `blender/${name}_preview.png`,
+          `blender/${name}_optimized.glb`,
+          `blender/${name}_asset_qc_report.json`
+        ],
         excluded: ["3D-Agent"],
-        requiredQc: ["triangle_budget", "origin", "scale", "normals", "textures", "export_success"],
+        requiredQc: ["triangle_budget", "origin", "scale", "normals", "textures", "materials", "naming", "bounds", "export_success"],
         bridge: "external_blender_required",
         safeScript: "blender/create_game_asset_safe.py"
       };
       const artifact = await context.artifactStore.writeJson("blender/create_game_asset_job.json", manifest);
+      const scriptText = safeBlenderAssetScript(prompt, template, outputPath);
       const script = await context.artifactStore.writeText(
         "blender/create_game_asset_safe.py",
-        safeBlenderAssetScript(prompt)
+        scriptText
       );
+      const run = await runHeadlessBlenderScript(scriptText);
+      if (run.available && !run.error && existsSync(outputPath)) {
+        const qcReport = await inspectAndReport(outputPath, maxTriangles, maxDimension);
+        const qc = await context.artifactStore.writeJson(artifactName(outputPath, "_asset_qc_report.json"), qcReport);
+        const preview = await renderPreviewArtifact(context, outputPath);
+        const optimized = await optimizeGeneratedAsset(context, outputPath);
+        return {
+          ok: qcReport.summary.status !== "fail",
+          message: `Game asset generated locally from ${template}: ${qcReport.summary.status}`,
+          artifacts: [artifact, script, outputPath, qc, preview.artifact, optimized.artifact],
+          data: {
+            manifest,
+            blender: run,
+            qc: qcReport,
+            preview: preview.data,
+            optimize: optimized.data
+          }
+        };
+      }
       const queued = await enqueueBlenderBridgeCommand("run_safe_script", {
         ...manifest,
         scriptPath: script
       });
       return {
         ok: true,
-        message: "Game asset job manifest and safe Blender bridge command written",
+        message: "Game asset job manifest and safe Blender bridge command written; local headless Blender unavailable",
         artifacts: [artifact, script, queued.path],
-        data: { manifest, command: queued.command }
+        data: { manifest, command: queued.command, blender: run }
       };
     }
   },
@@ -592,25 +629,168 @@ export const blenderTools: ToolDefinition[] = [
   }
 ];
 
-function safeBlenderAssetScript(prompt: string): string {
-  const name = prompt
+type GameAssetTemplate = "lowpoly_crate" | "sci_fi_door" | "product_turntable_scene";
+
+function selectGameAssetTemplate(prompt: string, requested: unknown): GameAssetTemplate {
+  if (requested === "lowpoly_crate" || requested === "sci_fi_door" || requested === "product_turntable_scene") {
+    return requested;
+  }
+  const normalized = prompt.toLowerCase();
+  if (normalized.includes("door") || normalized.includes("sci") || normalized.includes("sci-fi")) {
+    return "sci_fi_door";
+  }
+  if (normalized.includes("turntable") || normalized.includes("product") || normalized.includes("display")) {
+    return "product_turntable_scene";
+  }
+  return "lowpoly_crate";
+}
+
+function assetName(prompt: string, template: GameAssetTemplate): string {
+  const slug = prompt
     .replace(/[^a-z0-9]+/giu, "_")
     .replace(/^_+|_+$/gu, "")
-    .slice(0, 48) || "CreativePipelineAsset";
+    .slice(0, 40);
+  return slug || template;
+}
+
+function readBudgetNumber(budget: unknown, key: string, fallback: number): number;
+function readBudgetNumber(budget: unknown, key: string, fallback: undefined): number | undefined;
+function readBudgetNumber(budget: unknown, key: string, fallback: number | undefined): number | undefined {
+  if (!budget || typeof budget !== "object") {
+    return fallback;
+  }
+  const value = (budget as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : fallback;
+}
+
+async function renderPreviewArtifact(context: ToolExecutionContext, source: string) {
+  const artifact = await context.artifactStore.writeBytes(artifactName(source, "_preview.png"), placeholderPng());
+  const render = await renderWithHeadlessBlender(source, artifact);
+  return {
+    artifact,
+    data: render.available && !render.error
+      ? { renderer: "blender_headless", command: render.command }
+      : { renderer: "placeholder", blender: render }
+  };
+}
+
+async function optimizeGeneratedAsset(context: ToolExecutionContext, source: string) {
+  const target = artifactName(source, "_optimized.glb");
+  const artifact = await context.artifactStore.writeBytes(target, new Uint8Array());
+  const optimized = await optimizeWithCli(source, artifact);
+  const sourceBytes = statSync(source).size;
+  if (optimized.available && !optimized.error) {
+    const optimizedBytes = statSync(artifact).size;
+    return {
+      artifact,
+      data: {
+        optimizer: optimized.command,
+        source,
+        sourceBytes,
+        optimizedBytes,
+        deltaBytes: optimizedBytes - sourceBytes,
+        ratio: sourceBytes > 0 ? optimizedBytes / sourceBytes : null
+      }
+    };
+  }
+  const fallback = await context.artifactStore.copyIn(source, target);
+  const fallbackBytes = statSync(fallback).size;
+  return {
+    artifact: fallback,
+    data: {
+      optimizer: "copy_fallback",
+      source,
+      sourceBytes,
+      optimizedBytes: fallbackBytes,
+      deltaBytes: fallbackBytes - sourceBytes,
+      ratio: sourceBytes > 0 ? fallbackBytes / sourceBytes : null,
+      cli: optimized
+    }
+  };
+}
+
+function safeBlenderAssetScript(prompt: string, template: GameAssetTemplate, outputPath: string): string {
+  const name = assetName(prompt, template);
+  const body = template === "sci_fi_door"
+    ? sciFiDoorScriptBody()
+    : template === "product_turntable_scene"
+      ? productTurntableScriptBody()
+      : lowpolyCrateScriptBody();
   return `import bpy
 
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete()
-bpy.ops.mesh.primitive_cube_add(size=1)
-asset = bpy.context.object
-asset.name = ${JSON.stringify(name)}
-asset.location = (0, 0, 0)
 
-mat = bpy.data.materials.new(name=${JSON.stringify(`${name}_Material`)})
-mat.use_nodes = True
-asset.data.materials.append(mat)
+def material(name, color, metallic=0.0, roughness=0.65):
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    node = mat.node_tree.nodes.get("Principled BSDF")
+    if node:
+        if "Base Color" in node.inputs:
+            node.inputs["Base Color"].default_value = color
+        if "Metallic" in node.inputs:
+            node.inputs["Metallic"].default_value = metallic
+        if "Roughness" in node.inputs:
+            node.inputs["Roughness"].default_value = roughness
+    return mat
 
-bpy.ops.export_scene.gltf(filepath=${JSON.stringify(`${name}.glb`)}, export_format="GLB")
+def cube(name, location, scale, mat):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=location)
+    obj = bpy.context.object
+    obj.name = name
+    obj.scale = scale
+    obj.data.materials.append(mat)
+    return obj
+
+asset_name = ${JSON.stringify(name)}
+${body}
+
+bpy.ops.export_scene.gltf(filepath=${JSON.stringify(outputPath)}, export_format="GLB")
+`;
+}
+
+function lowpolyCrateScriptBody(): string {
+  return `wood = material(asset_name + "_Wood_PBR", (0.58, 0.35, 0.16, 1.0), 0.0, 0.72)
+trim = material(asset_name + "_DarkTrim_PBR", (0.18, 0.12, 0.08, 1.0), 0.0, 0.55)
+cube("CrateBody", (0, 0, 0), (1.0, 1.0, 1.0), wood)
+cube("CrateBand_Front", (0, -0.53, 0), (1.1, 0.06, 0.18), trim)
+cube("CrateBand_Back", (0, 0.53, 0), (1.1, 0.06, 0.18), trim)
+cube("CrateBand_Left", (-0.53, 0, 0), (0.06, 1.1, 0.18), trim)
+cube("CrateBand_Right", (0.53, 0, 0), (0.06, 1.1, 0.18), trim)
+cube("CrateBrace_Diagonal", (0, -0.56, 0), (1.25, 0.04, 0.08), trim).rotation_euler[1] = 0.65
+`;
+}
+
+function sciFiDoorScriptBody(): string {
+  return `metal = material(asset_name + "_Gunmetal_PBR", (0.19, 0.21, 0.24, 1.0), 0.65, 0.34)
+panel = material(asset_name + "_Panel_PBR", (0.08, 0.10, 0.12, 1.0), 0.35, 0.42)
+light = material(asset_name + "_CyanLight_PBR", (0.0, 0.75, 1.0, 1.0), 0.0, 0.18)
+cube("DoorFrame_L", (-1.15, 0, 0), (0.16, 0.08, 1.45), metal)
+cube("DoorFrame_R", (1.15, 0, 0), (0.16, 0.08, 1.45), metal)
+cube("DoorFrame_Top", (0, 0, 1.35), (1.3, 0.08, 0.16), metal)
+cube("DoorPanel_L", (-0.43, 0, 0), (0.48, 0.06, 1.15), panel)
+cube("DoorPanel_R", (0.43, 0, 0), (0.48, 0.06, 1.15), panel)
+cube("DoorLight_Center", (0, -0.08, 0.25), (0.06, 0.035, 0.95), light)
+cube("DoorConsole_R", (1.42, -0.04, -0.15), (0.18, 0.05, 0.32), metal)
+`;
+}
+
+function productTurntableScriptBody(): string {
+  return `base = material(asset_name + "_Base_PBR", (0.12, 0.12, 0.12, 1.0), 0.4, 0.28)
+product = material(asset_name + "_Product_PBR", (0.88, 0.66, 0.22, 1.0), 0.2, 0.38)
+accent = material(asset_name + "_Accent_PBR", (0.04, 0.32, 0.75, 1.0), 0.0, 0.25)
+bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=1.1, depth=0.18, location=(0, 0, -0.1))
+turntable = bpy.context.object
+turntable.name = "DisplayBase"
+turntable.data.materials.append(base)
+cube("Product_Block", (0, 0, 0.45), (0.55, 0.42, 0.55), product)
+cube("Product_Accent", (0, -0.43, 0.48), (0.38, 0.035, 0.12), accent)
+bpy.ops.object.light_add(type="AREA", location=(0, -3, 3))
+bpy.context.object.name = "KeyLight"
+bpy.context.object.data.energy = 350
+bpy.ops.object.camera_add(location=(2.3, -3.2, 1.7), rotation=(1.12, 0, 0.62))
+bpy.context.object.name = "TurntableCamera"
+bpy.context.scene.camera = bpy.context.object
 `;
 }
 

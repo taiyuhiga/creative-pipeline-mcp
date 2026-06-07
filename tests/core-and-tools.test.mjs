@@ -143,7 +143,9 @@ test("Blender game asset generation writes a safe script artifact", async () => 
   assert.ok(tool);
   const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-queue-"));
   const previous = process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
+  const previousBlender = process.env.BLENDER_BIN;
   process.env.CREATIVE_MCP_BLENDER_IPC_DIR = queueRoot;
+  process.env.BLENDER_BIN = "/definitely/missing/blender";
   try {
     const result = await tool.execute(await context(), {
       prompt: "low-poly prop crate"
@@ -154,6 +156,8 @@ test("Blender game asset generation writes a safe script artifact", async () => 
     const scriptPath = result.artifacts.find((artifact) => artifact.endsWith("create_game_asset_safe.py"));
     const script = await readFile(scriptPath, "utf8");
     assert.match(script, /bpy\.ops\.export_scene\.gltf/);
+    assert.match(script, /CrateBody/);
+    assert.equal(result.data.manifest.template, "lowpoly_crate");
     const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
     assert.equal(queueFiles.length, 1);
     const queued = JSON.parse(await readFile(join(queueRoot, queueFiles[0]), "utf8"));
@@ -164,6 +168,51 @@ test("Blender game asset generation writes a safe script artifact", async () => 
       delete process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
     } else {
       process.env.CREATIVE_MCP_BLENDER_IPC_DIR = previous;
+    }
+    if (previousBlender === undefined) {
+      delete process.env.BLENDER_BIN;
+    } else {
+      process.env.BLENDER_BIN = previousBlender;
+    }
+  }
+});
+
+test("Blender game asset generation supports production templates", async () => {
+  const tool = blenderTools.find((candidate) => candidate.name === "blender.create_game_asset");
+  assert.ok(tool);
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-blender-template-"));
+  const previousQueue = process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
+  const previousBlender = process.env.BLENDER_BIN;
+  process.env.CREATIVE_MCP_BLENDER_IPC_DIR = queueRoot;
+  process.env.BLENDER_BIN = "/definitely/missing/blender";
+  try {
+    const result = await tool.execute(await context(), {
+      prompt: "hero blast door",
+      template: "sci_fi_door",
+      budget: { maxTriangles: 1000, maxDimension: 3 }
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.data.manifest.template, "sci_fi_door");
+    assert.deepEqual(result.data.manifest.outputs, [
+      "blender/hero_blast_door.glb",
+      "blender/hero_blast_door_preview.png",
+      "blender/hero_blast_door_optimized.glb",
+      "blender/hero_blast_door_asset_qc_report.json"
+    ]);
+    const scriptPath = result.artifacts.find((artifact) => artifact.endsWith("create_game_asset_safe.py"));
+    const script = await readFile(scriptPath, "utf8");
+    assert.match(script, /DoorPanel_L/);
+    assert.match(script, /DoorLight_Center/);
+  } finally {
+    if (previousQueue === undefined) {
+      delete process.env.CREATIVE_MCP_BLENDER_IPC_DIR;
+    } else {
+      process.env.CREATIVE_MCP_BLENDER_IPC_DIR = previousQueue;
+    }
+    if (previousBlender === undefined) {
+      delete process.env.BLENDER_BIN;
+    } else {
+      process.env.BLENDER_BIN = previousBlender;
     }
   }
 });
