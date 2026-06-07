@@ -16,7 +16,7 @@ This matrix tracks what must be verified before v1.
 | Blender missing | Partial | renderer/optimizer fallbacks are tested through unit paths |
 | macOS + Blender | Local covered | `node examples/blender-e2e.mjs` rendered preview, optimized GLB, and wrote QC report |
 | macOS + Premiere | Local covered | Premiere Pro 2026 CEP E2E on macOS 15/Darwin 24.6.0; timeline, brand, and export status success |
-| Windows + Blender | CI pending/manual | `windows-blender-e2e` installs Blender with Chocolatey and runs `node examples/blender-e2e.mjs`; manual workstation evidence is still useful |
+| Windows + Blender | CI covered/manual optional | `windows-blender-e2e` passed on GitHub Actions run `27082352428`; manual workstation evidence is still useful |
 | Windows + Premiere | Manual required | no current hosted verification |
 | WhisperX installed | Local covered | `/Users/higataiyu/.local/bin/whisperx`; adapter check reports available |
 | PySceneDetect installed | Local covered | `/Users/higataiyu/.local/bin/scenedetect`; adapter check reports available |
@@ -59,6 +59,18 @@ Command: node examples/blender-e2e.mjs
 Result: pass
 Artifacts: artifacts/examples/blender-e2e/cube.glb, artifacts/blender/cube_preview.png, artifacts/blender/cube_optimized.glb, artifacts/blender/cube_asset_qc_report.json
 Notes: headless Blender preview rendered; glTF optimizer wrote optimized artifact; validate_asset wrote QC report with warning-only material findings.
+```
+
+## Hosted Result: Windows + Blender
+
+```text
+OS: GitHub Actions windows-latest
+Node: 24
+Blender: Chocolatey-installed Blender resolved through BLENDER_BIN
+Command: node examples/blender-e2e.mjs
+Result: pass
+Artifacts: artifacts/examples/blender-e2e/cube.glb, artifacts/blender/cube_preview.png, artifacts/blender/cube_optimized.glb, artifacts/blender/cube_asset_qc_report.json
+Notes: CI run 27082352428 job windows-blender-e2e installed Blender, verified CLI, and completed GLB preview/optimize/validate flow.
 ```
 
 ## Manual Result: Local Adapter Check
