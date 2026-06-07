@@ -1,0 +1,15 @@
+{
+  "schema": "creative.pipeline.premiere.status.v1",
+  "commandId": "example-build-timeline",
+  "commandType": "build_timeline_from_otio",
+  "status": "success",
+  "message": "timeline build completed",
+  "details": {
+    "imported": 1,
+    "media": 1,
+    "inserted": 1,
+    "sequenceName": "Creative Pipeline Live CEP Test"
+  },
+  "finishedAt": "2026-06-07T01:30:59Z"
+}
+

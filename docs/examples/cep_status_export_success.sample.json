@@ -1,0 +1,12 @@
+{
+  "schema": "creative.pipeline.premiere.status.v1",
+  "commandId": "example-export-sequence",
+  "commandType": "export_sequence",
+  "status": "success",
+  "message": "export queued in Adobe Media Encoder",
+  "details": {
+    "outputPath": "artifacts/examples/premiere-live-cep/final.mp4"
+  },
+  "finishedAt": "2026-06-07T01:30:59Z"
+}
+

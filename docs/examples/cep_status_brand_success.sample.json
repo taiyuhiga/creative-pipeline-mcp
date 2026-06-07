@@ -1,0 +1,20 @@
+{
+  "schema": "creative.pipeline.premiere.status.v1",
+  "commandId": "example-apply-brand",
+  "commandType": "apply_brand_package",
+  "status": "success",
+  "message": "brand package accepted",
+  "details": {
+    "brand": {
+      "primaryColor": "#1f6feb"
+    },
+    "appliesTo": [
+      "captions",
+      "lower_thirds",
+      "thumbnail",
+      "end_card"
+    ]
+  },
+  "finishedAt": "2026-06-07T01:30:59Z"
+}
+

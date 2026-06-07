@@ -33,3 +33,9 @@ Supported `status` values:
 - `error`
 
 The MCP status reader normalizes legacy status files to this schema. `premiere.await_cep_status` can poll by `commandId` and/or `commandType`, and `premiere.finalize_export_qc` uses `export_sequence` status details to locate the exported file before writing delivery QC.
+
+Sample fixtures:
+
+- `docs/examples/cep_status_timeline_success.sample.json`
+- `docs/examples/cep_status_brand_success.sample.json`
+- `docs/examples/cep_status_export_success.sample.json`

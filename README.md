@@ -2,7 +2,12 @@
 
 [![CI](https://github.com/taiyuhiga/creative-pipeline-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/taiyuhiga/creative-pipeline-mcp/actions/workflows/ci.yml)
 
-QC-first MCP pipeline for Blender asset workflows and Adobe Premiere media workflows.
+Creative Pipeline MCP is not just a Blender or Premiere controller. It is a QC-first orchestration layer for creative workflows:
+
+- Blender/glTF asset QC and optimization
+- Premiere media QC and CEP queue workflow
+- approval-gated elevated operations
+- artifacts, reports, and dashboard review
 
 This repository implements a split creative pipeline architecture:
 
@@ -75,33 +80,39 @@ npm run check:adapters
 npm run check:adapters -- --json
 ```
 
-Blender e2e sample:
+## Quickstarts
+
+### Blender QC
 
 ```bash
 npm run build
 node examples/blender-e2e.mjs
 ```
 
-Blender bridge queue sample:
+Expected outputs include preview, QC, optimized asset, and repair artifacts under `artifacts/blender/` when the relevant optional adapters are available.
+
+### Blender Bridge Queue
 
 ```bash
 npm run build
 node examples/blender-bridge-queue.mjs
-```
-
-Blender bridge worker dry-run:
-
-```bash
 npm run blender:bridge-worker -- --once --dry-run
 ```
 
-Premiere media QC / CEP queue sample:
+### Premiere QC And CEP Simulator
 
 ```bash
 npm run build
 node examples/premiere-qc-e2e.mjs
 node examples/premiere-project-delivery.mjs
 npm run simulate:premiere-cep -- --queue artifacts/examples/premiere-project-delivery/cep_queue --status artifacts/examples/premiere-project-delivery/cep_status
+```
+
+### Dashboard Approvals
+
+```bash
+CREATIVE_MCP_DASHBOARD_TOKEN=change-me npm run start:dashboard
+open "http://127.0.0.1:4173/?token=change-me"
 ```
 
 Typical artifacts:
@@ -128,7 +139,7 @@ npm run start:blender
 npm run start:premiere
 ```
 
-Dashboard:
+Dashboard server:
 
 ```bash
 CREATIVE_MCP_DASHBOARD_TOKEN=change-me npm run start:dashboard
@@ -160,12 +171,16 @@ For GitHub Actions publishing, configure npm trusted publishing for `.github/wor
 Detailed docs:
 
 - `docs/INSTALL_DASHBOARD.md`
+- `docs/BLENDER_E2E_TEST.md`
 - `docs/PREMIERE_E2E_TEST.md`
 - `docs/API_TOOLS.md`
+- `docs/API_STABILITY.md`
 - `docs/COMPATIBILITY_MATRIX.md`
 - `docs/CEP_STATUS_SCHEMA.md`
 - `docs/ARTIFACT_SCHEMA.md`
+- `docs/EXTERNAL_MCP_ADAPTERS.md`
 - `docs/RELEASE_PROCESS.md`
+- `docs/SECURITY_CHECKLIST.md`
 - `docs/TROUBLESHOOTING.md`
 
 Example `tools/list` request:
