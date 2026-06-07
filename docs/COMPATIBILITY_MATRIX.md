@@ -12,11 +12,11 @@ This matrix tracks what must be verified before v1.
 | FFmpeg missing | Partial | adapter check reports missing tools without failing |
 | FFmpeg libvmaf installed | Local covered | `node scripts/check-adapters.mjs --json` reports `ffmpeg-libvmaf.available=true` |
 | FFmpeg without libvmaf | Local simulated | fake `ffmpeg -filters` without `libvmaf` reports `ffmpeg-libvmaf.available=false` |
-| Blender installed | Local/optional CI | `blender-e2e-optional` runs when available |
+| Blender installed | Local/optional CI | `blender-e2e-optional` runs when available; `windows-blender-e2e` installs Blender on Windows |
 | Blender missing | Partial | renderer/optimizer fallbacks are tested through unit paths |
 | macOS + Blender | Local covered | `node examples/blender-e2e.mjs` rendered preview, optimized GLB, and wrote QC report |
 | macOS + Premiere | Local covered | Premiere Pro 2026 CEP E2E on macOS 15/Darwin 24.6.0; timeline, brand, and export status success |
-| Windows + Blender | Manual required | no current hosted verification |
+| Windows + Blender | CI pending/manual | `windows-blender-e2e` installs Blender with Chocolatey and runs `node examples/blender-e2e.mjs`; manual workstation evidence is still useful |
 | Windows + Premiere | Manual required | no current hosted verification |
 | WhisperX installed | Local covered | `/Users/higataiyu/.local/bin/whisperx`; adapter check reports available |
 | PySceneDetect installed | Local covered | `/Users/higataiyu/.local/bin/scenedetect`; adapter check reports available |

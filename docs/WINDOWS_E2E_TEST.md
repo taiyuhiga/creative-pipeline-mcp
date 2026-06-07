@@ -4,6 +4,10 @@ Use this checklist to close the remaining Windows compatibility issues.
 
 ## Windows + Blender
 
+Hosted CI coverage:
+
+- `.github/workflows/ci.yml` job `windows-blender-e2e` installs Blender on `windows-latest` and runs `node examples/blender-e2e.mjs`.
+
 Prerequisites:
 
 - Windows 11
@@ -28,6 +32,8 @@ Pass criteria:
 - `blender.render_preview`, `blender.optimize_asset`, and `blender.validate_asset` return successful structuredContent.
 
 ## Windows + Premiere CEP
+
+Premiere Pro is not available on hosted GitHub runners, so this remains a manual workstation test.
 
 Prerequisites:
 
