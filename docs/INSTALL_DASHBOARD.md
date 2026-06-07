@@ -14,6 +14,10 @@ Open:
 http://127.0.0.1:4173/?token=change-me
 ```
 
+## Screenshot
+
+![Dashboard overview](images/dashboard-overview.png)
+
 The server binds to `127.0.0.1` only. `CREATIVE_MCP_DASHBOARD_TOKEN` is required. API requests must send the token as `x-creative-mcp-dashboard-token` or as the `token` query parameter.
 
 ## APIs

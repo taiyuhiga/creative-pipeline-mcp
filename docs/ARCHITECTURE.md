@@ -14,6 +14,26 @@ The dashboard reads `artifacts/approvals/pending`, resolves approve/reject decis
 
 The public tool surface stays small. Low-level OSS integrations are adapter capabilities selected behind macro tools.
 
+## System Diagram
+
+```mermaid
+flowchart LR
+  Client["MCP client"] --> Core["core registry/router"]
+  Core --> Approval["approval policy"]
+  Core --> Artifacts["ArtifactStore"]
+  Core --> Blender["blender-pro-mcp"]
+  Core --> Premiere["premiere-pro-mcp"]
+  Core --> Director["director-agent"]
+  Blender --> BlenderBridge["optional Blender bridge / CLI adapters"]
+  Premiere --> CepQueue["Premiere CEP queue"]
+  CepQueue --> CepPanel["premiere-cep-panel"]
+  CepPanel --> CepStatus["CEP status artifacts"]
+  Artifacts --> Dashboard["dashboard"]
+  Approval --> Pending["approvals/pending"]
+  Pending --> Dashboard
+  CepStatus --> Dashboard
+```
+
 ## MCP Methods
 
 The servers implement a stdio JSON-RPC subset:
