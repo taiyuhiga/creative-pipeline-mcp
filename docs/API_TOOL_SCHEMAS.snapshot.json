@@ -390,6 +390,9 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "maxDimension": {
+            "type": "number"
+          },
           "maxTriangles": {
             "type": "number"
           },

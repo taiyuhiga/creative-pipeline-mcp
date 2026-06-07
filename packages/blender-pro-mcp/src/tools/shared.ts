@@ -16,7 +16,7 @@ export function artifactName(path: string, suffix: string): string {
   return `blender/${parsed.name}${suffix}`;
 }
 
-export async function inspectAndReport(path: string, maxTriangles = 50000) {
+export async function inspectAndReport(path: string, maxTriangles = 50000, maxDimension?: number) {
   const ext = extname(path).toLowerCase();
   if (ext !== ".glb" && ext !== ".gltf") {
     const checks: QcCheck[] = [
@@ -86,10 +86,62 @@ export async function inspectAndReport(path: string, maxTriangles = 50000) {
       value: inspection.materialTextureSlots
     },
     {
+      id: "materials.pbr_completeness",
+      status: inspection.incompletePbrMaterials === 0 ? "pass" : "warn",
+      message: `${inspection.incompletePbrMaterials} materials missing basic PBR data`,
+      value: inspection.incompletePbrMaterials
+    },
+    {
+      id: "textures.files",
+      status: inspection.missingImageFiles === 0 ? "pass" : "fail",
+      message: `${inspection.missingImageFiles} external texture files missing`,
+      value: inspection.missingImageFiles
+    },
+    {
+      id: "textures.dimensions",
+      status: inspection.imageCount === 0 || inspection.imagesWithDimensions > 0 ? "pass" : "warn",
+      message: `${inspection.imagesWithDimensions}/${inspection.imageCount} images have readable dimensions`,
+      value: {
+        imageCount: inspection.imageCount,
+        imagesWithDimensions: inspection.imagesWithDimensions,
+        oversizedImages: inspection.oversizedImages
+      }
+    },
+    {
+      id: "textures.total_size",
+      status: inspection.externalTextureBytes <= 64 * 1024 * 1024 ? "pass" : "warn",
+      message: `${inspection.externalTextureBytes} bytes of external textures`,
+      value: inspection.externalTextureBytes
+    },
+    {
+      id: "objects.naming",
+      status: inspection.unnamedNodes === 0 && inspection.invalidNodeNames === 0 ? "pass" : "warn",
+      message: `${inspection.unnamedNodes} unnamed nodes; ${inspection.invalidNodeNames} invalid node names`,
+      value: {
+        unnamedNodes: inspection.unnamedNodes,
+        invalidNodeNames: inspection.invalidNodeNames
+      }
+    },
+    {
       id: "bounds.present",
       status: inspection.boundingBox ? "pass" : "warn",
       message: inspection.boundingBox ? "Bounding box metadata present" : "Bounding box metadata missing",
       value: inspection.boundingBox ?? null
+    },
+    {
+      id: "bounds.max_dimension",
+      status:
+        !inspection.boundingBoxSize || typeof maxDimension !== "number" || Math.max(...inspection.boundingBoxSize) <= maxDimension
+          ? "pass"
+          : "warn",
+      message:
+        inspection.boundingBoxSize
+          ? `Bounding box size ${inspection.boundingBoxSize.join(" x ")}${typeof maxDimension === "number" ? `; max ${maxDimension}` : ""}`
+          : "Bounding box size unavailable",
+      value: {
+        size: inspection.boundingBoxSize ?? null,
+        maxDimension: maxDimension ?? null
+      }
     }
   ];
   return buildQcReport("asset", path, checks, {

@@ -319,7 +319,8 @@ export const blenderTools: ToolDefinition[] = [
       type: "object",
       properties: {
         path: { type: "string" },
-        maxTriangles: { type: "number" }
+        maxTriangles: { type: "number" },
+        maxDimension: { type: "number" }
       },
       required: ["path"],
       additionalProperties: false
@@ -328,7 +329,8 @@ export const blenderTools: ToolDefinition[] = [
       const path = requirePath(input);
       await context.artifactStore.assertReadableFile(path);
       const maxTriangles = typeof input.maxTriangles === "number" ? input.maxTriangles : 50000;
-      const report = await inspectAndReport(path, maxTriangles);
+      const maxDimension = typeof input.maxDimension === "number" ? input.maxDimension : undefined;
+      const report = await inspectAndReport(path, maxTriangles, maxDimension);
       const artifact = await context.artifactStore.writeJson(artifactName(path, "_asset_qc_report.json"), report);
       return {
         ok: report.summary.status !== "fail",

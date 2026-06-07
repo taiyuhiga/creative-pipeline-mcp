@@ -55,6 +55,89 @@ test("Blender asset QC writes a report", async () => {
   assert.equal(result.artifacts.length, 1);
 });
 
+test("Blender asset QC checks texture files, dimensions, PBR data, naming, and bounds", async () => {
+  const assetRoot = await mkdtemp(join(tmpdir(), "creative-mcp-textured-gltf-"));
+  const texturePath = join(assetRoot, "albedo.png");
+  await writeFile(texturePath, Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lrWZ2wAAAABJRU5ErkJggg==",
+    "base64"
+  ));
+  const assetPath = join(assetRoot, "textured.gltf");
+  await writeFile(assetPath, JSON.stringify({
+    asset: { version: "2.0" },
+    nodes: [{ name: "Hero_Crate.001", mesh: 0 }],
+    meshes: [{
+      primitives: [{
+        attributes: { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2 },
+        indices: 3,
+        material: 0
+      }]
+    }],
+    accessors: [
+      { count: 3, min: [0, 0, 0], max: [2, 1, 1] },
+      { count: 3 },
+      { count: 3 },
+      { count: 3 }
+    ],
+    materials: [{
+      name: "PBR_Material",
+      pbrMetallicRoughness: { baseColorTexture: { index: 0 } }
+    }],
+    textures: [{ source: 0 }],
+    images: [{ uri: "albedo.png" }]
+  }), "utf8");
+  const tool = blenderTools.find((candidate) => candidate.name === "blender.validate_asset");
+  assert.ok(tool);
+  const result = await tool.execute(await context(assetRoot), {
+    path: assetPath,
+    maxTriangles: 10,
+    maxDimension: 1
+  });
+  assert.equal(result.ok, true);
+  const byId = new Map(result.data.checks.map((check) => [check.id, check]));
+  assert.equal(byId.get("textures.files").status, "pass");
+  assert.equal(byId.get("textures.dimensions").value.imagesWithDimensions, 1);
+  assert.equal(byId.get("textures.total_size").status, "pass");
+  assert.equal(byId.get("materials.pbr_completeness").status, "pass");
+  assert.equal(byId.get("objects.naming").status, "pass");
+  assert.equal(byId.get("bounds.max_dimension").status, "warn");
+});
+
+test("Blender asset QC fails missing external texture files", async () => {
+  const assetRoot = await mkdtemp(join(tmpdir(), "creative-mcp-missing-texture-"));
+  const assetPath = join(assetRoot, "missing-texture.gltf");
+  await writeFile(assetPath, JSON.stringify({
+    asset: { version: "2.0" },
+    nodes: [{ name: "MissingTextureAsset", mesh: 0 }],
+    meshes: [{
+      primitives: [{
+        attributes: { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2 },
+        indices: 3,
+        material: 0
+      }]
+    }],
+    accessors: [
+      { count: 3, min: [0, 0, 0], max: [1, 1, 1] },
+      { count: 3 },
+      { count: 3 },
+      { count: 3 }
+    ],
+    materials: [{
+      name: "PBR_Material",
+      pbrMetallicRoughness: { baseColorTexture: { index: 0 } }
+    }],
+    textures: [{ source: 0 }],
+    images: [{ uri: "missing.png" }]
+  }), "utf8");
+  const tool = blenderTools.find((candidate) => candidate.name === "blender.validate_asset");
+  assert.ok(tool);
+  const result = await tool.execute(await context(assetRoot), { path: assetPath });
+  assert.equal(result.ok, false);
+  const textureFileCheck = result.data.checks.find((check) => check.id === "textures.files");
+  assert.equal(textureFileCheck.status, "fail");
+  assert.equal(textureFileCheck.value, 1);
+});
+
 test("Blender game asset generation writes a safe script artifact", async () => {
   const tool = blenderTools.find((candidate) => candidate.name === "blender.create_game_asset");
   assert.ok(tool);
