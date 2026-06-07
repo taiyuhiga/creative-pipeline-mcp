@@ -7,7 +7,7 @@ import {
   type ToolDefinition,
   type ToolExecutionContext,
   type ToolResult
-} from "@creative-pipeline-mcp/core";
+} from "../../../core/dist/index.js";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail, runVmafAdapter } from "../adapters/ffmpegQc.js";

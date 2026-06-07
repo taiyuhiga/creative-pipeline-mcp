@@ -1,0 +1,17 @@
+{
+  "schema": "creative.pipeline.example_project.v1",
+  "name": "Game Asset GLB",
+  "kind": "blender_asset",
+  "entrypoint": "examples/blender-e2e.mjs",
+  "outputs": [
+    "artifacts/examples/blender-e2e/cube.glb",
+    "artifacts/blender"
+  ],
+  "verification": [
+    "npm run build",
+    "node examples/blender-e2e.mjs"
+  ],
+  "requires": [
+    "Blender for headless GLB generation"
+  ]
+}

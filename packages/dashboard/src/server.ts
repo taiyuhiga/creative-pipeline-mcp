@@ -11,10 +11,10 @@ import {
   ToolRegistry,
   type PermissionLevel,
   type ToolRisk
-} from "@creative-pipeline-mcp/core";
-import { blenderTools } from "@creative-pipeline-mcp/blender-pro-mcp";
-import { premiereTools } from "@creative-pipeline-mcp/premiere-pro-mcp";
-import { directorTools } from "@creative-pipeline-mcp/director-agent";
+} from "../../core/dist/index.js";
+import { blenderTools } from "../../blender-pro-mcp/dist/index.js";
+import { premiereTools } from "../../premiere-pro-mcp/dist/index.js";
+import { directorTools } from "../../director-agent/dist/index.js";
 
 const artifactRoot = resolve(process.env.CREATIVE_MCP_ARTIFACTS ?? "artifacts");
 const port = Number(process.env.PORT ?? 4173);

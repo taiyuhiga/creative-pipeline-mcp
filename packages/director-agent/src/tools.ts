@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "@creative-pipeline-mcp/core";
+import type { ToolDefinition } from "../../core/dist/index.js";
 
 export const directorTools: ToolDefinition[] = [
   {

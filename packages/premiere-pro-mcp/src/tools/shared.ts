@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, extname, parse } from "node:path";
-import type { QcCheck } from "@creative-pipeline-mcp/core";
-import { buildQcReport, sha256File } from "@creative-pipeline-mcp/core";
+import type { QcCheck } from "../../../core/dist/index.js";
+import { buildQcReport, sha256File } from "../../../core/dist/index.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { runFfmpegQc, runVmafAdapter, type VmafResult } from "../adapters/ffmpegQc.js";
 import { parseSubtitle, validateCaptionCues, type CaptionValidation } from "../adapters/srt.js";

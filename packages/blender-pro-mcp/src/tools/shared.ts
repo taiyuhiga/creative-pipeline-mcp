@@ -1,6 +1,6 @@
 import { basename, extname, parse } from "node:path";
-import type { QcCheck } from "@creative-pipeline-mcp/core";
-import { buildQcReport, sha256File } from "@creative-pipeline-mcp/core";
+import type { QcCheck } from "../../../core/dist/index.js";
+import { buildQcReport, sha256File } from "../../../core/dist/index.js";
 import { inspectGltf } from "../adapters/gltf.js";
 
 export function requirePath(input: Record<string, unknown>): string {

@@ -49,13 +49,15 @@ npm run simulate:premiere-cep -- --queue artifacts/premiere/cep_queue --status a
 
 The simulator loads `packages/premiere-cep-panel/jsx/host.jsx` into a Node VM with a fake Premiere app, dispatches queued commands through the same host functions, writes normalized status JSON, and archives processed command files. It is not a replacement for a real Premiere run, but it verifies host-side command parsing, OTIO clip collection, sequence creation, brand package status, export status, and queue/status file behavior before live testing.
 
-CEP packaging:
+## Unsigned CEP Package
 
 ```bash
 npm run package:premiere-cep -- --verify
 ```
 
 This writes an unsigned package and checksums under `dist/premiere-cep`. To produce a signed ZXP, install Adobe `ZXPSignCmd` and provide a project signing certificate:
+
+## Signed ZXP Package
 
 ```bash
 ZXPSIGNCMD_BIN=/path/to/ZXPSignCmd CEP_SIGN_CERT=/path/to/cert.p12 CEP_SIGN_PASSWORD=secret npm run package:premiere-cep -- --sign
@@ -70,7 +72,7 @@ zxp-checksums.txt
 
 Keep `.p12` signing certificates under `certs/` or another ignored local path. These files include private keys and must not be committed or uploaded to GitHub release assets.
 
-CEP install fallback:
+## Install Fallback
 
 ```bash
 npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.16-alpha.0.zip

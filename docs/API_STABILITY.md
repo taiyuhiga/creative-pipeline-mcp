@@ -2,6 +2,8 @@
 
 The current package is alpha. Public tool schemas are strict, but not frozen.
 
+For the current beta/v1 readiness contract, see `docs/SCHEMA_STABILITY.md`. Public schema and artifact changes that require user action should be recorded in `docs/MIGRATIONS.md`.
+
 ## Intended v1 Freeze Surface
 
 - tool names
@@ -20,6 +22,7 @@ The current package is alpha. Public tool schemas are strict, but not frozen.
 ```bash
 npm run build
 npm run check:schemas
+npm run check:release
 ```
 
 If an intentional public schema change is made, regenerate the snapshot and include migration notes in the same change.

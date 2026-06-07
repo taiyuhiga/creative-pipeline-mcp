@@ -1,0 +1,18 @@
+{
+  "schema": "creative.pipeline.example_project.v1",
+  "name": "YouTube 16x9 Delivery",
+  "kind": "premiere_delivery",
+  "entrypoint": "examples/premiere-project-delivery.mjs",
+  "outputs": [
+    "artifacts/examples/premiere-project-delivery/template.json",
+    "artifacts/examples/premiere-project-delivery/timeline.otio",
+    "artifacts/examples/premiere-project-delivery/brand_package.json",
+    "artifacts/examples/premiere-project-delivery/export_plan.json",
+    "artifacts/examples/premiere-project-delivery/cep_queue"
+  ],
+  "verification": [
+    "npm run build",
+    "node examples/premiere-project-delivery.mjs",
+    "npm run simulate:premiere-cep -- --queue artifacts/examples/premiere-project-delivery/cep_queue --status artifacts/examples/premiere-project-delivery/cep_status"
+  ]
+}

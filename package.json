@@ -26,6 +26,7 @@
     "scripts",
     "third_party_licenses",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "NOTICE",
     "SECURITY.md"
@@ -52,6 +53,8 @@
     "prepack": "npm run build",
     "check:adapters": "node scripts/check-adapters.mjs",
     "check:schemas": "node scripts/check-tool-schemas.mjs",
+    "check:release": "node scripts/check-release-readiness.mjs",
+    "smoke:npm-install": "node scripts/npm-install-smoke.mjs",
     "release:assets": "node scripts/release-assets.mjs",
     "blender:bridge-worker": "node scripts/blender-bridge-worker.mjs",
     "simulate:premiere-cep": "node scripts/simulate-premiere-cep.mjs",

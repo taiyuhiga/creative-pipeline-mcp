@@ -16,6 +16,8 @@ artifacts/
   premiere/
     cep_queue/
     cep_status/
+  dashboard/
+    reruns/
 ```
 
 ## Approval Request
@@ -41,3 +43,31 @@ artifacts/
 ## Adapter Check Report
 
 See `docs/examples/adapter_check_report.sample.json`.
+
+## QC Report
+
+QC reports use the core shape from `packages/core/src/qcReport.ts`:
+
+```json
+{
+  "kind": "media",
+  "target": "/workspace/source.mp4",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "summary": {
+    "status": "pass",
+    "pass": 1,
+    "warn": 0,
+    "fail": 0
+  },
+  "checks": [
+    {
+      "id": "duration",
+      "status": "pass",
+      "message": "Duration within target"
+    }
+  ],
+  "metadata": {}
+}
+```
+
+The required keys are `kind`, `target`, `generatedAt`, `summary`, and `checks`. `metadata` is optional.

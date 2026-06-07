@@ -5,7 +5,9 @@
 ```bash
 npm test
 npm run check:schemas
+npm run check:release
 npm run check:adapters -- --json
+npm run smoke:npm-install
 node examples/blender-e2e.mjs
 node examples/premiere-qc-e2e.mjs
 node examples/premiere-project-delivery.mjs
@@ -52,6 +54,7 @@ Check name and package metadata:
 ```bash
 npm view creative-pipeline-mcp version
 npm pack --dry-run
+npm run smoke:npm-install
 npm publish --dry-run --provenance
 ```
 

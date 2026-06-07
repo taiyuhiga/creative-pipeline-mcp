@@ -34,12 +34,14 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run check:schemas
+      - run: npm run check:release
       - run: npm run check:adapters
       - run: node examples/premiere-project-delivery.mjs
         env:
           CREATIVE_MCP_PERMISSION: project_write
       - run: npm run package:premiere-cep -- --verify
       - run: npm pack --dry-run
+      - run: npm run smoke:npm-install
       - name: Verify release tag matches package version
         run: |
           node -e "const pkg=require('./package.json'); const tag=process.env.RELEASE_TAG; if (tag !== 'v' + pkg.version) throw new Error(`${tag} does not match v${pkg.version}`);"

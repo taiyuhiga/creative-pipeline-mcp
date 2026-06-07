@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { basename, join, parse } from "node:path";
-import type { ToolDefinition, ToolExecutionContext } from "@creative-pipeline-mcp/core";
+import type { ToolDefinition, ToolExecutionContext } from "../../../core/dist/index.js";
 import {
   enqueueBlenderBridgeCommand,
   findBlenderBridgeStatus,

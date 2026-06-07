@@ -30,6 +30,7 @@
 - optional WhisperX, PySceneDetect, and pyloudnorm adapter tools
 - optional FFmpeg libvmaf adapter tool
 - Dashboard approval queue UI, artifact previews, and job history
+- Dashboard adapter availability, QC detail, CEP status, Blender/Premiere galleries, failed-job retry, rerun history, and download controls
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
@@ -40,6 +41,7 @@
 - split CI jobs for Node.js 20/22/24 unit tests, package dry-run, adapter check, optional Blender e2e, and Premiere QC e2e
 - dashboard and Premiere real-project e2e docs
 - release asset generation script and npm publish readiness docs
+- release-readiness gate, npm install smoke test, migration notes, changelog, and example project manifests
 - npm trusted-publishing workflow with OIDC, release tag/package version guard, and publish gates
 - CEP status, artifact schema, and troubleshooting docs
 - strict public top-level tool schemas with enum and length guards
