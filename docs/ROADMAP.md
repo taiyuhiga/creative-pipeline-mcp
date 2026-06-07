@@ -51,6 +51,37 @@
 - Premiere CEP zip/ZXP install fallback for local CEP extension target installation
 - Premiere CEP queue watcher UI for selected/all pending commands
 
+## Known Blockers
+
+- Windows + Premiere live E2E requires an interactive self-hosted Windows runner with Premiere installed. Hosted GitHub runners cannot launch Premiere or CEP panels.
+- v1 stable npm publishing is intentionally held until the Windows Premiere verification decision is resolved.
+- v1.0 GitHub Release is intentionally held until the stable npm package and final compatibility matrix are complete.
+
+## Next Release
+
+- Publish `v0.2.17-alpha.0` as a pre-release so `main` and the latest release include Windows Blender CI, the Windows Premiere self-hosted workflow, and the v1 freeze gate.
+- Keep npm releases on the `alpha` dist-tag while package versions include pre-release suffixes.
+- Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
+- Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.
+
+## v1 Scope
+
+Current v1-ready scope:
+
+- macOS + Blender local E2E
+- macOS + Premiere CEP E2E
+- Windows + Blender hosted CI E2E
+- Node.js 20/22/24 package and schema gates
+- strict public tool schema snapshot
+- v1 freeze validation for tools, inputs, `structuredContent`, QC reports, artifact layout, and CEP status schema
+- release assets and npm trusted-publishing workflow
+
+Deferred or explicitly limited scope:
+
+- Windows + Premiere live E2E until an interactive self-hosted runner is available
+- production-signed Premiere CEP installer with a trusted commercial certificate
+- stable `latest` npm dist-tag and v1.0 GitHub Release
+
 ## External Adapter Work
 
 - project certificate-backed signed Premiere CEP installer and live Premiere runtime validation

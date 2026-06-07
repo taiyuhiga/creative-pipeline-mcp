@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/core",
-  "version": "0.2.16-alpha.0",
+  "version": "0.2.17-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -8,7 +8,10 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "bin": {
     "creative-mcp-core": "dist/server.js"
   },

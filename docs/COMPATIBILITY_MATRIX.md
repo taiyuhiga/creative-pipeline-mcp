@@ -22,6 +22,10 @@ This matrix tracks what must be verified before v1.
 | PySceneDetect installed | Local covered | `/Users/higataiyu/.local/bin/scenedetect`; adapter check reports available |
 | pyloudnorm installed | Local covered | `python3 -m pip install --user pyloudnorm soundfile`; adapter check reports available |
 
+## Known External Blocker
+
+Windows + Premiere live E2E requires an interactive self-hosted Windows runner with Premiere installed. Hosted GitHub runners cannot launch Premiere or CEP panels. No such runner is currently registered for this repository, so `#20`, `#86`, and `#107` remain excluded from current alpha readiness and blocked for v1 until live CEP status evidence exists.
+
 Manual results should be recorded with:
 
 ```text
