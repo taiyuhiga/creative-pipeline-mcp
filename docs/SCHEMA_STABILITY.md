@@ -41,3 +41,4 @@ Then confirm:
 - no uncommitted schema snapshot drift
 - migration notes exist for every breaking alpha change
 - release notes state whether optional adapters are experimental or stable
+- `docs/V1_SCOPE.md` clearly separates stable scope from experimental surfaces

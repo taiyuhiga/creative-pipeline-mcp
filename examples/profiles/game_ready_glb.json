@@ -1,0 +1,22 @@
+{
+  "id": "game_ready_glb",
+  "domain": "blender",
+  "output": {
+    "format": "glb",
+    "target": "game_engine",
+    "unitScale": "meters"
+  },
+  "qcThresholds": {
+    "maxTriangles": 50000,
+    "maxMaterials": 8,
+    "requirePrimaryUv": true,
+    "requireNormals": true,
+    "maxDimensionMeters": 10
+  },
+  "expectedOutputs": [
+    "source_glb",
+    "optimized_glb",
+    "preview_png",
+    "asset_qc_report"
+  ]
+}

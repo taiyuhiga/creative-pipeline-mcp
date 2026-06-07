@@ -1,0 +1,23 @@
+{
+  "id": "cycles_final_exr",
+  "domain": "blender",
+  "experimental": true,
+  "output": {
+    "renderer": "cycles",
+    "imageFormat": "exr",
+    "width": 3840,
+    "height": 2160,
+    "samples": 512,
+    "colorManagement": "scene_linear"
+  },
+  "qcThresholds": {
+    "requireCamera": true,
+    "requireLighting": true,
+    "requireResolvedTextures": true
+  },
+  "expectedOutputs": [
+    "final_exr",
+    "preview_png",
+    "asset_qc_report"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "shorts_1080x1920_high_quality",
+  "domain": "premiere",
+  "output": {
+    "container": "mp4",
+    "codec": "h264",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "targetLufs": -14
+  },
+  "qcThresholds": {
+    "maxDurationSeconds": 60,
+    "minWidth": 1080,
+    "minHeight": 1920,
+    "captionMaxLines": 2,
+    "captionBottomClearance": 0.14
+  },
+  "expectedOutputs": [
+    "export_plan",
+    "final_video",
+    "caption_qc_report",
+    "delivery_qc_report"
+  ]
+}

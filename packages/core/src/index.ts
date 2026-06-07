@@ -5,6 +5,7 @@ export * from "./jobQueue.js";
 export * from "./jsonRpcErrors.js";
 export * from "./licenseManifest.js";
 export * from "./mcpServer.js";
+export * from "./profiles/index.js";
 export * from "./qcReport.js";
 export * from "./router.js";
 export * from "./schemaValidator.js";

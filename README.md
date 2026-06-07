@@ -47,6 +47,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - Premiere CEP status reader
 - Blender and generated-MP4 Premiere e2e examples
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
+- typed delivery profiles and quality presets for QC-checkable "highest quality" requests
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 - guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
@@ -175,10 +176,14 @@ Detailed docs:
 - `docs/PREMIERE_E2E_TEST.md`
 - `docs/API_TOOLS.md`
 - `docs/API_STABILITY.md`
+- `docs/V1_SCOPE.md`
+- `docs/DELIVERY_PROFILES.md`
+- `docs/QUALITY_PRESETS.md`
 - `docs/COMPATIBILITY_MATRIX.md`
 - `docs/CEP_STATUS_SCHEMA.md`
 - `docs/ARTIFACT_SCHEMA.md`
 - `docs/EXTERNAL_MCP_ADAPTERS.md`
+- `docs/PREMIERE_MCP_REFERENCES.md`
 - `docs/RELEASE_PROCESS.md`
 - `docs/SECURITY_CHECKLIST.md`
 - `docs/TROUBLESHOOTING.md`

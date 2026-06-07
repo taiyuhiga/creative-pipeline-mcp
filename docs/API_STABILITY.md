@@ -48,11 +48,15 @@ Adapters that depend on optional external tools remain experimental until v1 unl
 
 - Blender bridge commands
 - Premiere CEP host commands
+- Premiere live CEP editing/export execution
 - WhisperX adapter tools
 - PySceneDetect adapter tools
 - pyloudnorm adapter tools
 - VMAF scoring
 - GPL-separated adapter manifests
+- external Blender MCP adapters
+
+For the stable and experimental v1 release boundaries, see `docs/V1_SCOPE.md`.
 
 ## Deprecation Policy Draft
 

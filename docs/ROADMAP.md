@@ -74,6 +74,7 @@ Current v1-ready scope:
 - Node.js 20/22/24 package and schema gates
 - strict public tool schema snapshot
 - v1 freeze validation for tools, inputs, `structuredContent`, QC reports, artifact layout, and CEP status schema
+- typed delivery profiles and quality presets for QC-checkable "highest quality" requests
 - release assets and npm trusted-publishing workflow
 
 Deferred or explicitly limited scope:
@@ -81,6 +82,7 @@ Deferred or explicitly limited scope:
 - Windows + Premiere live E2E until an interactive self-hosted runner is available
 - production-signed Premiere CEP installer with a trusted commercial certificate
 - stable `latest` npm dist-tag and v1.0 GitHub Release
+- direct proxying of external Blender or Premiere MCP servers
 
 ## External Adapter Work
 

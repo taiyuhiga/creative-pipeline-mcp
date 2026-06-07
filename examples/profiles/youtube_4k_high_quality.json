@@ -1,0 +1,24 @@
+{
+  "id": "youtube_4k_high_quality",
+  "domain": "premiere",
+  "output": {
+    "container": "mp4",
+    "codec": "h264",
+    "width": 3840,
+    "height": 2160,
+    "fps": 30,
+    "targetLufs": -14
+  },
+  "qcThresholds": {
+    "minWidth": 3840,
+    "minHeight": 2160,
+    "targetLufs": -14,
+    "loudnessToleranceLufs": 2,
+    "minVmaf": 92
+  },
+  "expectedOutputs": [
+    "export_plan",
+    "final_video",
+    "delivery_qc_report"
+  ]
+}

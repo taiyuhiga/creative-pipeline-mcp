@@ -13,7 +13,11 @@ import {
   JSON_RPC_ERRORS,
   STRUCTURED_TOOL_ERROR_CODES,
   defaultLicenseManifest,
-  McpServer
+  deliveryProfiles,
+  getDeliveryProfile,
+  getQualityProfile,
+  McpServer,
+  qualityProfiles
 } from "../packages/core/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
@@ -50,6 +54,45 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.cleanup_subtitles"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.apply_timeline_markers"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.watch_export_output"));
+});
+
+test("Delivery and quality profiles define QC-checkable highest-quality outputs", async () => {
+  assert.ok(getDeliveryProfile("youtube_4k_high_quality"));
+  assert.ok(getDeliveryProfile("game_ready_glb"));
+  assert.ok(getQualityProfile("shorts_1080x1920_high_quality"));
+  assert.ok(getQualityProfile("cycles_final_exr")?.experimental);
+
+  for (const profile of deliveryProfiles) {
+    assert.ok(profile.id);
+    assert.ok(["premiere", "blender"].includes(profile.domain));
+    assert.ok(Object.keys(profile.qcThresholds).length > 0);
+    assert.ok(Object.keys(profile.artifactNaming).length > 0);
+    assert.ok(profile.expectedOutputs.length > 0);
+    JSON.stringify(profile);
+  }
+
+  for (const profile of qualityProfiles) {
+    assert.ok(profile.id);
+    assert.ok(["premiere", "blender"].includes(profile.domain));
+    assert.ok(profile.appliesTo.length > 0);
+    assert.ok(Object.keys(profile.settings).length > 0);
+    assert.ok(Object.keys(profile.qcThresholds).length > 0);
+    assert.ok(profile.expectedArtifacts.length > 0);
+    JSON.stringify(profile);
+  }
+
+  const exampleIds = [
+    "youtube_4k_high_quality",
+    "shorts_1080x1920_high_quality",
+    "game_ready_glb",
+    "cycles_final_exr"
+  ];
+  for (const id of exampleIds) {
+    const example = JSON.parse(await readFile(resolve("examples", "profiles", `${id}.json`), "utf8"));
+    assert.equal(example.id, id);
+    assert.ok(getDeliveryProfile(id) || getQualityProfile(id));
+    assert.ok(example.expectedOutputs.length > 0);
+  }
 });
 
 test("Blender asset QC writes a report", async () => {

@@ -22,7 +22,7 @@ Snapshot:
 
 - License: MIT.
 - Default branch: `main`.
-- Latest release observed: `v0.1.9`.
+- Latest release observed: `v0.1.11`.
 - Transport: embedded Blender add-on exposing an MCP HTTP endpoint inside Blender.
 - Tooling scope: broad DCC/Blender operations, including scene, object, mesh, UV, materials, render, validation, pipeline, and export tools.
 
@@ -35,6 +35,13 @@ Assessment:
 - Capture every output through `ArtifactStore`, then rerun local QC with `blender.validate_asset`.
 
 Decision: adopt as a preferred research/integration target for the external bridge path, but keep it optional and disabled by default.
+
+v1 policy:
+
+- Keep `dcc-mcp-blender` as an experimental optional adapter candidate.
+- Do not expose its full tool surface directly to users.
+- Do not add a raw external MCP proxy in v1.
+- If implemented later, require `CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP=true`, a local URL allowlist, bounded operation names, approval checks for writes, artifact capture, and local QC after external outputs.
 
 ## Candidate: ahujasid/blender-mcp
 
@@ -61,6 +68,8 @@ Assessment:
 - Never route raw `execute_blender_code` or equivalent tools from Creative Pipeline MCP without explicit project approval and a separate sandbox boundary.
 
 Decision: reference-only for now. Do not integrate as the default external adapter.
+
+v1 policy: keep this repository reference-only. Never proxy `execute_blender_code` or equivalent arbitrary Python execution through Creative Pipeline MCP.
 
 ## Integration Principle
 
