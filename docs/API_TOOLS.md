@@ -49,6 +49,11 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `premiere.finalize_export_qc`
 - `premiere.export_social_variants`
 - `premiere.apply_brand_package`
+- `premiere.apply_timeline_markers`
+- `premiere.validate_subtitles`
+- `premiere.cleanup_subtitles`
+- `premiere.watch_export_output`
+- `premiere.describe_subtitle_artifacts`
 - `premiere.create_multilanguage_subtitles`
 - `premiere.generate_thumbnail_plan`
 - `premiere.repurpose_podcast`

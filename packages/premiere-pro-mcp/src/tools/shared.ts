@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { basename, parse } from "node:path";
+import { basename, extname, parse } from "node:path";
 import type { QcCheck } from "@creative-pipeline-mcp/core";
 import { buildQcReport, sha256File } from "@creative-pipeline-mcp/core";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { runFfmpegQc, runVmafAdapter, type VmafResult } from "../adapters/ffmpegQc.js";
-import { countCaptionOverlaps, parseSrt } from "../adapters/srt.js";
+import { parseSubtitle, validateCaptionCues, type CaptionValidation } from "../adapters/srt.js";
 
 export function requireMediaPath(input: Record<string, unknown>): string {
   const path = input.path ?? input.mediaPath ?? input.sourcePath;
@@ -40,7 +40,7 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
       ? await runVmafAdapter(path, referencePath, vmafLogPath, modelPath)
       : { available: false, error: "vmafLogPath required for delivery QC VMAF check" };
   }
-  const captionOverlap = captionPath ? await countOverlaps(captionPath) : undefined;
+  const captionValidation = captionPath ? await validateCaptions(captionPath) : undefined;
   const checks: QcCheck[] = [
     {
       id: "probe.ffprobe_available",
@@ -130,18 +130,52 @@ export async function mediaQcReport(path: string, options: Record<string, unknow
     },
     {
       id: "captions.overlap",
-      status: captionOverlap === undefined ? "not_applicable" : captionOverlap === 0 ? "pass" : "fail",
+      status: captionValidation === undefined ? "not_applicable" : captionValidation.overlaps === 0 ? "pass" : "fail",
       message:
-        captionOverlap === undefined
+        captionValidation === undefined
           ? "No caption file supplied for overlap validation"
-          : `${captionOverlap} caption overlaps detected`,
-      value: captionOverlap ?? null
+          : `${captionValidation.overlaps} caption overlaps detected`,
+      value: captionValidation?.overlaps ?? null
+    },
+    {
+      id: "captions.validation",
+      status:
+        captionValidation === undefined
+          ? "not_applicable"
+          : captionValidation.invalidTimings === 0 && captionValidation.emptyCues === 0
+            ? "pass"
+            : "fail",
+      message:
+        captionValidation === undefined
+          ? "No caption file supplied for validation"
+          : `${captionValidation.cueCount} cues; ${captionValidation.invalidTimings} invalid timings; ${captionValidation.emptyCues} empty cues`,
+      value: captionValidation ?? null
+    },
+    {
+      id: "captions.reading_speed",
+      status:
+        captionValidation === undefined
+          ? "not_applicable"
+          : captionValidation.maxCharsPerSecond <= 20 && captionValidation.maxWordsPerMinute <= 180
+            ? "pass"
+            : "warn",
+      message:
+        captionValidation === undefined
+          ? "No caption file supplied for reading speed validation"
+          : `max ${captionValidation.maxCharsPerSecond.toFixed(1)} cps; ${captionValidation.maxWordsPerMinute.toFixed(1)} wpm`,
+      value: captionValidation
+        ? {
+            maxCharsPerSecond: captionValidation.maxCharsPerSecond,
+            maxWordsPerMinute: captionValidation.maxWordsPerMinute
+          }
+        : null
     }
   ];
   return buildQcReport("media", path, checks, { sha256: await sha256File(path), probe, ffmpegQc, vmaf });
 }
 
-async function countOverlaps(captionPath: string): Promise<number> {
+async function validateCaptions(captionPath: string): Promise<CaptionValidation> {
   const content = await readFile(captionPath, "utf8");
-  return countCaptionOverlaps(parseSrt(content));
+  const format = extname(captionPath).toLowerCase() === ".vtt" ? "vtt" : "srt";
+  return validateCaptionCues(parseSubtitle(content, format));
 }

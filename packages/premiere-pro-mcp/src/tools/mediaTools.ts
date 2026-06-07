@@ -1,11 +1,13 @@
 import { existsSync } from "node:fs";
-import { basename, parse } from "node:path";
-import type { ToolDefinition } from "@creative-pipeline-mcp/core";
+import { readFile } from "node:fs/promises";
+import { basename, extname, parse } from "node:path";
+import type { ToolDefinition, ToolExecutionContext, ToolResult } from "@creative-pipeline-mcp/core";
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail, runVmafAdapter } from "../adapters/ffmpegQc.js";
 import { enqueuePremiereCommand, findPremiereStatus, listPremiereStatuses, type PremiereCepStatus } from "../adapters/premiereCep.js";
 import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
+import { cleanupCaptionCues, formatSrt, formatVtt, parseSubtitle, validateCaptionCues } from "../adapters/srt.js";
 
 export const premiereTools: ToolDefinition[] = [
   {
@@ -38,14 +40,15 @@ export const premiereTools: ToolDefinition[] = [
         commandId: { type: "string" },
         commandType: {
           type: "string",
-          enum: ["build_timeline_from_otio", "export_sequence", "apply_brand_package"]
+          enum: ["build_timeline_from_otio", "export_sequence", "apply_brand_package", "apply_timeline_markers"]
         },
+        finalizeExportQc: { type: "boolean" },
         timeoutMs: { type: "number" },
         pollIntervalMs: { type: "number" }
       },
       additionalProperties: false
     },
-    async execute(_context, input) {
+    async execute(context, input) {
       const timeoutMs = Math.max(0, Math.min(typeof input.timeoutMs === "number" ? input.timeoutMs : 0, 120000));
       const pollIntervalMs = Math.max(100, Math.min(typeof input.pollIntervalMs === "number" ? input.pollIntervalMs : 1000, 10000));
       const deadline = Date.now() + timeoutMs;
@@ -55,6 +58,15 @@ export const premiereTools: ToolDefinition[] = [
           commandType: isCepCommandType(input.commandType) ? input.commandType : undefined
         });
         if (match) {
+          if (input.finalizeExportQc === true && match.status.commandType === "export_sequence" && match.status.status === "success") {
+            const finalized = await finalizeExportStatus(context, input, match.status);
+            return {
+              ok: finalized.ok,
+              message: finalized.message,
+              artifacts: finalized.artifacts,
+              data: { status: match, finalize: finalized.data }
+            };
+          }
           return {
             ok: true,
             message: `Premiere CEP status found: ${match.status.status}`,
@@ -489,11 +501,9 @@ export const premiereTools: ToolDefinition[] = [
         bridge: "external_premiere_cep_required"
       };
       const brandPackage = {
-        source: path,
+        ...buildBrandPackage(path, brand),
         template: templateName,
-        brand,
-        appliesTo: template.brandTargets,
-        bridge: "external_premiere_cep_required"
+        appliesTo: template.brandTargets
       };
 
       const templateArtifact = await context.artifactStore.writeJson(`premiere/${baseName}_${templateName}_project_template.json`, projectTemplate);
@@ -747,20 +757,225 @@ export const premiereTools: ToolDefinition[] = [
     async execute(context, input) {
       const path = requireMediaPath(input);
       await context.artifactStore.assertReadableFile(path);
-      const manifest = {
+      const manifest = buildBrandPackage(path, input.brand);
+      const preview = {
         source: path,
-        brand: input.brand ?? {},
-        appliesTo: ["captions", "lower_thirds", "thumbnail", "end_card"],
-        bridge: "external_premiere_cep_required"
+        schema: "creative.pipeline.brand_preview.v1",
+        captionStyle: manifest.captionStyle,
+        colors: manifest.colors,
+        typography: manifest.typography,
+        safeMargins: manifest.safeMargins,
+        appliesTo: manifest.appliesTo
       };
+      const previewArtifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_brand_preview.json"), preview);
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_brand_package.json"), manifest);
       const queued = await enqueuePremiereCommand("apply_brand_package", manifest);
       return {
         ok: true,
-        message: "Brand package manifest written and Premiere CEP command queued",
-        artifacts: [artifact, queued.path],
-        data: { manifest, command: queued.command }
+        message: "Brand package manifest, preview, and Premiere CEP command queued",
+        artifacts: [artifact, previewArtifact, queued.path],
+        data: { manifest, preview, command: queued.command }
       };
+    }
+  },
+  {
+    name: "premiere.apply_timeline_markers",
+    description: "Queue safe-margin, intro, outro, and chapter marker metadata for a Premiere sequence.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        safeMargins: { type: "object" },
+        intro: { type: "object" },
+        outro: { type: "object" },
+        markers: { type: "array" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const payload = {
+        source: path,
+        sequenceName: typeof input.sequenceName === "string" ? input.sequenceName : undefined,
+        safeMargins: input.safeMargins && typeof input.safeMargins === "object"
+          ? input.safeMargins
+          : { titleSafe: 0.9, actionSafe: 0.95, captionBottomClearance: 0.14 },
+        markers: buildTimelineMarkers(input),
+        bridge: "external_premiere_cep_required"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_timeline_markers.json"), payload);
+      const queued = await enqueuePremiereCommand("apply_timeline_markers", payload);
+      return {
+        ok: true,
+        message: "Timeline marker manifest written and Premiere CEP command queued",
+        artifacts: [artifact, queued.path],
+        data: { manifest: payload, command: queued.command }
+      };
+    }
+  },
+  {
+    name: "premiere.validate_subtitles",
+    description: "Validate SRT/VTT cues for timing, overlap, empty text, and reading speed.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        format: { type: "string", enum: ["srt", "vtt"] },
+        maxCharsPerSecond: { type: "number" },
+        maxWordsPerMinute: { type: "number" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const validation = await subtitleValidation(path, input.format);
+      const maxCharsPerSecond = typeof input.maxCharsPerSecond === "number" ? input.maxCharsPerSecond : 20;
+      const maxWordsPerMinute = typeof input.maxWordsPerMinute === "number" ? input.maxWordsPerMinute : 180;
+      const report = {
+        schema: "creative.pipeline.subtitle_qc.v1",
+        source: path,
+        format: subtitleFormat(path, input.format),
+        thresholds: { maxCharsPerSecond, maxWordsPerMinute },
+        validation,
+        status:
+          validation.invalidTimings === 0
+          && validation.emptyCues === 0
+          && validation.overlaps === 0
+          && validation.maxCharsPerSecond <= maxCharsPerSecond
+          && validation.maxWordsPerMinute <= maxWordsPerMinute
+            ? "pass"
+            : "warn"
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_subtitle_qc_report.json"), report);
+      return {
+        ok: report.status === "pass",
+        message: `Subtitle validation written: ${report.status}`,
+        artifacts: [artifact],
+        data: report
+      };
+    }
+  },
+  {
+    name: "premiere.cleanup_subtitles",
+    description: "Normalize SRT/VTT captions, remove empty cues, repair overlaps, and wrap long lines.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        format: { type: "string", enum: ["srt", "vtt"] },
+        outputFormat: { type: "string", enum: ["srt", "vtt"] },
+        maxCharsPerLine: { type: "number" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const format = subtitleFormat(path, input.format);
+      const outputFormat = input.outputFormat === "vtt" ? "vtt" : "srt";
+      const text = await readFile(path, "utf8");
+      const cues = parseSubtitle(text, format);
+      const cleaned = cleanupCaptionCues(cues, typeof input.maxCharsPerLine === "number" ? input.maxCharsPerLine : 42);
+      const output = outputFormat === "vtt" ? formatVtt(cleaned) : formatSrt(cleaned);
+      const suffix = outputFormat === "vtt" ? "_cleaned.vtt" : "_cleaned.srt";
+      const artifact = await context.artifactStore.writeText(premiereArtifactName(path, suffix), output);
+      const report = {
+        schema: "creative.pipeline.subtitle_cleanup.v1",
+        source: path,
+        inputFormat: format,
+        outputFormat,
+        before: validateCaptionCues(cues),
+        after: validateCaptionCues(cleaned)
+      };
+      const reportArtifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_subtitle_cleanup_report.json"), report);
+      return {
+        ok: report.after.invalidTimings === 0 && report.after.overlaps === 0,
+        message: "Subtitle cleanup artifacts written",
+        artifacts: [artifact, reportArtifact],
+        data: report
+      };
+    }
+  },
+  {
+    name: "premiere.watch_export_output",
+    description: "Poll an export output path and run delivery QC once the file appears.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        outputPath: { type: "string" },
+        timeoutMs: { type: "number" },
+        pollIntervalMs: { type: "number" },
+        captionPath: { type: "string" },
+        targetWidth: { type: "number" },
+        targetHeight: { type: "number" },
+        maxDuration: { type: "number" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const statusRecord = typeof input.commandId === "string"
+        ? await findPremiereStatus({ commandId: input.commandId, commandType: "export_sequence" })
+        : undefined;
+      const outputPath = resolveExportOutputPath(input, statusRecord?.status);
+      const timeoutMs = Math.max(0, Math.min(typeof input.timeoutMs === "number" ? input.timeoutMs : 0, 120000));
+      const pollIntervalMs = Math.max(100, Math.min(typeof input.pollIntervalMs === "number" ? input.pollIntervalMs : 1000, 10000));
+      const deadline = Date.now() + timeoutMs;
+      while (outputPath && !existsSync(outputPath) && Date.now() < deadline) {
+        await sleep(pollIntervalMs);
+      }
+      const finalized = await finalizeExportStatus(context, input, statusRecord?.status);
+      return finalized;
+    }
+  },
+  {
+    name: "premiere.describe_subtitle_artifacts",
+    description: "Write the multilingual subtitle artifact schema and expected language outputs.",
+    category: "premiere",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        languages: { type: "array" },
+        sourceLanguage: { type: "string" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requireMediaPath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const languages = Array.isArray(input.languages) ? input.languages.map(String) : ["en", "ja"];
+      const schema = {
+        schema: "creative.pipeline.multilingual_subtitles.v1",
+        source: path,
+        sourceLanguage: typeof input.sourceLanguage === "string" ? input.sourceLanguage : "auto",
+        languages,
+        artifacts: languages.map((language) => ({
+          language,
+          srt: `${parse(basename(path)).name}.${language}.srt`,
+          vtt: `${parse(basename(path)).name}.${language}.vtt`,
+          qc: `${parse(basename(path)).name}.${language}.subtitle_qc.json`
+        })),
+        requiredQc: ["timing_validation", "overlap", "reading_speed", "cleanup"]
+      };
+      const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_subtitle_artifact_schema.json"), schema);
+      return { ok: true, message: "Multilingual subtitle artifact schema written", artifacts: [artifact], data: schema };
     }
   },
   {
@@ -779,10 +994,16 @@ export const premiereTools: ToolDefinition[] = [
       await context.artifactStore.assertReadableFile(path);
       const languages = Array.isArray(input.languages) ? input.languages : ["en", "ja"];
       const manifest = {
+        schema: "creative.pipeline.multilingual_subtitles.v1",
         source: path,
         languages,
-        outputs: languages.map((language) => `${parse(basename(path)).name}.${String(language)}.srt`),
-        adapters: ["WhisperX", "translation_provider", "caption_overlap_qc"]
+        artifacts: languages.map((language) => ({
+          language: String(language),
+          srt: `${parse(basename(path)).name}.${String(language)}.srt`,
+          vtt: `${parse(basename(path)).name}.${String(language)}.vtt`,
+          qc: `${parse(basename(path)).name}.${String(language)}.subtitle_qc.json`
+        })),
+        adapters: ["WhisperX", "translation_provider", "caption_cleanup", "caption_overlap_qc", "caption_reading_speed_qc"]
       };
       const artifact = await context.artifactStore.writeJson(premiereArtifactName(path, "_multilanguage_subtitles.json"), manifest);
       return { ok: true, message: "Multilanguage subtitle manifest written", artifacts: [artifact], data: manifest };
@@ -875,8 +1096,155 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isCepCommandType(value: unknown): value is "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" {
-  return value === "build_timeline_from_otio" || value === "export_sequence" || value === "apply_brand_package";
+function isCepCommandType(value: unknown): value is "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" | "apply_timeline_markers" {
+  return value === "build_timeline_from_otio"
+    || value === "export_sequence"
+    || value === "apply_brand_package"
+    || value === "apply_timeline_markers";
+}
+
+function buildBrandPackage(path: string, brand: unknown) {
+  const value = brand && typeof brand === "object" ? brand as Record<string, unknown> : {};
+  const colors = value.colors && typeof value.colors === "object"
+    ? value.colors
+    : {
+        primary: typeof value.primaryColor === "string" ? value.primaryColor : "#ffffff",
+        secondary: typeof value.secondaryColor === "string" ? value.secondaryColor : "#111111",
+        accent: typeof value.accentColor === "string" ? value.accentColor : "#2f80ed"
+      };
+  const typography = value.typography && typeof value.typography === "object"
+    ? value.typography
+    : {
+        fontFamily: typeof value.fontFamily === "string" ? value.fontFamily : "Inter",
+        titleWeight: "bold",
+        captionWeight: "semibold"
+      };
+  const captionStyle = value.captionStyle && typeof value.captionStyle === "object"
+    ? value.captionStyle
+    : {
+        position: "bottom_safe",
+        maxLines: 2,
+        background: "semi_transparent",
+        textColor: (colors as Record<string, unknown>).primary ?? "#ffffff",
+        outlineColor: (colors as Record<string, unknown>).secondary ?? "#111111"
+      };
+  return {
+    schema: "creative.pipeline.brand_package.v1",
+    source: path,
+    brand: value,
+    colors,
+    typography,
+    captionStyle,
+    lowerThirdStyle: value.lowerThirdStyle ?? { position: "lower_left", includeLogo: true },
+    safeMargins: value.safeMargins ?? { titleSafe: 0.9, actionSafe: 0.95, captionBottomClearance: 0.14 },
+    appliesTo: ["captions", "lower_thirds", "thumbnail", "end_card"],
+    bridge: "external_premiere_cep_required"
+  };
+}
+
+function buildTimelineMarkers(input: Record<string, unknown>) {
+  const markers: Array<Record<string, unknown>> = [];
+  if (input.intro && typeof input.intro === "object") {
+    const intro = input.intro as Record<string, unknown>;
+    markers.push({
+      name: "intro",
+      kind: "intro",
+      startSeconds: typeof intro.startSeconds === "number" ? intro.startSeconds : 0,
+      endSeconds: typeof intro.endSeconds === "number" ? intro.endSeconds : 5
+    });
+  }
+  if (input.outro && typeof input.outro === "object") {
+    const outro = input.outro as Record<string, unknown>;
+    markers.push({
+      name: "outro",
+      kind: "outro",
+      startSeconds: typeof outro.startSeconds === "number" ? outro.startSeconds : 55,
+      endSeconds: typeof outro.endSeconds === "number" ? outro.endSeconds : 60
+    });
+  }
+  if (Array.isArray(input.markers)) {
+    markers.push(...(input.markers.filter((marker) => marker && typeof marker === "object") as Array<Record<string, unknown>>));
+  }
+  if (!markers.some((marker) => marker.kind === "safe_margin")) {
+    markers.push({ name: "safe margins", kind: "safe_margin", startSeconds: 0 });
+  }
+  return markers;
+}
+
+function subtitleFormat(path: string, requested: unknown): "srt" | "vtt" {
+  if (requested === "vtt") {
+    return "vtt";
+  }
+  if (requested === "srt") {
+    return "srt";
+  }
+  return extname(path).toLowerCase() === ".vtt" ? "vtt" : "srt";
+}
+
+async function subtitleValidation(path: string, requested: unknown) {
+  const text = await readFile(path, "utf8");
+  return validateCaptionCues(parseSubtitle(text, subtitleFormat(path, requested)));
+}
+
+async function finalizeExportStatus(
+  context: ToolExecutionContext,
+  input: Record<string, unknown>,
+  status?: PremiereCepStatus
+): Promise<ToolResult> {
+  const outputPath = resolveExportOutputPath(input, status);
+  if (!outputPath) {
+    const pending = await context.artifactStore.writeJson("premiere/export_qc_pending.json", {
+      commandId: input.commandId ?? null,
+      status: status ?? null,
+      reason: "missing_output_path"
+    });
+    return {
+      ok: false,
+      message: "Export QC pending: outputPath is missing",
+      artifacts: [pending],
+      data: { status: status ?? null }
+    };
+  }
+  if (!existsSync(outputPath)) {
+    const pending = await context.artifactStore.writeJson(premiereArtifactName(outputPath, "_export_qc_pending.json"), {
+      commandId: input.commandId ?? null,
+      outputPath,
+      status: status ?? null,
+      reason: "output_file_not_found"
+    });
+    return {
+      ok: false,
+      message: "Export QC pending: output file not found",
+      artifacts: [pending],
+      data: { outputPath, status: status ?? null }
+    };
+  }
+  await context.artifactStore.assertReadableFile(outputPath);
+  if (typeof input.captionPath === "string") {
+    await context.artifactStore.assertReadableFile(input.captionPath);
+  }
+  if (typeof input.referencePath === "string") {
+    await context.artifactStore.assertReadableFile(input.referencePath);
+  }
+  if (typeof input.modelPath === "string") {
+    await context.artifactStore.assertReadableFile(input.modelPath);
+  }
+  const vmafLogPath = `${context.artifactStore.root}/premiere/${parse(basename(outputPath)).name}_export_vmaf_log.json`;
+  const report = await mediaQcReport(outputPath, {
+    ...input,
+    vmafLogPath
+  });
+  const artifact = await context.artifactStore.writeJson(premiereArtifactName(outputPath, "_export_delivery_qc_report.json"), {
+    cepStatus: status ?? null,
+    report
+  });
+  const artifacts = existsSync(vmafLogPath) ? [artifact, vmafLogPath] : [artifact];
+  return {
+    ok: report.summary.status !== "fail",
+    message: `Export delivery QC report written: ${report.summary.status}`,
+    artifacts,
+    data: { status: status ?? null, report }
+  };
 }
 
 type ProjectTemplate = "youtube_shorts" | "youtube_16x9" | "podcast_clip" | "course_lesson" | "ad_creative";

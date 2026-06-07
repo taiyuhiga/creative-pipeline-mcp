@@ -16,6 +16,9 @@ CreativePipelineMCP.dispatch = function (json) {
     if (command.type === "apply_brand_package") {
       return CreativePipelineMCP.applyBrandPackage(command);
     }
+    if (command.type === "apply_timeline_markers") {
+      return CreativePipelineMCP.applyTimelineMarkers(command);
+    }
     return CreativePipelineMCP.status(command, "error", "unsupported command: " + command.type, {});
   } catch (err) {
     return CreativePipelineMCP.status(command || { id: null, type: "unknown" }, "error", "dispatch failed", {
@@ -114,6 +117,17 @@ CreativePipelineMCP.applyBrandPackage = function (command) {
   return CreativePipelineMCP.status(command, "success", "brand package accepted", {
     brand: payload.brand || {},
     appliesTo: payload.appliesTo || []
+  });
+};
+
+CreativePipelineMCP.applyTimelineMarkers = function (command) {
+  var payload = command.payload || {};
+  if (!app.project) {
+    return CreativePipelineMCP.status(command, "error", "no active project", {});
+  }
+  return CreativePipelineMCP.status(command, "success", "timeline markers accepted", {
+    markers: payload.markers || [],
+    safeMargins: payload.safeMargins || {}
   });
 };
 

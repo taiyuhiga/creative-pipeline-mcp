@@ -542,6 +542,39 @@
       }
     },
     {
+      "name": "premiere.apply_timeline_markers",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue safe-margin, intro, outro, and chapter marker metadata for a Premiere sequence.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "intro": {
+            "type": "object"
+          },
+          "markers": {
+            "type": "array"
+          },
+          "outro": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          },
+          "safeMargins": {
+            "type": "object"
+          },
+          "sequenceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.auto_caption",
       "category": "premiere",
       "risk": "safe_write",
@@ -578,9 +611,13 @@
             "enum": [
               "build_timeline_from_otio",
               "export_sequence",
-              "apply_brand_package"
+              "apply_brand_package",
+              "apply_timeline_markers"
             ],
             "type": "string"
+          },
+          "finalizeExportQc": {
+            "type": "boolean"
           },
           "pollIntervalMs": {
             "type": "number"
@@ -663,6 +700,41 @@
       }
     },
     {
+      "name": "premiere.cleanup_subtitles",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Normalize SRT/VTT captions, remove empty cues, repair overlaps, and wrap long lines.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "srt",
+              "vtt"
+            ],
+            "type": "string"
+          },
+          "maxCharsPerLine": {
+            "type": "number"
+          },
+          "outputFormat": {
+            "enum": [
+              "srt",
+              "vtt"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.create_multilanguage_subtitles",
       "category": "premiere",
       "risk": "safe_write",
@@ -674,6 +746,30 @@
             "type": "array"
           },
           "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.describe_subtitle_artifacts",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Write the multilingual subtitle artifact schema and expected language outputs.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "languages": {
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sourceLanguage": {
             "type": "string"
           }
         },
@@ -1046,6 +1142,73 @@
         "required": [
           "path"
         ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.validate_subtitles",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Validate SRT/VTT cues for timing, overlap, empty text, and reading speed.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "srt",
+              "vtt"
+            ],
+            "type": "string"
+          },
+          "maxCharsPerSecond": {
+            "type": "number"
+          },
+          "maxWordsPerMinute": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.watch_export_output",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Poll an export output path and run delivery QC once the file appears.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "captionPath": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "maxDuration": {
+            "type": "number"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "pollIntervalMs": {
+            "type": "number"
+          },
+          "targetHeight": {
+            "type": "number"
+          },
+          "targetWidth": {
+            "type": "number"
+          },
+          "timeoutMs": {
+            "type": "number"
+          }
+        },
         "type": "object"
       }
     }

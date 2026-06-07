@@ -39,6 +39,10 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.finalize_export_qc"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.build_project_delivery"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.measure_vmaf"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.validate_subtitles"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.cleanup_subtitles"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.apply_timeline_markers"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.watch_export_output"));
 });
 
 test("Blender asset QC writes a report", async () => {
@@ -327,7 +331,9 @@ test("Premiere export and brand tools queue CEP commands", async () => {
       brand: { primaryColor: "#111111" }
     });
     assert.equal(exportResult.artifacts.length, 2);
-    assert.equal(brandResult.artifacts.length, 2);
+    assert.equal(brandResult.artifacts.length, 3);
+    assert.equal(brandResult.data.manifest.schema, "creative.pipeline.brand_package.v1");
+    assert.ok(brandResult.data.preview.captionStyle);
     const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
     assert.equal(queueFiles.length, 2);
     const queuedTypes = await Promise.all(queueFiles.map(async (file) => JSON.parse(await readFile(join(queueRoot, file), "utf8")).type));
@@ -382,6 +388,65 @@ test("Premiere project delivery builder writes artifacts and queues CEP commands
       process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = previous;
     }
   }
+});
+
+test("Premiere timeline marker tool queues safe margin and intro/outro markers", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-marker-media-"));
+  const mediaPath = join(mediaRoot, "placeholder.mp4");
+  await writeFile(mediaPath, new Uint8Array([0]));
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-marker-queue-"));
+  const previous = process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = queueRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.apply_timeline_markers");
+    assert.ok(tool);
+    const result = await tool.execute(await context(mediaRoot), {
+      path: mediaPath,
+      intro: { startSeconds: 0, endSeconds: 4 },
+      outro: { startSeconds: 56, endSeconds: 60 }
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.data.manifest.markers.length, 3);
+    const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
+    assert.equal(queueFiles.length, 1);
+    const queued = JSON.parse(await readFile(join(queueRoot, queueFiles[0]), "utf8"));
+    assert.equal(queued.type, "apply_timeline_markers");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = previous;
+    }
+  }
+});
+
+test("Premiere subtitle tools validate and cleanup SRT captions", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-subtitles-"));
+  const subtitlePath = join(mediaRoot, "captions.srt");
+  await writeFile(subtitlePath, [
+    "1",
+    "00:00:00,000 --> 00:00:01,000",
+    "This caption is deliberately much too long for a one second reading window",
+    "",
+    "2",
+    "00:00:00,900 --> 00:00:02,000",
+    "Overlap cue",
+    ""
+  ].join("\n"), "utf8");
+  const validateTool = premiereTools.find((candidate) => candidate.name === "premiere.validate_subtitles");
+  const cleanupTool = premiereTools.find((candidate) => candidate.name === "premiere.cleanup_subtitles");
+  assert.ok(validateTool);
+  assert.ok(cleanupTool);
+  const validateResult = await validateTool.execute(await context(mediaRoot), { path: subtitlePath });
+  assert.equal(validateResult.ok, false);
+  assert.equal(validateResult.data.validation.overlaps, 1);
+  const cleanupResult = await cleanupTool.execute(await context(mediaRoot), {
+    path: subtitlePath,
+    maxCharsPerLine: 24
+  });
+  assert.equal(cleanupResult.ok, true);
+  assert.equal(cleanupResult.data.after.overlaps, 0);
+  assert.equal(cleanupResult.artifacts.length, 2);
 });
 
 test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
@@ -692,6 +757,40 @@ test("Premiere export QC finalizer writes a pending artifact while output is mis
     const pending = JSON.parse(await readFile(result.artifacts[0], "utf8"));
     assert.equal(pending.reason, "output_file_not_found");
     assert.equal(pending.outputPath, outputPath);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = previous;
+    }
+  }
+});
+
+test("Premiere export watcher writes pending artifact while output is missing", async () => {
+  const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-watch-status-"));
+  const outputPath = join(statusRoot, "missing-final.mp4");
+  const statusPath = join(statusRoot, "cmd-watch.json");
+  await mkdir(statusRoot, { recursive: true });
+  await writeFile(statusPath, JSON.stringify({
+    schema: "creative.pipeline.premiere.status.v1",
+    commandId: "cmd-watch",
+    commandType: "export_sequence",
+    status: "success",
+    message: "export complete",
+    details: { outputPath }
+  }), "utf8");
+  const previous = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = statusRoot;
+  try {
+    const tool = premiereTools.find((candidate) => candidate.name === "premiere.watch_export_output");
+    assert.ok(tool);
+    const result = await tool.execute(await context(statusRoot), {
+      commandId: "cmd-watch",
+      timeoutMs: 0
+    });
+    assert.equal(result.ok, false);
+    const pending = JSON.parse(await readFile(result.artifacts[0], "utf8"));
+    assert.equal(pending.reason, "output_file_not_found");
   } finally {
     if (previous === undefined) {
       delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;

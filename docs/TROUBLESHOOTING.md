@@ -38,6 +38,20 @@ If a command remains pending:
 - run selected or all pending commands
 - inspect `artifacts/premiere/cep_status`
 
+If sequence creation fails:
+
+- confirm a Premiere project is open and the CEP panel has focus at least once
+- inspect the `build_timeline_from_otio` status file for `message` and `details.error`
+- confirm every OTIO `media_reference.target_url` exists and is readable
+- open or create an active sequence manually, then rerun the queued command
+- if `app.project.createNewSequence` fails, keep the status artifact and use the imported media count in `details.imported` to distinguish import failure from sequence creation failure
+
+If export QC does not finish:
+
+- run `premiere.watch_export_output` with the `commandId` from the `export_sequence` status
+- verify `details.outputPath` exists on disk after Adobe Media Encoder finishes
+- rerun `premiere.finalize_export_qc` with explicit `outputPath` when the status file lacks one
+
 ## Release Assets
 
 ```bash

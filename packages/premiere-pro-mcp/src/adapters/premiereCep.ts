@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 
 export interface PremiereCepCommand {
   id: string;
-  type: "build_timeline_from_otio" | "export_sequence" | "apply_brand_package";
+  type: "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" | "apply_timeline_markers";
   payload: Record<string, unknown>;
   createdAt: string;
 }

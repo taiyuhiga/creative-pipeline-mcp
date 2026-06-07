@@ -95,6 +95,9 @@
       if (command.type === "export_sequence") {
         return 2;
       }
+      if (command.type === "apply_timeline_markers") {
+        return 3;
+      }
     } catch (ignored) {}
     return 99;
   }
