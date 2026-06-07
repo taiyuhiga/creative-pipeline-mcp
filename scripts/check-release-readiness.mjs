@@ -18,6 +18,7 @@ const requiredFiles = [
   "examples/projects/youtube-16x9/project.json",
   "examples/projects/game-asset/project.json",
   "scripts/wait-premiere-e2e-status.mjs",
+  "scripts/check-v1-freeze.mjs",
   ".github/workflows/ci.yml",
   ".github/workflows/windows-premiere-e2e.yml",
   ".github/workflows/npm-publish.yml",
@@ -31,6 +32,7 @@ assert(Array.isArray(snapshot.tools) && snapshot.tools.length > 0, "API tool sch
 assert(pkg.files.includes("docs"), "package files must include docs");
 assert(pkg.files.includes("examples"), "package files must include examples");
 assert(pkg.scripts["check:schemas"], "package must expose check:schemas");
+assert(pkg.scripts["check:v1-freeze"], "package must expose check:v1-freeze");
 assert(pkg.scripts["check:release"], "package must expose check:release");
 assert(pkg.scripts["smoke:npm-install"], "package must expose smoke:npm-install");
 assert(pkg.scripts["wait:premiere-e2e"], "package must expose wait:premiere-e2e");

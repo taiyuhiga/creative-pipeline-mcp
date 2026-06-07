@@ -29,6 +29,7 @@ Before tagging `v1.0.0`, run:
 ```bash
 npm test
 npm run check:schemas
+npm run check:v1-freeze
 npm run check:release
 npm run smoke:npm-install
 npm pack --dry-run

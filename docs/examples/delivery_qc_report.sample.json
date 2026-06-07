@@ -1,6 +1,7 @@
 {
   "kind": "media",
   "target": "examples/source.mp4",
+  "generatedAt": "2026-06-07T01:30:59Z",
   "summary": {
     "status": "pass",
     "pass": 8,

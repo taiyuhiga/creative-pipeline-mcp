@@ -20,6 +20,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run check:schemas
+      - run: npm run check:v1-freeze
 
   optional-adapter-check:
     runs-on: ubuntu-latest
@@ -43,6 +44,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run check:schemas
+      - run: npm run check:v1-freeze
       - run: npm run check:adapters
       - run: npm run package:premiere-cep -- --verify
 
@@ -117,5 +119,6 @@ jobs:
       - run: npm ci
       - run: npm pack --dry-run
       - run: npm run check:release
+      - run: npm run check:v1-freeze
       - run: npm run smoke:npm-install
       - run: npm run package:premiere-cep -- --verify

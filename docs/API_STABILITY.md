@@ -15,6 +15,21 @@ For the current beta/v1 readiness contract, see `docs/SCHEMA_STABILITY.md`. Publ
 - CEP status schema
 - approval artifact shape
 
+## `structuredContent` Shape
+
+Every public `tools/call` response mirrors the internal `ToolResult` object in `structuredContent`:
+
+```json
+{
+  "ok": true,
+  "message": "human readable status",
+  "artifacts": ["artifacts/example.json"],
+  "data": {}
+}
+```
+
+`ok` and `message` are required. `artifacts` is optional and must contain artifact paths when present. `data` is optional and must be JSON-serializable. The MCP text content uses the same `message`, while `structuredContent` is the stable machine-readable surface.
+
 ## Snapshot Gate
 
 `docs/API_TOOL_SCHEMAS.snapshot.json` records the current public tool names, risks, descriptions, and input schemas. CI and local release gates should run:

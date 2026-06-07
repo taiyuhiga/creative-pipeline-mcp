@@ -5,6 +5,7 @@
 ```bash
 npm test
 npm run check:schemas
+npm run check:v1-freeze
 npm run check:release
 npm run check:adapters -- --json
 npm run smoke:npm-install
