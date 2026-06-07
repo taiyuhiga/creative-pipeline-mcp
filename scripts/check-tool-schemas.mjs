@@ -18,7 +18,7 @@ if (process.argv.includes("--write")) {
 }
 
 const expected = readFileSync(snapshotPath, "utf8");
-if (expected !== serialized) {
+if (normalizeNewlines(expected) !== serialized) {
   throw new Error(`Tool schema snapshot is out of date. Run: node scripts/check-tool-schemas.mjs --write`);
 }
 
@@ -64,3 +64,6 @@ function sortJson(value) {
   return value;
 }
 
+function normalizeNewlines(value) {
+  return value.replace(/\r\n/g, "\n");
+}
