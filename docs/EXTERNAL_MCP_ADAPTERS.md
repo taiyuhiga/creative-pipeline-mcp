@@ -14,15 +14,53 @@ Creative Pipeline MCP should remain the QC, approval, artifact, and orchestratio
 
 ## Candidate: dcc-mcp-blender
 
-Status: research required.
+Status: evaluated on 2026-06-07.
 
-Evaluation goal: determine whether it can act as an external Blender operation adapter while Creative Pipeline MCP keeps QC reports, approval artifacts, and release artifacts.
+Repository: <https://github.com/dcc-mcp/dcc-mcp-blender>
+
+Snapshot:
+
+- License: MIT.
+- Default branch: `main`.
+- Latest release observed: `v0.1.9`.
+- Transport: embedded Blender add-on exposing an MCP HTTP endpoint inside Blender.
+- Tooling scope: broad DCC/Blender operations, including scene, object, mesh, UV, materials, render, validation, pipeline, and export tools.
+
+Assessment:
+
+- Good candidate for an opt-in external Blender operation adapter.
+- Better architectural fit than direct script execution because it already models Blender operations as MCP tools.
+- Keep it behind Creative Pipeline MCP schema validation and approval policy.
+- Do not expose its full tool surface directly to production clients by default. Route only bounded operations such as import/export, object transforms, validation, preview capture, and publish-package actions.
+- Capture every output through `ArtifactStore`, then rerun local QC with `blender.validate_asset`.
+
+Decision: adopt as a preferred research/integration target for the external bridge path, but keep it optional and disabled by default.
 
 ## Candidate: ahujasid/blender-mcp
 
-Status: research required.
+Status: evaluated on 2026-06-07.
 
-Evaluation goal: determine whether it can safely support interactive Blender scene operations without weakening local workspace and raw-script guardrails.
+Repository: <https://github.com/ahujasid/blender-mcp>
+
+Snapshot:
+
+- License: MIT.
+- Default branch: `main`.
+- Release metadata: no GitHub release observed.
+- Transport: separate MCP server connecting to a Blender add-on over a socket.
+- Tooling scope: interactive scene/object/material control, viewport screenshots, asset search/download integrations, and arbitrary Blender Python execution.
+- Open security-relevant issues observed:
+  - `#207 execute_blender_code enables unrestricted arbitrary code execution via LLM-controlled input`
+  - `#257 [Vulnerability] blender-mcp Arbitrary File Write via polyhaven include_path Traversal`
+
+Assessment:
+
+- Useful reference implementation for interactive Blender control and community usage patterns.
+- Not acceptable as a direct production adapter while arbitrary code execution and file-write traversal risks remain unresolved.
+- If used, require a separate untrusted workspace, no shared secrets, constrained network access, and an allowlisted command wrapper.
+- Never route raw `execute_blender_code` or equivalent tools from Creative Pipeline MCP without explicit project approval and a separate sandbox boundary.
+
+Decision: reference-only for now. Do not integrate as the default external adapter.
 
 ## Integration Principle
 
@@ -36,4 +74,3 @@ tool request
   -> artifact capture
   -> QC/report normalization
 ```
-
