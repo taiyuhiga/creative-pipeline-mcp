@@ -4,9 +4,8 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 
 ## Core
 
-- `core.list_capabilities`
-- `core.read_license_manifest`
-- `core.write_run_log`
+- `core.health`
+- `core.license_manifest`
 
 ## Blender
 
@@ -72,3 +71,14 @@ Alpha schemas may still change. The intended v1 freeze covers:
 - QC report schema
 - CEP status schema
 - artifact layout
+
+Schema snapshot:
+
+- `docs/API_TOOL_SCHEMAS.snapshot.json`
+
+Run:
+
+```bash
+npm run build
+npm run check:schemas
+```

@@ -13,6 +13,17 @@ The current package is alpha. Public tool schemas are strict, but not frozen.
 - CEP status schema
 - approval artifact shape
 
+## Snapshot Gate
+
+`docs/API_TOOL_SCHEMAS.snapshot.json` records the current public tool names, risks, descriptions, and input schemas. CI and local release gates should run:
+
+```bash
+npm run build
+npm run check:schemas
+```
+
+If an intentional public schema change is made, regenerate the snapshot and include migration notes in the same change.
+
 ## Experimental Surface
 
 Adapters that depend on optional external tools remain experimental until v1 unless explicitly marked stable:
@@ -33,4 +44,3 @@ Before v1, breaking changes may happen in alpha releases. After v1:
 - removed fields require a deprecation notice first
 - renamed tools require a compatibility alias for at least one minor release
 - schema-breaking changes require a major version
-

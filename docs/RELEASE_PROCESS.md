@@ -4,6 +4,7 @@
 
 ```bash
 npm test
+npm run check:schemas
 npm run check:adapters -- --json
 node examples/blender-e2e.mjs
 node examples/premiere-qc-e2e.mjs

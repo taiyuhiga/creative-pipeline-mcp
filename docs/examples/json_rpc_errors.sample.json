@@ -1,0 +1,26 @@
+{
+  "schema": "creative.pipeline.json_rpc_errors.sample.v1",
+  "errors": {
+    "parseError": {
+      "code": -32700,
+      "message": "JSON parse failure"
+    },
+    "invalidRequest": {
+      "code": -32600,
+      "message": "Invalid JSON-RPC request"
+    },
+    "methodNotFound": {
+      "code": -32601,
+      "message": "Method not found"
+    },
+    "invalidParams": {
+      "code": -32602,
+      "message": "Invalid params, unknown tool, invalid schema input, adapter missing, or approval-required tool response"
+    },
+    "toolExecutionError": {
+      "code": -32000,
+      "message": "External process failed or uncaught tool execution error"
+    }
+  }
+}
+

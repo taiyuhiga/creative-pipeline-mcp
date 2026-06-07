@@ -2,6 +2,7 @@ export * from "./approvalPolicy.js";
 export * from "./artifactStore.js";
 export * from "./coreTools.js";
 export * from "./jobQueue.js";
+export * from "./jsonRpcErrors.js";
 export * from "./licenseManifest.js";
 export * from "./mcpServer.js";
 export * from "./qcReport.js";

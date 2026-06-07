@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { ApprovalPolicy, ArtifactStore, defaultLicenseManifest, McpServer } from "../packages/core/dist/index.js";
+import { ApprovalPolicy, ArtifactStore, JSON_RPC_ERRORS, defaultLicenseManifest, McpServer } from "../packages/core/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
@@ -411,6 +411,26 @@ test("Premiere CEP host uses ExtendScript-safe JSON status timestamps", async ()
   assert.match(hostScript, /getUTCFullYear/);
   assert.doesNotMatch(hostScript, /finishedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(hostScript, /dispatch failed/);
+});
+
+test("Public tool schemas match the committed snapshot", () => {
+  const result = spawnSync("node", ["scripts/check-tool-schemas.mjs"], {
+    cwd: resolve("."),
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const summary = JSON.parse(result.stdout);
+  assert.equal(summary.ok, true);
+  assert.ok(summary.tools >= 40);
+});
+
+test("JSON-RPC error constants match the public fixture", async () => {
+  const fixture = JSON.parse(await readFile("docs/examples/json_rpc_errors.sample.json", "utf8"));
+  assert.equal(fixture.errors.parseError.code, JSON_RPC_ERRORS.parseError);
+  assert.equal(fixture.errors.invalidRequest.code, JSON_RPC_ERRORS.invalidRequest);
+  assert.equal(fixture.errors.methodNotFound.code, JSON_RPC_ERRORS.methodNotFound);
+  assert.equal(fixture.errors.invalidParams.code, JSON_RPC_ERRORS.invalidParams);
+  assert.equal(fixture.errors.toolExecutionError.code, JSON_RPC_ERRORS.toolExecutionError);
 });
 
 test("npm publish workflow is configured for guarded trusted publishing", async () => {

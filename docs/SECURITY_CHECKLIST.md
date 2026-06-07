@@ -32,6 +32,6 @@ Use this checklist before beta and stable releases.
 ## Release
 
 - npm package contents are audited with `npm pack --dry-run`.
+- public tool schemas are checked with `npm run check:schemas`.
 - release assets include checksums.
 - signing certificates and private keys stay out of git.
-

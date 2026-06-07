@@ -33,6 +33,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
       - run: npm test
+      - run: npm run check:schemas
       - run: npm run check:adapters
       - run: node examples/premiere-project-delivery.mjs
         env:

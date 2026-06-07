@@ -1,0 +1,1041 @@
+{
+  "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
+  "packageVersion": "0.2.16-alpha.0",
+  "generatedFrom": [
+    "packages/core/dist/coreTools.js",
+    "packages/blender-pro-mcp/dist/index.js",
+    "packages/premiere-pro-mcp/dist/index.js",
+    "packages/director-agent/dist/index.js"
+  ],
+  "tools": [
+    {
+      "name": "blender.apply_material",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a material-application manifest for MaterialX or Blender material adapters.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "material": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.await_bridge_status",
+      "category": "blender",
+      "risk": "read",
+      "description": "Poll Blender bridge status files until a matching command status is available.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "commandType": {
+            "enum": [
+              "create_scene",
+              "create_asset",
+              "modify_asset",
+              "apply_material",
+              "run_safe_script"
+            ],
+            "type": "string"
+          },
+          "pollIntervalMs": {
+            "type": "number"
+          },
+          "timeoutMs": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.configure_engine_profile",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a target engine profile for Roblox, Unity, Unreal, or WebGL asset budgets.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "enum": [
+              "Roblox",
+              "Unity",
+              "Unreal",
+              "WebGL"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "engine"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Alias-style manifest for creating a Blender asset through the external bridge.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_game_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a production job manifest for an external Blender bridge to generate a game asset.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "type": "object"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_material_pack",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a material-pack manifest for MaterialX/OpenImageIO/OpenColorIO-capable adapters.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_materialx_workflow",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a MaterialX and OCIO/ACES lookdev workflow manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "look": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_scene",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a scene-generation manifest for an external Blender bridge.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "targetEngine": {
+            "enum": [
+              "Roblox",
+              "Unity",
+              "Unreal",
+              "WebGL"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.create_usd_pipeline",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a USD pipeline manifest for v2 asset exchange workflows.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.export_game_ready",
+      "category": "blender",
+      "risk": "project_write",
+      "description": "Export a game-ready artifact copy and QC report.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.fix_asset_issues",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a repair plan from an asset QC report.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.inspect_scene",
+      "category": "blender",
+      "risk": "read",
+      "description": "Inspect a .glb/.gltf asset or report that external Blender is required for .blend.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.modify_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a non-destructive modification manifest for an existing asset.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "instructions"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.optimize_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create an optimized artifact slot; copies source when external glTF optimizer is unavailable.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.plan_rig_animation",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create an advanced rig/animation plan without executing raw Blender scripts.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "animationBrief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.read_bridge_status",
+      "category": "blender",
+      "risk": "read",
+      "description": "Read Blender bridge status JSON files produced by a trusted bridge adapter.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.render_preview",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Create a deterministic placeholder preview unless an external Blender renderer is configured.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.repair_basic_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Run a template-based Blender repair pass for scale, normals, triangulation, and GLB export.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.validate_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Write a standardized asset QC report for a .glb/.gltf/.blend target.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "core.health",
+      "category": "core",
+      "risk": "read",
+      "description": "Return server health and artifact root.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "core.license_manifest",
+      "category": "core",
+      "risk": "read",
+      "description": "Return direct, optional external, and reference-only dependency license posture.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.full_production_report",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a full production report linking asset, edit, QC, approval, and license artifacts.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "type": "array"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.handoff_blender_asset",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create an asset manifest for Blender to Premiere handoff.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "assetPath": {
+            "type": "string"
+          },
+          "previewPath": {
+            "type": "string"
+          },
+          "qcReportPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetPath"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.multi_agent_review",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a multi-agent review checklist for asset, edit, audio, captions, safety, and licensing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "project": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.plan_production",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a full Blender-to-Premiere production plan with QC gates.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.apply_brand_package",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a brand package application command for captions, colors, fonts, and graphics.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.auto_caption",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create an SRT caption file from supplied transcript text, or a placeholder when ASR is not configured.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "transcript": {
+            "maxLength": 20000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.await_cep_status",
+      "category": "premiere",
+      "risk": "read",
+      "description": "Poll Premiere CEP status files until a matching command status is available.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "commandType": {
+            "enum": [
+              "build_timeline_from_otio",
+              "export_sequence",
+              "apply_brand_package"
+            ],
+            "type": "string"
+          },
+          "pollIntervalMs": {
+            "type": "number"
+          },
+          "timeoutMs": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.build_project_delivery",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Build a project-specific timeline, brand, and export delivery plan, then queue CEP commands.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "type": "object"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "preset": {
+            "enum": [
+              "1080x1920_h264_social",
+              "1920x1080_h264",
+              "1080x1080_h264"
+            ],
+            "type": "string"
+          },
+          "sequenceName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "targetDuration": {
+            "type": "number"
+          },
+          "template": {
+            "enum": [
+              "youtube_shorts",
+              "youtube_16x9",
+              "podcast_clip",
+              "course_lesson",
+              "ad_creative"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.build_timeline_from_otio",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a Premiere CEP command to build a timeline from an OTIO plan.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "otioPath": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "otioPath"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.create_multilanguage_subtitles",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create subtitle translation job manifests for multiple languages.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "languages": {
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.detect_scenes",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Run PySceneDetect when available, otherwise write a scene detection adapter manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.export_social_variants",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create multi-platform export profile manifests for vertical, square, and horizontal delivery.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "platforms": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.export_video",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Create an export plan; real Premiere export requires the external CEP bridge and approval.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "outputPath": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "preset": {
+            "enum": [
+              "1080x1920_h264_social",
+              "1920x1080_h264",
+              "1080x1080_h264"
+            ],
+            "type": "string"
+          },
+          "presetPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.finalize_export_qc",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Resolve an export CEP status and run delivery QC when the exported file exists.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "captionPath": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "maxDuration": {
+            "type": "number"
+          },
+          "modelPath": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "referencePath": {
+            "type": "string"
+          },
+          "targetHeight": {
+            "type": "number"
+          },
+          "targetMinVmaf": {
+            "type": "number"
+          },
+          "targetWidth": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.fix_qc_issues",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create a remediation plan for failed or warning delivery QC checks.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.generate_thumbnail_plan",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create an automated thumbnail generation plan from the edit and brand package.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.index_media",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Index media with ffprobe metadata when available.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.ingest_media",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Copy media into the artifact store and write an ingest manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.make_rough_cut",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create a simple OTIO-compatible rough-cut plan from a source media file and brief.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "targetDuration": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.measure_loudness",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Run pyloudnorm when available, otherwise write a loudness adapter manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.measure_vmaf",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Run FFmpeg libvmaf against a reference file, or write an adapter report when libvmaf is unavailable.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "modelPath": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "referencePath": {
+            "type": "string"
+          },
+          "targetMinVmaf": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path",
+          "referencePath"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.mix_audio",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create an audio mix plan with loudness targets for external adapters.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "targetLufs": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.read_cep_status",
+      "category": "premiere",
+      "risk": "read",
+      "description": "Read Premiere CEP status JSON files produced by the panel scaffold.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.repurpose_podcast",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Create a podcast/video repurposing plan with speaker-aware clips and social variants.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "targetDuration": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.run_delivery_qc",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Write a standardized delivery QC report for an existing media file.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "captionPath": {
+            "type": "string"
+          },
+          "maxDuration": {
+            "type": "number"
+          },
+          "modelPath": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "referencePath": {
+            "type": "string"
+          },
+          "targetHeight": {
+            "type": "number"
+          },
+          "targetMinVmaf": {
+            "type": "number"
+          },
+          "targetWidth": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.transcribe_media",
+      "category": "premiere",
+      "risk": "safe_write",
+      "description": "Run WhisperX when available, otherwise write a transcription adapter manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}

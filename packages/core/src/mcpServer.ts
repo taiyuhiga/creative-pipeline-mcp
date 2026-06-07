@@ -5,6 +5,7 @@ import { defaultLicenseManifest } from "./licenseManifest.js";
 import { Router } from "./router.js";
 import { ToolRegistry } from "./toolRegistry.js";
 import type { ToolDefinition, ToolExecutionContext } from "./types.js";
+import { JSON_RPC_ERRORS, type JsonRpcErrorCode } from "./jsonRpcErrors.js";
 
 interface JsonRpcRequest {
   jsonrpc?: "2.0";
@@ -14,7 +15,7 @@ interface JsonRpcRequest {
 }
 
 class JsonRpcError extends Error {
-  constructor(public readonly code: number, message: string) {
+  constructor(public readonly code: JsonRpcErrorCode, message: string) {
     super(message);
   }
 }
@@ -44,7 +45,7 @@ export class McpServer {
 
   async handle(request: JsonRpcRequest): Promise<unknown> {
     if (!isRecord(request) || request.jsonrpc !== undefined && request.jsonrpc !== "2.0" || typeof request.method !== "string") {
-      throw new JsonRpcError(-32600, "Invalid JSON-RPC request");
+      throw new JsonRpcError(JSON_RPC_ERRORS.invalidRequest, "Invalid JSON-RPC request");
     }
     if (request.method === "initialize") {
       return {
@@ -68,19 +69,19 @@ export class McpServer {
     if (request.method === "tools/call") {
       const params = request.params ?? {};
       if (!isRecord(params) || typeof params.name !== "string") {
-        throw new JsonRpcError(-32602, "tools/call requires params.name");
+        throw new JsonRpcError(JSON_RPC_ERRORS.invalidParams, "tools/call requires params.name");
       }
       const name = String(params.name ?? "");
       const input = (params.arguments ?? {}) as Record<string, unknown>;
       if (!isRecord(input)) {
-        throw new JsonRpcError(-32602, "tools/call params.arguments must be an object");
+        throw new JsonRpcError(JSON_RPC_ERRORS.invalidParams, "tools/call params.arguments must be an object");
       }
       let result;
       try {
         result = await this.router.run(name, this.context, input);
       } catch (error) {
         if (error instanceof Error && error.message.startsWith("Unknown tool:")) {
-          throw new JsonRpcError(-32602, error.message);
+          throw new JsonRpcError(JSON_RPC_ERRORS.invalidParams, error.message);
         }
         throw error;
       }
@@ -89,7 +90,7 @@ export class McpServer {
         structuredContent: result
       };
     }
-    throw new JsonRpcError(-32601, `Method not found: ${request.method}`);
+    throw new JsonRpcError(JSON_RPC_ERRORS.methodNotFound, `Method not found: ${request.method}`);
   }
 
   runStdio(): void {
@@ -108,13 +109,13 @@ export class McpServer {
       try {
         request = JSON.parse(line) as JsonRpcRequest;
       } catch (error) {
-        throw new JsonRpcError(-32700, error instanceof Error ? error.message : String(error));
+        throw new JsonRpcError(JSON_RPC_ERRORS.parseError, error instanceof Error ? error.message : String(error));
       }
       const result = await this.handle(request);
       process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id ?? null, result })}\n`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const code = error instanceof JsonRpcError ? error.code : -32000;
+      const code = error instanceof JsonRpcError ? error.code : JSON_RPC_ERRORS.toolExecutionError;
       process.stdout.write(
         `${JSON.stringify({
           jsonrpc: "2.0",
