@@ -32,6 +32,20 @@ jobs:
       - run: npm ci
       - run: npm run check:adapters
 
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check:schemas
+      - run: npm run check:adapters
+      - run: npm run package:premiere-cep -- --verify
+
   blender-e2e-optional:
     runs-on: ubuntu-latest
     steps:
