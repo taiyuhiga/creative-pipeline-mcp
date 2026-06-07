@@ -26,6 +26,19 @@ if (!dashboardToken) {
   throw new Error("CREATIVE_MCP_DASHBOARD_TOKEN is required to start the dashboard");
 }
 
+interface DashboardJob {
+  id: string;
+  kind: string;
+  path: string;
+  status?: unknown;
+  action?: unknown;
+  message?: unknown;
+  input?: unknown;
+  risk?: unknown;
+  retryable: boolean;
+  updatedAt: string;
+}
+
 async function listReports(): Promise<Array<{ path: string; summary?: unknown }>> {
   const reports: Array<{ path: string; summary?: unknown }> = [];
   async function walk(dir: string): Promise<void> {
@@ -103,24 +116,9 @@ async function listArtifacts(): Promise<Array<{
     .slice(0, maxDashboardItems);
 }
 
-async function listJobs(): Promise<Array<{
-  id: string;
-  kind: string;
-  path: string;
-  status?: unknown;
-  action?: unknown;
-  message?: unknown;
-  updatedAt: string;
-}>> {
-  const jobs: Array<{
-    id: string;
-    kind: string;
-    path: string;
-    status?: unknown;
-    action?: unknown;
-    message?: unknown;
-    updatedAt: string;
-  }> = [];
+async function listJobs(): Promise<DashboardJob[]> {
+  const jobs: DashboardJob[] = [];
+  await collectJobFiles("rerun", join(artifactRoot, "dashboard", "reruns"), jobs);
   await collectJobFiles("log", join(artifactRoot, "logs"), jobs);
   await collectJobFiles("cep_status", join(artifactRoot, "premiere", "cep_status"), jobs);
   await collectJobFiles("approval_resolved", join(artifactRoot, "approvals", "resolved"), jobs);
@@ -150,6 +148,101 @@ async function listApprovals(): Promise<Array<{ id: string; path: string; reques
   return approvals;
 }
 
+async function listAdapterReports(): Promise<Array<{ path: string; updatedAt: string; summary?: unknown; adapters: unknown }>> {
+  const reports = [];
+  for (const artifact of await listArtifacts()) {
+    if (artifact.kind !== "json") continue;
+    const json = await readArtifactJson(resolveArtifactPath(artifact.relativePath));
+    if (!isRecord(json.adapters)) continue;
+    reports.push({
+      path: artifact.relativePath,
+      updatedAt: artifact.updatedAt,
+      summary: json.summary,
+      adapters: json.adapters
+    });
+  }
+  return reports;
+}
+
+async function listQcReports(): Promise<Array<{ path: string; updatedAt: string; title: string; summary?: unknown; report: unknown }>> {
+  const reports = [];
+  for (const artifact of await listArtifacts()) {
+    if (artifact.kind !== "json") continue;
+    const json = await readArtifactJson(resolveArtifactPath(artifact.relativePath));
+    const schema = typeof json.schema === "string" ? json.schema : "";
+    const looksLikeReport =
+      /qc|report/i.test(artifact.relativePath) ||
+      schema.includes("qc") ||
+      isRecord(json.summary) ||
+      Array.isArray(json.warnings) ||
+      Array.isArray(json.errors);
+    if (!looksLikeReport) continue;
+    reports.push({
+      path: artifact.relativePath,
+      updatedAt: artifact.updatedAt,
+      title: schema || artifact.relativePath,
+      summary: json.summary ?? json.status ?? json.message,
+      report: json
+    });
+  }
+  return reports;
+}
+
+async function listCepStatuses(): Promise<Array<{ id: string; path: string; updatedAt: string; status?: unknown; commandType?: unknown; message?: unknown; details?: unknown }>> {
+  const statuses = [];
+  const dir = join(artifactRoot, "premiere", "cep_status");
+  let entries: string[];
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return [];
+  }
+  for (const entry of entries.filter((name) => name.endsWith(".json"))) {
+    const path = join(dir, entry);
+    const info = await stat(path);
+    const json = await readArtifactJson(path);
+    statuses.push({
+      id: entry,
+      path: relative(artifactRoot, path),
+      updatedAt: info.mtime.toISOString(),
+      status: json.status,
+      commandType: json.commandType ?? (isRecord(json.command) ? json.command.type : undefined),
+      message: json.message,
+      details: json.details
+    });
+  }
+  return statuses.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, maxDashboardItems);
+}
+
+async function listGallery(kind: "blender" | "premiere"): Promise<Array<{
+  path: string;
+  updatedAt: string;
+  size: number;
+  url: string;
+}>> {
+  const artifacts = await listArtifacts();
+  return artifacts
+    .filter((artifact) => artifact.kind === "image")
+    .filter((artifact) => {
+      const path = artifact.relativePath.toLowerCase();
+      if (kind === "blender") return path.includes("blender") || path.includes("preview");
+      return path.includes("premiere") || path.includes("thumbnail") || path.includes("thumb");
+    })
+    .map((artifact) => ({
+      path: artifact.relativePath,
+      updatedAt: artifact.updatedAt,
+      size: artifact.size,
+      url: `/api/artifacts/file?path=${encodeURIComponent(artifact.relativePath)}`
+    }))
+    .slice(0, maxDashboardItems);
+}
+
+async function listReruns(): Promise<DashboardJob[]> {
+  const reruns: DashboardJob[] = [];
+  await collectJobFiles("rerun", join(artifactRoot, "dashboard", "reruns"), reruns);
+  return reruns.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, maxDashboardItems);
+}
+
 async function resolveApproval(
   id: string,
   decision: "approved" | "rejected",
@@ -171,6 +264,35 @@ async function resolveApproval(
     "utf8"
   );
   await rename(source, `${source}.resolved`);
+  return { ok: true, path: target, rerun };
+}
+
+async function retryJob(id: string): Promise<{ ok: boolean; path: string; rerun: unknown }> {
+  const job = (await listJobs()).find((candidate) => candidate.id === basename(id));
+  if (!job) {
+    throw new Error("Job not found");
+  }
+  const request = await readArtifactJson(job.path);
+  const action = String(request.action ?? "");
+  if (!action) {
+    throw new Error("Job does not include an action to retry");
+  }
+  if (!isRetryStatus(request.status)) {
+    throw new Error("Only failed or errored jobs can be retried");
+  }
+  const rerun = await rerunApprovedTool({
+    action,
+    input: isRecord(request.input) ? request.input : {},
+    risk: typeof request.risk === "string" ? request.risk : "safe_write"
+  });
+  const targetDir = join(artifactRoot, "dashboard", "reruns");
+  await mkdir(targetDir, { recursive: true });
+  const target = join(targetDir, `${Date.now()}-retry-${basename(id)}`);
+  await writeFile(
+    target,
+    `${JSON.stringify({ retriedJob: job, rerun, createdAt: new Date().toISOString(), status: "success" }, null, 2)}\n`,
+    "utf8"
+  );
   return { ok: true, path: target, rerun };
 }
 
@@ -205,15 +327,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function collectJobFiles(kind: string, dir: string, jobs: Array<{
-  id: string;
-  kind: string;
-  path: string;
-  status?: unknown;
-  action?: unknown;
-  message?: unknown;
-  updatedAt: string;
-}>): Promise<void> {
+async function collectJobFiles(kind: string, dir: string, jobs: DashboardJob[]): Promise<void> {
   let entries: string[];
   try {
     entries = await readdir(dir);
@@ -236,9 +350,25 @@ async function collectJobFiles(kind: string, dir: string, jobs: Array<{
       status: json.status ?? json.decision,
       action: json.action ?? json.commandType ?? (isRecord(json.command) ? json.command.type : undefined),
       message: json.message,
+      input: json.input,
+      risk: json.risk,
+      retryable: typeof json.action === "string" && isRetryStatus(json.status),
       updatedAt: info.mtime.toISOString()
     });
   }
+}
+
+async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+  } catch {
+    return { unreadable: true };
+  }
+}
+
+function isRetryStatus(value: unknown): boolean {
+  const status = String(value ?? "").toLowerCase();
+  return status === "failed" || status === "failure" || status === "error";
 }
 
 async function artifactPreview(path: string): Promise<unknown> {
@@ -355,6 +485,37 @@ createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === "/api/adapters" && req.method === "GET") {
+    void listAdapterReports().then((reports) => {
+      writeJson(res, 200, { artifactRoot, reports });
+    });
+    return;
+  }
+  if (url.pathname === "/api/qc-reports" && req.method === "GET") {
+    void listQcReports().then((reports) => {
+      writeJson(res, 200, { artifactRoot, reports });
+    });
+    return;
+  }
+  if (url.pathname === "/api/cep-status" && req.method === "GET") {
+    void listCepStatuses().then((statuses) => {
+      writeJson(res, 200, { artifactRoot, statuses });
+    });
+    return;
+  }
+  if (url.pathname === "/api/gallery" && req.method === "GET") {
+    const kind = url.searchParams.get("kind") === "premiere" ? "premiere" : "blender";
+    void listGallery(kind).then((items) => {
+      writeJson(res, 200, { artifactRoot, kind, items });
+    });
+    return;
+  }
+  if (url.pathname === "/api/reruns" && req.method === "GET") {
+    void listReruns().then((reruns) => {
+      writeJson(res, 200, { artifactRoot, reruns });
+    });
+    return;
+  }
   if (url.pathname === "/api/artifacts/file" && req.method === "GET") {
     void Promise.resolve()
       .then(async () => {
@@ -377,6 +538,18 @@ createServer((req, res) => {
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ approvals }, null, 2));
     });
+    return;
+  }
+  if (url.pathname === "/api/jobs/retry" && req.method === "POST") {
+    void readBody(req)
+      .then((body) => JSON.parse(body) as { id: string })
+      .then(({ id }) => retryJob(id))
+      .then((result) => {
+        writeJson(res, 200, result);
+      })
+      .catch((error: unknown) => {
+        writeJson(res, 400, { ok: false, error: error instanceof Error ? error.message : String(error) });
+      });
     return;
   }
   if (url.pathname === "/api/approvals/resolve" && req.method === "POST") {
@@ -412,26 +585,68 @@ createServer((req, res) => {
     .artifact-card { border: 1px solid #ddd; background: white; padding: 10px; border-radius: 6px; min-height: 150px; }
     .artifact-card img { max-width: 100%; max-height: 180px; display: block; background: #eee; }
     .artifact-meta { color: #555; font-size: 12px; overflow-wrap: anywhere; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .toolbar a, .artifact-card a { border: 1px solid #ccc; color: #202124; background: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; }
+    .detail-grid { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(320px, 2fr); gap: 16px; align-items: start; }
+    .status-success { color: #137333; font-weight: 700; }
+    .status-failed, .status-error, .status-failure { color: #a50e0e; font-weight: 700; }
+    .muted { color: #666; }
   </style>
 </head>
 <body>
   <h1>Creative Pipeline MCP Dashboard</h1>
   <p>Artifact root: ${artifactRoot}</p>
-  <section>
+  <nav class="toolbar">
+    <a href="#approvals-section">Approvals</a>
+    <a href="#adapters-section">Adapters</a>
+    <a href="#qc-section">QC Reports</a>
+    <a href="#cep-section">CEP Status</a>
+    <a href="#blender-section">Blender Previews</a>
+    <a href="#premiere-section">Premiere Thumbnails</a>
+    <a href="#jobs-section">Jobs</a>
+  </nav>
+  <section id="approvals-section">
     <h2>Pending Approvals</h2>
     <table id="approvals"><thead><tr><th>Request</th><th>Action</th></tr></thead><tbody></tbody></table>
   </section>
+	  <section id="adapters-section">
+	    <h2>Adapter Availability</h2>
+	    <table id="adapters"><thead><tr><th>Report</th><th>Adapter</th><th>Status</th><th>Command</th></tr></thead><tbody></tbody></table>
+	  </section>
 	  <section>
 	    <h2>Reports</h2>
 	    <table id="reports"><thead><tr><th>Report</th><th>Summary</th></tr></thead><tbody></tbody></table>
 	  </section>
-	  <section>
+	  <section id="qc-section">
+	    <h2>QC Report Detail</h2>
+	    <div class="detail-grid">
+	      <table id="qcReports"><thead><tr><th>Updated</th><th>Report</th><th>Summary</th></tr></thead><tbody></tbody></table>
+	      <pre id="qcDetail" class="muted">Select a QC report.</pre>
+	    </div>
+	  </section>
+	  <section id="cep-section">
+	    <h2>CEP Status</h2>
+	    <table id="cepStatus"><thead><tr><th>Updated</th><th>Command</th><th>Status</th><th>Message</th><th>Path</th></tr></thead><tbody></tbody></table>
+	  </section>
+	  <section id="artifacts-section">
 	    <h2>Artifact Previews</h2>
 	    <div id="artifacts" class="preview-grid"></div>
 	  </section>
-	  <section>
+	  <section id="blender-section">
+	    <h2>Blender Preview Gallery</h2>
+	    <div id="blenderGallery" class="preview-grid"></div>
+	  </section>
+	  <section id="premiere-section">
+	    <h2>Premiere Thumbnail Gallery</h2>
+	    <div id="premiereGallery" class="preview-grid"></div>
+	  </section>
+	  <section id="jobs-section">
 	    <h2>Job History</h2>
-	    <table id="jobs"><thead><tr><th>Updated</th><th>Kind</th><th>Action</th><th>Status</th><th>Path</th></tr></thead><tbody></tbody></table>
+	    <table id="jobs"><thead><tr><th>Updated</th><th>Kind</th><th>Action</th><th>Status</th><th>Path</th><th>Retry</th></tr></thead><tbody></tbody></table>
+	  </section>
+	  <section>
+	    <h2>Rerun History</h2>
+	    <table id="reruns"><thead><tr><th>Updated</th><th>Status</th><th>Action</th><th>Path</th></tr></thead><tbody></tbody></table>
 	  </section>
 	  <script>
 	    const token = new URLSearchParams(location.search).get('token') || localStorage.getItem('creativeMcpDashboardToken') || '';
@@ -449,6 +664,9 @@ createServer((req, res) => {
 	    function tokenized(url) {
 	      return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
 	    }
+	    function statusClass(value) {
+	      return 'status-' + text(value).toLowerCase();
+	    }
 	    function appendCell(row, value, asPre = false) {
 	      const cell = document.createElement('td');
 	      if (asPre) {
@@ -460,6 +678,34 @@ createServer((req, res) => {
 	      }
 	      row.appendChild(cell);
 	      return cell;
+	    }
+	    function downloadLink(path) {
+	      const link = document.createElement('a');
+	      link.href = tokenized('/api/artifacts/file?path=' + encodeURIComponent(path));
+	      link.download = path.split('/').pop() || 'artifact';
+	      link.textContent = 'Download';
+	      return link;
+	    }
+	    function renderImageCard(target, item) {
+	      const card = document.createElement('article');
+	      card.className = 'artifact-card';
+	      const title = document.createElement('div');
+	      title.className = 'artifact-meta';
+	      title.textContent = item.path + ' · ' + formatBytes(item.size || 0);
+	      card.appendChild(title);
+	      const img = document.createElement('img');
+	      img.src = tokenized(item.url);
+	      img.alt = item.path;
+	      card.appendChild(img);
+	      card.appendChild(downloadLink(item.path));
+	      target.appendChild(card);
+	    }
+	    function retryJob(id) {
+	      fetch('/api/jobs/retry', {
+	        method: 'POST',
+	        headers,
+	        body: JSON.stringify({ id })
+	      }).then(() => location.reload());
 	    }
 	    function resolveApproval(id, decision, approvalToken) {
       fetch('/api/approvals/resolve', {
@@ -486,12 +732,54 @@ createServer((req, res) => {
 	        tbody.appendChild(row);
 	      }
 	    });
+	    fetch('/api/adapters', { headers }).then(r => r.json()).then(data => {
+	      const tbody = document.querySelector('#adapters tbody');
+	      for (const report of data.reports) {
+	        for (const [name, adapter] of Object.entries(report.adapters || {})) {
+	          const row = document.createElement('tr');
+	          appendCell(row, report.path);
+	          appendCell(row, name);
+	          const status = appendCell(row, adapter.available ? 'available' : 'missing');
+	          status.className = adapter.available ? 'status-success' : 'status-failed';
+	          appendCell(row, adapter.command || '');
+	          tbody.appendChild(row);
+	        }
+	      }
+	    });
 	    fetch('/api/reports', { headers }).then(r => r.json()).then(data => {
 	      const tbody = document.querySelector('#reports tbody');
 	      for (const report of data.reports) {
 	        const row = document.createElement('tr');
 	        appendCell(row, report.path);
 	        appendCell(row, JSON.stringify(report.summary ?? {}, null, 2), true);
+	        tbody.appendChild(row);
+	      }
+	    });
+	    fetch('/api/qc-reports', { headers }).then(r => r.json()).then(data => {
+	      const tbody = document.querySelector('#qcReports tbody');
+	      const detail = document.querySelector('#qcDetail');
+	      for (const report of data.reports) {
+	        const row = document.createElement('tr');
+	        appendCell(row, report.updatedAt);
+	        appendCell(row, report.path);
+	        appendCell(row, JSON.stringify(report.summary ?? {}, null, 2), true);
+	        row.onclick = () => {
+	          detail.textContent = JSON.stringify(report.report, null, 2);
+	          detail.className = '';
+	        };
+	        tbody.appendChild(row);
+	      }
+	    });
+	    fetch('/api/cep-status', { headers }).then(r => r.json()).then(data => {
+	      const tbody = document.querySelector('#cepStatus tbody');
+	      for (const statusRecord of data.statuses) {
+	        const row = document.createElement('tr');
+	        appendCell(row, statusRecord.updatedAt);
+	        appendCell(row, text(statusRecord.commandType));
+	        const status = appendCell(row, text(statusRecord.status));
+	        status.className = statusClass(statusRecord.status);
+	        appendCell(row, text(statusRecord.message));
+	        appendCell(row, statusRecord.path);
 	        tbody.appendChild(row);
 	      }
 	    });
@@ -518,16 +806,46 @@ createServer((req, res) => {
 	          pre.textContent = artifact.preview.sample || '';
 	          card.appendChild(pre);
 	        }
+	        card.appendChild(downloadLink(artifact.relativePath));
 	        target.appendChild(card);
 	      }
+	    });
+	    fetch('/api/gallery?kind=blender', { headers }).then(r => r.json()).then(data => {
+	      const target = document.querySelector('#blenderGallery');
+	      for (const item of data.items) renderImageCard(target, item);
+	    });
+	    fetch('/api/gallery?kind=premiere', { headers }).then(r => r.json()).then(data => {
+	      const target = document.querySelector('#premiereGallery');
+	      for (const item of data.items) renderImageCard(target, item);
 	    });
 	    fetch('/api/jobs', { headers }).then(r => r.json()).then(data => {
 	      const tbody = document.querySelector('#jobs tbody');
 	      for (const job of data.jobs) {
 	        const row = document.createElement('tr');
-	        [job.updatedAt, job.kind, text(job.action), text(job.status), job.path].forEach((value) => {
-	          appendCell(row, value);
+	        [job.updatedAt, job.kind, text(job.action), text(job.status), job.path].forEach((value, index) => {
+	          const cell = appendCell(row, value);
+	          if (index === 3) cell.className = statusClass(job.status);
 	        });
+	        const retryCell = document.createElement('td');
+	        if (job.retryable) {
+	          const button = document.createElement('button');
+	          button.textContent = 'Retry';
+	          button.onclick = () => retryJob(job.id);
+	          retryCell.appendChild(button);
+	        }
+	        row.appendChild(retryCell);
+	        tbody.appendChild(row);
+	      }
+	    });
+	    fetch('/api/reruns', { headers }).then(r => r.json()).then(data => {
+	      const tbody = document.querySelector('#reruns tbody');
+	      for (const rerun of data.reruns) {
+	        const row = document.createElement('tr');
+	        appendCell(row, rerun.updatedAt);
+	        const status = appendCell(row, text(rerun.status));
+	        status.className = statusClass(rerun.status);
+	        appendCell(row, text(rerun.action));
+	        appendCell(row, rerun.path);
 	        tbody.appendChild(row);
 	      }
 	    });

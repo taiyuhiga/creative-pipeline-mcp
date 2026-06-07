@@ -979,8 +979,29 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
   const artifactRoot = await mkdtemp(join(tmpdir(), "creative-mcp-dashboard-"));
   await mkdir(join(artifactRoot, "logs"), { recursive: true });
   await mkdir(join(artifactRoot, "premiere", "cep_status"), { recursive: true });
+  await mkdir(join(artifactRoot, "premiere", "qc"), { recursive: true });
+  await mkdir(join(artifactRoot, "premiere", "thumbnails"), { recursive: true });
+  await mkdir(join(artifactRoot, "blender", "previews"), { recursive: true });
   await writeFile(join(artifactRoot, "report.json"), JSON.stringify({ summary: { status: "pass" } }), "utf8");
   await writeFile(join(artifactRoot, "logs", "tool.json"), JSON.stringify({ action: "core.write_run_log", status: "success" }), "utf8");
+  await writeFile(join(artifactRoot, "logs", "failed.json"), JSON.stringify({
+    action: "director.plan_production",
+    input: { brief: "retry this production plan" },
+    risk: "safe_write",
+    status: "failed"
+  }), "utf8");
+  await writeFile(join(artifactRoot, "adapter_check_report.json"), JSON.stringify({
+    summary: { available: 1, total: 2 },
+    adapters: {
+      ffmpeg: { available: true, command: "ffmpeg", status: 0 },
+      blender: { available: false, command: "blender", status: null }
+    }
+  }), "utf8");
+  await writeFile(join(artifactRoot, "premiere", "qc", "delivery_qc_report.json"), JSON.stringify({
+    schema: "creative.pipeline.delivery_qc_report.v1",
+    summary: { status: "pass" },
+    warnings: []
+  }), "utf8");
   await writeFile(join(artifactRoot, "premiere", "cep_status", "cmd.json"), JSON.stringify({
     schema: "creative.pipeline.premiere.status.v1",
     commandId: "cmd",
@@ -989,6 +1010,12 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
     message: "done",
     details: {}
   }), "utf8");
+  const tinyPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lrWZ2wAAAABJRU5ErkJggg==",
+    "base64"
+  );
+  await writeFile(join(artifactRoot, "blender", "previews", "cube_preview.png"), tinyPng);
+  await writeFile(join(artifactRoot, "premiere", "thumbnails", "frame_thumbnail.png"), tinyPng);
   const port = await getFreePort();
   const child = spawn("node", ["packages/dashboard/dist/server.js"], {
     cwd: process.cwd(),
@@ -1010,11 +1037,44 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
     assert.equal(artifactsResponse.status, 200);
     const artifacts = await artifactsResponse.json();
     assert.ok(artifacts.artifacts.some((artifact) => artifact.relativePath === "report.json"));
+    const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/artifacts/file?path=report.json`, { headers });
+    assert.equal(downloadResponse.status, 200);
+    const adaptersResponse = await fetch(`http://127.0.0.1:${port}/api/adapters`, { headers });
+    assert.equal(adaptersResponse.status, 200);
+    const adapters = await adaptersResponse.json();
+    assert.equal(adapters.reports[0].summary.available, 1);
+    const qcResponse = await fetch(`http://127.0.0.1:${port}/api/qc-reports`, { headers });
+    assert.equal(qcResponse.status, 200);
+    const qcReports = await qcResponse.json();
+    assert.ok(qcReports.reports.some((report) => report.path === "premiere/qc/delivery_qc_report.json"));
+    const cepResponse = await fetch(`http://127.0.0.1:${port}/api/cep-status`, { headers });
+    assert.equal(cepResponse.status, 200);
+    const cepStatuses = await cepResponse.json();
+    assert.ok(cepStatuses.statuses.some((status) => status.commandType === "export_sequence"));
+    const blenderGalleryResponse = await fetch(`http://127.0.0.1:${port}/api/gallery?kind=blender`, { headers });
+    assert.equal(blenderGalleryResponse.status, 200);
+    const blenderGallery = await blenderGalleryResponse.json();
+    assert.ok(blenderGallery.items.some((item) => item.path === "blender/previews/cube_preview.png"));
+    const premiereGalleryResponse = await fetch(`http://127.0.0.1:${port}/api/gallery?kind=premiere`, { headers });
+    assert.equal(premiereGalleryResponse.status, 200);
+    const premiereGallery = await premiereGalleryResponse.json();
+    assert.ok(premiereGallery.items.some((item) => item.path === "premiere/thumbnails/frame_thumbnail.png"));
     const jobsResponse = await fetch(`http://127.0.0.1:${port}/api/jobs`, { headers });
     assert.equal(jobsResponse.status, 200);
     const jobs = await jobsResponse.json();
     assert.ok(jobs.jobs.some((job) => job.kind === "log"));
     assert.ok(jobs.jobs.some((job) => job.kind === "cep_status"));
+    assert.ok(jobs.jobs.some((job) => job.id === "failed.json" && job.retryable === true));
+    const retryResponse = await fetch(`http://127.0.0.1:${port}/api/jobs/retry`, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ id: "failed.json" })
+    });
+    assert.equal(retryResponse.status, 200);
+    const rerunsResponse = await fetch(`http://127.0.0.1:${port}/api/reruns`, { headers });
+    assert.equal(rerunsResponse.status, 200);
+    const reruns = await rerunsResponse.json();
+    assert.equal(reruns.reruns.length, 1);
   } finally {
     child.kill();
     await Promise.race([exit, new Promise((resolveDelay) => setTimeout(resolveDelay, 1000))]);

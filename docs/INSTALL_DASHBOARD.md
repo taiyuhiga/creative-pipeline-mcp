@@ -1,6 +1,6 @@
 # Dashboard
 
-The dashboard is a local-only artifact, preview, job-history, and approval viewer. It can approve elevated tool requests and rerun the approved tool, so it must not be exposed to a network.
+The dashboard is a local-only artifact, preview, QC, adapter, CEP status, job-history, and approval viewer. It can approve elevated tool requests and rerun the approved tool, so it must not be exposed to a network.
 
 ## Start
 
@@ -25,13 +25,22 @@ The server binds to `127.0.0.1` only. `CREATIVE_MCP_DASHBOARD_TOKEN` is required
 - `GET /api/reports`
 - `GET /api/artifacts`
 - `GET /api/artifacts/file?path=<artifact-relative-path>`
+- `GET /api/adapters`
+- `GET /api/qc-reports`
+- `GET /api/cep-status`
+- `GET /api/gallery?kind=blender`
+- `GET /api/gallery?kind=premiere`
 - `GET /api/jobs`
+- `GET /api/reruns`
+- `POST /api/jobs/retry`
 - `GET /api/approvals`
 - `POST /api/approvals/resolve`
 
 ## Approval Risk
 
 Approving a pending request can rerun a `project_write`, `destructive`, or `admin` tool with the stored input. Review the request JSON before approving.
+
+The failed-job retry button only appears for job JSON records that include an `action`, optional `input`, and a failed or errored `status`. Retry results are written under `dashboard/reruns`.
 
 Reject requests that:
 
