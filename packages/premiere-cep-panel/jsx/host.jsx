@@ -1,20 +1,27 @@
 var CreativePipelineMCP = CreativePipelineMCP || {};
 
 CreativePipelineMCP.dispatch = function (json) {
-  var command = JSON.parse(json);
-  if (!command || !command.type || !command.payload) {
-    return "invalid command";
+  var command = null;
+  try {
+    command = JSON.parse(json);
+    if (!command || !command.type || !command.payload) {
+      return CreativePipelineMCP.status({ id: null, type: "unknown" }, "error", "invalid command", {});
+    }
+    if (command.type === "build_timeline_from_otio") {
+      return CreativePipelineMCP.buildTimelineFromOtio(command);
+    }
+    if (command.type === "export_sequence") {
+      return CreativePipelineMCP.exportSequence(command);
+    }
+    if (command.type === "apply_brand_package") {
+      return CreativePipelineMCP.applyBrandPackage(command);
+    }
+    return CreativePipelineMCP.status(command, "error", "unsupported command: " + command.type, {});
+  } catch (err) {
+    return CreativePipelineMCP.status(command || { id: null, type: "unknown" }, "error", "dispatch failed", {
+      error: String(err)
+    });
   }
-  if (command.type === "build_timeline_from_otio") {
-    return CreativePipelineMCP.buildTimelineFromOtio(command);
-  }
-  if (command.type === "export_sequence") {
-    return CreativePipelineMCP.exportSequence(command);
-  }
-  if (command.type === "apply_brand_package") {
-    return CreativePipelineMCP.applyBrandPackage(command);
-  }
-  return CreativePipelineMCP.status(command, "error", "unsupported command: " + command.type, {});
 };
 
 CreativePipelineMCP.buildTimelineFromOtio = function (command) {
@@ -203,6 +210,22 @@ CreativePipelineMCP.status = function (command, status, message, details) {
     status: status,
     message: message,
     details: details || {},
-    finishedAt: new Date().toISOString()
+    finishedAt: CreativePipelineMCP.timestamp()
   });
+};
+
+CreativePipelineMCP.timestamp = function () {
+  var now = new Date();
+  if (now.toISOString) {
+    return now.toISOString();
+  }
+  function pad(value) {
+    return value < 10 ? "0" + value : String(value);
+  }
+  return now.getUTCFullYear() + "-"
+    + pad(now.getUTCMonth() + 1) + "-"
+    + pad(now.getUTCDate()) + "T"
+    + pad(now.getUTCHours()) + ":"
+    + pad(now.getUTCMinutes()) + ":"
+    + pad(now.getUTCSeconds()) + "Z";
 };

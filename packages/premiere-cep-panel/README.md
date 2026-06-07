@@ -4,6 +4,14 @@ This is a minimal CEP-side scaffold for the `premiere.build_timeline_from_otio` 
 
 Install the folder as a CEP extension during development, open the panel in Premiere Pro, set the queue directory, then refresh the queue and run selected commands or all pending commands. The panel writes status JSON files next to the queue under `cep_status`.
 
+To preload the queue directory, create `premiere-cep.json` in the installed extension folder:
+
+```json
+{
+  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue"
+}
+```
+
 The host script is intentionally conservative: it validates command types and creates/logs sequence/export/brand requests without allowing arbitrary ExtendScript.
 
 Create a distributable unsigned package from the repository root:
