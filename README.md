@@ -22,7 +22,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.18-alpha.0`
+Current version: `0.2.19-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -39,7 +39,8 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - template-based basic Blender repair for GLB/glTF assets when Blender is installed
 - optional WhisperX, PySceneDetect, pyloudnorm, and VMAF adapter tools
 - Dashboard approval queue UI, artifact previews, and job history
-- Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command queueing, brand package command queueing, and standardized status JSON
+- Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, typed edit command queueing, export command queueing, brand package command queueing, and standardized status JSON
+- bounded Premiere typed edit commands: `trim_clip`, `split_clip`, `move_clip`, `add_marker`, and `set_clip_speed`
 - Premiere project-specific delivery builder for timeline, brand package, export plan, and CEP queue generation
 - Premiere CEP host simulator for queue/status validation without a live Premiere runtime
 - Premiere CEP unsigned package generation, optional ZXP signing hook, and signed ZXP release asset support
@@ -52,7 +53,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 - guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
 
-Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
+Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. The CEP edit surface is typed and bounded; raw ExtendScript is not exposed. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
 ## Capability Status
 
@@ -152,7 +153,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.18-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.19-alpha.0.zip
 ```
 
 Release assets:

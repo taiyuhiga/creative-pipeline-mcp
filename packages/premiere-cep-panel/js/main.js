@@ -90,13 +90,19 @@
         return 0;
       }
       if (command.type === "apply_brand_package") {
-        return 1;
+        return 6;
       }
       if (command.type === "export_sequence") {
-        return 2;
+        return 7;
       }
       if (command.type === "apply_timeline_markers") {
-        return 3;
+        return 5;
+      }
+      if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+        return 2;
+      }
+      if (command.type === "add_marker") {
+        return 4;
       }
     } catch (ignored) {}
     return 99;

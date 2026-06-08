@@ -13,7 +13,11 @@ const state = {
   imported: [],
   inserted: [],
   exports: [],
-  sequences: []
+  sequences: [],
+  trims: [],
+  moves: [],
+  markers: [],
+  speeds: []
 };
 const context = createCepContext(state);
 vm.createContext(context);
@@ -117,8 +121,14 @@ function createCepContext(state) {
 }
 
 function makeSequence(name, state) {
+  const clips = [];
+  clips.numItems = clips.length;
   const track = {
+    clips,
     insertClip(item, startSeconds) {
+      const clip = makeClip(item.getMediaPath(), startSeconds, state);
+      clips.push(clip);
+      clips.numItems = clips.length;
       state.inserted.push({
         mediaPath: item.getMediaPath(),
         startSeconds
@@ -127,7 +137,57 @@ function makeSequence(name, state) {
   };
   const videoTracks = [track];
   videoTracks.numTracks = videoTracks.length;
-  return { name, videoTracks };
+  const audioTracks = [];
+  audioTracks.numTracks = audioTracks.length;
+  return {
+    name,
+    videoTracks,
+    audioTracks,
+    markers: {
+      createMarker(timeSeconds) {
+        const marker = { timeSeconds, name: "", comments: "", end: null };
+        state.markers.push(marker);
+        return marker;
+      }
+    }
+  };
+}
+
+function makeClip(mediaPath, startSeconds, state) {
+  const clip = {
+    mediaPath,
+    start: { seconds: startSeconds },
+    end: { seconds: startSeconds + 1 },
+    inPoint: { seconds: 0 },
+    outPoint: { seconds: 1 },
+    setSpeed(speedPercent, maintainPitch) {
+      state.speeds.push({ mediaPath, speedPercent, maintainPitch });
+      this.speedPercent = speedPercent;
+      this.maintainPitch = maintainPitch;
+    }
+  };
+  const recordChange = (kind) => {
+    state[kind].push({
+      mediaPath,
+      start: clip.start.seconds,
+      end: clip.end.seconds,
+      inPoint: clip.inPoint.seconds,
+      outPoint: clip.outPoint.seconds
+    });
+  };
+  for (const [property, kind] of [["start", "moves"], ["end", "trims"], ["inPoint", "trims"], ["outPoint", "trims"]]) {
+    let seconds = clip[property].seconds;
+    Object.defineProperty(clip[property], "seconds", {
+      get() {
+        return seconds;
+      },
+      set(value) {
+        seconds = value;
+        recordChange(kind);
+      }
+    });
+  }
+  return clip;
 }
 
 function makeRootItem(items) {

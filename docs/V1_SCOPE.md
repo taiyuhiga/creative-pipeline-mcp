@@ -9,7 +9,7 @@ The v1 stable claim is limited to the surfaces that can be verified through type
 - `creative-mcp-core` registry, router, approval policy, artifact store, schema validation, and structured tool result shape
 - Dashboard artifact, QC, approval, adapter, CEP status, gallery, retry, and rerun views
 - Blender GLB/glTF metadata QC, preview rendering, optimization, basic repair, and game-ready artifact planning
-- Premiere media QC, delivery QC, subtitle QC, brand package schema, export planning, CEP queue/status fixtures, and project-delivery command generation
+- Premiere media QC, delivery QC, subtitle QC, brand package schema, export planning, typed CEP command generation, CEP queue/status fixtures, and project-delivery command generation
 - API tool schema snapshot, v1 freeze gate, artifact layout docs, QC report schema docs, and CEP status schema docs
 - npm package, release assets, CI gates, and trusted-publishing workflow
 
@@ -17,7 +17,7 @@ The v1 stable claim is limited to the surfaces that can be verified through type
 
 These surfaces remain available for alpha/beta use, but should be described as experimental until additional evidence exists:
 
-- Premiere live CEP editing and export execution
+- Premiere live CEP editing and export execution, including trim, split, move, marker, and speed changes inside a real Premiere project
 - Blender bridge queue/status worker execution
 - WhisperX, PySceneDetect, pyloudnorm, FFmpeg VMAF, `gltfpack`, and other optional external adapters
 - GPL-separated adapter manifests

@@ -53,6 +53,11 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.validate_subtitles"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.cleanup_subtitles"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.apply_timeline_markers"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.trim_clip"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.split_clip"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.move_clip"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.add_marker"));
+  assert.ok(premiereTools.some((tool) => tool.name === "premiere.set_clip_speed"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.watch_export_output"));
 });
 
@@ -470,6 +475,56 @@ test("Premiere timeline marker tool queues safe margin and intro/outro markers",
   }
 });
 
+test("Premiere typed edit tools queue bounded CEP commands with safety metadata", async () => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-edit-media-"));
+  const mediaPath = join(mediaRoot, "placeholder.mp4");
+  await writeFile(mediaPath, new Uint8Array([0]));
+  const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-edit-queue-"));
+  const previousQueue = process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+  const previousStatus = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+  process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = queueRoot;
+  process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = join(mediaRoot, "cep_status");
+  try {
+    const calls = [
+      ["premiere.trim_clip", { path: mediaPath, trackIndex: 0, clipIndex: 0, endSeconds: 1.5, idempotencyKey: "trim-1" }],
+      ["premiere.split_clip", { path: mediaPath, trackIndex: 0, clipIndex: 0, splitSeconds: 0.5 }],
+      ["premiere.move_clip", { path: mediaPath, trackIndex: 0, clipIndex: 0, startSeconds: 2 }],
+      ["premiere.add_marker", { path: mediaPath, timeSeconds: 0.25, name: "Hook" }],
+      ["premiere.set_clip_speed", { path: mediaPath, trackIndex: 0, clipIndex: 0, speedPercent: 125 }]
+    ];
+    for (const [name, input] of calls) {
+      const tool = premiereTools.find((candidate) => candidate.name === name);
+      assert.ok(tool);
+      const result = await tool.execute(await context(mediaRoot), input);
+      assert.equal(result.ok, true);
+      assert.equal(result.artifacts.length, 2);
+      assert.equal(result.data.command.requiresApproval, true);
+      assert.ok(result.data.command.commandId);
+      assert.equal(result.data.command.id, result.data.command.commandId);
+      assert.ok(result.data.command.idempotencyKey);
+      assert.ok(Array.isArray(result.data.command.expectedSideEffects));
+      assert.ok(result.data.command.statusJsonPath.endsWith(`${result.data.command.commandId}.json`));
+      assert.ok(result.data.command.rollbackHint);
+      assert.equal(result.data.manifest.schema, "creative.pipeline.premiere.typed_edit.v1");
+    }
+    const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
+    assert.equal(queueFiles.length, 5);
+    const queuedTypes = await Promise.all(queueFiles.map(async (file) => JSON.parse(await readFile(join(queueRoot, file), "utf8")).type));
+    assert.deepEqual(queuedTypes.sort(), ["add_marker", "move_clip", "set_clip_speed", "split_clip", "trim_clip"]);
+  } finally {
+    if (previousQueue === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_IPC_DIR = previousQueue;
+    }
+    if (previousStatus === undefined) {
+      delete process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
+    } else {
+      process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR = previousStatus;
+    }
+  }
+});
+
 test("Premiere subtitle tools validate and cleanup SRT captions", async () => {
   const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-subtitles-"));
   const subtitlePath = join(mediaRoot, "captions.srt");
@@ -533,12 +588,56 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
     },
     {
       id: "cmd-2",
+      type: "trim_clip",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { trim: { inPointSeconds: 0.1, endSeconds: 0.9 } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-3",
+      type: "split_clip",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { splitSeconds: 0.5 }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-4",
+      type: "move_clip",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { startSeconds: 1.25 }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-5",
+      type: "add_marker",
+      payload: {
+        operation: { marker: { timeSeconds: 0.25, name: "Hook", comments: "first beat" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-6",
+      type: "set_clip_speed",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { speedPercent: 125, maintainPitch: true }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-7",
       type: "apply_brand_package",
       payload: { brand: { primaryColor: "#111111" }, appliesTo: ["captions"] },
       createdAt: new Date().toISOString()
     },
     {
-      id: "cmd-3",
+      id: "cmd-8",
       type: "export_sequence",
       payload: { outputPath, presetPath: "" },
       createdAt: new Date().toISOString()
@@ -559,21 +658,30 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
   });
   assert.equal(result.status, 0, result.stderr);
   const summary = JSON.parse(result.stdout);
-  assert.equal(summary.processed, 3);
+  assert.equal(summary.processed, 8);
   assert.equal(summary.state.imported.length, 1);
   assert.equal(summary.state.inserted.length, 1);
+  assert.ok(summary.state.trims.length >= 1);
+  assert.ok(summary.state.moves.length >= 1);
+  assert.equal(summary.state.markers.length, 1);
+  assert.equal(summary.state.speeds.length, 1);
   assert.equal(summary.state.exports.length, 1);
   const statuses = await Promise.all(commands.map(async (command) => JSON.parse(await readFile(join(statusRoot, `${command.id}.json`), "utf8"))));
-  assert.deepEqual(statuses.map((status) => status.status), ["success", "success", "success"]);
+  assert.deepEqual(statuses.map((status) => status.status), ["success", "success", "accepted", "success", "success", "success", "success", "success"]);
   assert.deepEqual(statuses.map((status) => status.commandType), [
     "build_timeline_from_otio",
+    "trim_clip",
+    "split_clip",
+    "move_clip",
+    "add_marker",
+    "set_clip_speed",
     "apply_brand_package",
     "export_sequence"
   ]);
   const remainingQueueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
   assert.equal(remainingQueueFiles.length, 0);
   const archived = (await readdir(join(queueRoot, "processed"))).filter((file) => file.endsWith(".json"));
-  assert.equal(archived.length, 3);
+  assert.equal(archived.length, 8);
 });
 
 test("Premiere CEP simulator rejects unsupported command types", async () => {

@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.18-alpha.0",
+  "packageVersion": "0.2.19-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/blender-pro-mcp/dist/index.js",
@@ -521,6 +521,49 @@
       }
     },
     {
+      "name": "premiere.add_marker",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to add a sequence marker.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "comments": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "timeSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "timeSeconds",
+          "name"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.apply_brand_package",
       "category": "premiere",
       "risk": "project_write",
@@ -612,7 +655,12 @@
               "build_timeline_from_otio",
               "export_sequence",
               "apply_brand_package",
-              "apply_timeline_markers"
+              "apply_timeline_markers",
+              "trim_clip",
+              "split_clip",
+              "move_clip",
+              "add_marker",
+              "set_clip_speed"
             ],
             "type": "string"
           },
@@ -1057,6 +1105,57 @@
       }
     },
     {
+      "name": "premiere.move_clip",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to move a clip in time or to another track.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          },
+          "targetTrackIndex": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "startSeconds"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.read_cep_status",
       "category": "premiere",
       "risk": "read",
@@ -1128,6 +1227,105 @@
       }
     },
     {
+      "name": "premiere.set_clip_speed",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to set clip playback speed.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "maintainPitch": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "speedPercent": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "speedPercent"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.split_clip",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to split a clip at a timeline time.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "splitSeconds": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "splitSeconds"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.transcribe_media",
       "category": "premiere",
       "risk": "safe_write",
@@ -1141,6 +1339,62 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.trim_clip",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to trim a clip without exposing raw ExtendScript.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "endSeconds": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "inPointSeconds": {
+            "type": "number"
+          },
+          "outPointSeconds": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex"
         ],
         "type": "object"
       }

@@ -25,12 +25,31 @@ Supported `commandType` values:
 - `build_timeline_from_otio`
 - `export_sequence`
 - `apply_brand_package`
+- `apply_timeline_markers`
+- `trim_clip`
+- `split_clip`
+- `move_clip`
+- `add_marker`
+- `set_clip_speed`
 
 Supported `status` values:
 
 - `success`
 - `accepted`
 - `error`
+
+Queued CEP command JSON also carries safety metadata:
+
+```json
+{
+  "commandId": "1780000000000-abc",
+  "idempotencyKey": "project-a-trim-001",
+  "expectedSideEffects": ["clip timing may change"],
+  "requiresApproval": true,
+  "statusJsonPath": "artifacts/premiere/cep_status/1780000000000-abc.json",
+  "rollbackHint": "Undo in Premiere or restore the previous project save."
+}
+```
 
 The MCP status reader normalizes legacy status files to this schema. `premiere.await_cep_status` can poll by `commandId` and/or `commandType`, and `premiere.finalize_export_qc` uses `export_sequence` status details to locate the exported file before writing delivery QC.
 

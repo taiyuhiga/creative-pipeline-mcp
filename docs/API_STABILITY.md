@@ -13,6 +13,7 @@ For the current beta/v1 readiness contract, see `docs/SCHEMA_STABILITY.md`. Publ
 - QC report schema
 - artifact layout
 - CEP status schema
+- typed Premiere CEP command safety metadata
 - approval artifact shape
 
 ## `structuredContent` Shape

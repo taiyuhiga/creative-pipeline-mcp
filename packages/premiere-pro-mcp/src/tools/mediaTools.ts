@@ -11,9 +11,21 @@ import {
 import { mediaQcReport, premiereArtifactName, requireMediaPath } from "./shared.js";
 import { probeMedia } from "../adapters/ffprobe.js";
 import { extractThumbnail, runVmafAdapter } from "../adapters/ffmpegQc.js";
-import { enqueuePremiereCommand, findPremiereStatus, listPremiereStatuses, type PremiereCepStatus } from "../adapters/premiereCep.js";
+import { enqueuePremiereCommand, findPremiereStatus, listPremiereStatuses, type PremiereCepCommandType, type PremiereCepStatus } from "../adapters/premiereCep.js";
 import { runPyloudnormAdapter, runSceneDetectAdapter, runWhisperAdapter } from "../adapters/optionalTools.js";
 import { cleanupCaptionCues, formatSrt, formatVtt, parseSubtitle, validateCaptionCues } from "../adapters/srt.js";
+
+const cepCommandTypes: PremiereCepCommandType[] = [
+  "build_timeline_from_otio",
+  "export_sequence",
+  "apply_brand_package",
+  "apply_timeline_markers",
+  "trim_clip",
+  "split_clip",
+  "move_clip",
+  "add_marker",
+  "set_clip_speed"
+];
 
 export const premiereTools: ToolDefinition[] = [
   {
@@ -46,7 +58,7 @@ export const premiereTools: ToolDefinition[] = [
         commandId: { type: "string" },
         commandType: {
           type: "string",
-          enum: ["build_timeline_from_otio", "export_sequence", "apply_brand_package", "apply_timeline_markers"]
+          enum: cepCommandTypes
         },
         finalizeExportQc: { type: "boolean" },
         timeoutMs: { type: "number" },
@@ -829,6 +841,192 @@ export const premiereTools: ToolDefinition[] = [
     }
   },
   {
+    name: "premiere.trim_clip",
+    description: "Queue a typed Premiere CEP command to trim a clip without exposing raw ExtendScript.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        inPointSeconds: { type: "number" },
+        outPointSeconds: { type: "number" },
+        startSeconds: { type: "number" },
+        endSeconds: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await assertOptionalAnchorPath(context, input);
+      const payload = typedEditPayload(input, "trim_clip", {
+        trim: {
+          inPointSeconds: numberOrUndefined(input.inPointSeconds),
+          outPointSeconds: numberOrUndefined(input.outPointSeconds),
+          startSeconds: numberOrUndefined(input.startSeconds),
+          endSeconds: numberOrUndefined(input.endSeconds)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/trim_clip.json", payload);
+      const queued = await enqueuePremiereCommand("trim_clip", payload, editCommandOptions(input, [
+        "clip timing may change",
+        "sequence duration may change"
+      ]));
+      return typedEditResult("Trim clip command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.split_clip",
+    description: "Queue a typed Premiere CEP command to split a clip at a timeline time.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        splitSeconds: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "splitSeconds"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await assertOptionalAnchorPath(context, input);
+      const payload = typedEditPayload(input, "split_clip", {
+        splitSeconds: numberOrUndefined(input.splitSeconds)
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/split_clip.json", payload);
+      const queued = await enqueuePremiereCommand("split_clip", payload, editCommandOptions(input, [
+        "clip may be cut into two timeline items"
+      ]));
+      return typedEditResult("Split clip command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.move_clip",
+    description: "Queue a typed Premiere CEP command to move a clip in time or to another track.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        startSeconds: { type: "number" },
+        targetTrackIndex: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "startSeconds"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await assertOptionalAnchorPath(context, input);
+      const payload = typedEditPayload(input, "move_clip", {
+        startSeconds: numberOrUndefined(input.startSeconds),
+        targetTrackIndex: numberOrUndefined(input.targetTrackIndex)
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/move_clip.json", payload);
+      const queued = await enqueuePremiereCommand("move_clip", payload, editCommandOptions(input, [
+        "clip start time may change",
+        "clip track may change"
+      ]));
+      return typedEditResult("Move clip command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.add_marker",
+    description: "Queue a typed Premiere CEP command to add a sequence marker.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        timeSeconds: { type: "number" },
+        durationSeconds: { type: "number" },
+        name: { type: "string" },
+        comments: { type: "string" },
+        color: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["timeSeconds", "name"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await assertOptionalAnchorPath(context, input);
+      const payload = typedEditPayload(input, "add_marker", {
+        marker: {
+          timeSeconds: numberOrUndefined(input.timeSeconds),
+          durationSeconds: numberOrUndefined(input.durationSeconds),
+          name: String(input.name ?? "Creative Pipeline Marker"),
+          comments: typeof input.comments === "string" ? input.comments : "",
+          color: typeof input.color === "string" ? input.color : undefined
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/add_marker.json", payload);
+      const queued = await enqueuePremiereCommand("add_marker", payload, editCommandOptions(input, [
+        "sequence marker may be added"
+      ]));
+      return typedEditResult("Add marker command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.set_clip_speed",
+    description: "Queue a typed Premiere CEP command to set clip playback speed.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        speedPercent: { type: "number" },
+        maintainPitch: { type: "boolean" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "speedPercent"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await assertOptionalAnchorPath(context, input);
+      const payload = typedEditPayload(input, "set_clip_speed", {
+        speedPercent: numberOrUndefined(input.speedPercent),
+        maintainPitch: input.maintainPitch === true
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/set_clip_speed.json", payload);
+      const queued = await enqueuePremiereCommand("set_clip_speed", payload, editCommandOptions(input, [
+        "clip playback speed may change",
+        "clip duration may change"
+      ]));
+      return typedEditResult("Set clip speed command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
     name: "premiere.validate_subtitles",
     description: "Validate SRT/VTT cues for timing, overlap, empty text, and reading speed.",
     category: "premiere",
@@ -1106,11 +1304,62 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isCepCommandType(value: unknown): value is "build_timeline_from_otio" | "export_sequence" | "apply_brand_package" | "apply_timeline_markers" {
-  return value === "build_timeline_from_otio"
-    || value === "export_sequence"
-    || value === "apply_brand_package"
-    || value === "apply_timeline_markers";
+function isCepCommandType(value: unknown): value is PremiereCepCommandType {
+  return typeof value === "string" && cepCommandTypes.includes(value as PremiereCepCommandType);
+}
+
+async function assertOptionalAnchorPath(context: ToolExecutionContext, input: Record<string, unknown>): Promise<void> {
+  if (typeof input.path !== "string") {
+    return;
+  }
+  const path = requireMediaPath(input);
+  await context.artifactStore.assertReadableFile(path);
+}
+
+function typedEditPayload(input: Record<string, unknown>, commandType: PremiereCepCommandType, operation: Record<string, unknown>) {
+  return {
+    schema: "creative.pipeline.premiere.typed_edit.v1",
+    commandType,
+    sequenceName: typeof input.sequenceName === "string" ? input.sequenceName : undefined,
+    target: {
+      trackType: input.trackType === "audio" ? "audio" : "video",
+      trackIndex: numberOrUndefined(input.trackIndex) ?? 0,
+      clipIndex: numberOrUndefined(input.clipIndex) ?? 0,
+      clipName: typeof input.clipName === "string" ? input.clipName : undefined
+    },
+    operation,
+    bridge: "external_premiere_cep_required"
+  };
+}
+
+function editCommandOptions(input: Record<string, unknown>, expectedSideEffects: string[]) {
+  return {
+    idempotencyKey: typeof input.idempotencyKey === "string" && input.idempotencyKey.trim() ? input.idempotencyKey.trim() : undefined,
+    expectedSideEffects,
+    requiresApproval: true,
+    rollbackHint: typeof input.rollbackHint === "string" && input.rollbackHint.trim()
+      ? input.rollbackHint.trim()
+      : "Undo in Premiere, restore the previous project save, or re-run the prior approved timeline command."
+  };
+}
+
+function typedEditResult(
+  message: string,
+  artifact: string,
+  commandPath: string,
+  manifest: Record<string, unknown>,
+  command: unknown
+): ToolResult {
+  return {
+    ok: true,
+    message,
+    artifacts: [artifact, commandPath],
+    data: { manifest, command }
+  };
+}
+
+function numberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function adapterMissingError(adapter: string, message: string) {

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.19-alpha.0
+
+### Added
+
+- Added bounded Premiere typed edit tools: `premiere.trim_clip`, `premiere.split_clip`, `premiere.move_clip`, `premiere.add_marker`, and `premiere.set_clip_speed`.
+- Added CEP queue safety metadata for queued commands: `commandId`, `idempotencyKey`, `expectedSideEffects`, `requiresApproval`, `statusJsonPath`, and `rollbackHint`.
+- Added CEP host dispatch handlers for typed trim, split, move, marker, and speed commands without exposing raw ExtendScript.
+- Added simulator coverage for typed edit commands, including marker, trim, move, and speed state capture.
+
+### Changed
+
+- Updated Premiere CEP command status docs, API tool docs, v1 scope docs, and Premiere E2E docs for typed edit command handling.
+- Updated the CEP panel pending-command priority so typed edits run after timeline creation and before marker/brand/export commands.
+- Expanded the public tool schema snapshot from 52 to 57 tools.
+
+### Verified
+
+- Local tests passed with 43 tests.
+- Local release gates passed for schema checks, v1 freeze checks, release readiness, unsigned CEP package verification, npm pack dry-run, and npm install smoke testing.
+
 ## 0.2.18-alpha.0
 
 ### Added

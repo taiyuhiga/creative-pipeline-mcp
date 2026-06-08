@@ -71,4 +71,14 @@ The installed panel can preload a queue path from `premiere-cep.json` in the ins
 }
 ```
 
-The panel sorts pending commands into timeline, brand, then export order before `Run All Pending` executes them sequentially.
+The panel sorts pending commands into timeline, typed edits, markers/brand, then export order before `Run All Pending` executes them sequentially.
+
+Typed edit commands are bounded and do not expose raw ExtendScript:
+
+- `trim_clip`
+- `split_clip`
+- `move_clip`
+- `add_marker`
+- `set_clip_speed`
+
+Each queued command includes `commandId`, `idempotencyKey`, `expectedSideEffects`, `requiresApproval`, `statusJsonPath`, and `rollbackHint`. Live Premiere execution is best-effort per available Premiere/CEP APIs; unsupported edit APIs return an `accepted` status instead of claiming a completed edit.

@@ -59,7 +59,7 @@
 
 ## Next Release
 
-- Publish `v0.2.18-alpha.0` as a pre-release so `main` and the latest release include the v1 stable/experimental scope split, delivery profiles, quality presets, and external MCP proxy policy docs.
+- Publish `v0.2.19-alpha.0` as a pre-release so `main` and the latest release include bounded Premiere typed edit commands and CEP command safety metadata.
 - Keep npm releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.

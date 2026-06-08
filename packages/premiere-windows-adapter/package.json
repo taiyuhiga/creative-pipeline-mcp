@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/premiere-windows-adapter",
-  "version": "0.2.18-alpha.0",
+  "version": "0.2.19-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",
