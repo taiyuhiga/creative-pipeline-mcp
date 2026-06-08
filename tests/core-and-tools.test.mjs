@@ -215,6 +215,41 @@ test("Director provider workflows write social, motion, Roblox feature, and trai
   }
 });
 
+test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox, and Director artifacts", async () => {
+  const artifactRoot = resolve("artifacts", "tests", "provider-simulator");
+  const result = spawnSync(process.execPath, ["scripts/simulate-provider-workflows.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env, CREATIVE_MCP_PROVIDER_SIM_ARTIFACTS: artifactRoot },
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.ok, true);
+  assert.equal(output.data.schema, "creative.pipeline.provider_workflow_simulation.v1");
+  assert.equal(output.data.status, "pass");
+  assert.equal(output.data.coverage.providerRegistry, true);
+  assert.equal(output.data.coverage.capcut, true);
+  assert.equal(output.data.coverage.afterEffects, true);
+  assert.equal(output.data.coverage.roblox, true);
+  assert.equal(output.data.coverage.director, true);
+  assert.equal(output.data.coverage.projectWriteManifests, true);
+  assert.equal(output.data.policy.rawAppProxy, false);
+  assert.equal(output.data.policy.liveExecutionClaims, false);
+  assert.ok(output.verified.artifacts >= 25);
+  for (const artifact of [
+    "providers/provider_workflow_simulation.json",
+    "providers/provider_report.json",
+    "capcut/draft_qc_report.json",
+    "after-effects/render_queue/aerender_command.json",
+    "after-effects/render_queue/nexrender_job.json",
+    "after-effects/motion_qc_report.json",
+    "roblox/combined_project_report.json",
+    "director/full_production_report.json"
+  ]) {
+    assert.ok(existsSync(join(artifactRoot, artifact)), `${artifact} should be written`);
+  }
+});
+
 test("Delivery and quality profiles define QC-checkable highest-quality outputs", async () => {
   assert.ok(getDeliveryProfile("youtube_4k_high_quality"));
   assert.ok(getDeliveryProfile("game_ready_glb"));

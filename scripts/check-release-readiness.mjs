@@ -16,6 +16,7 @@ const requiredFiles = [
   "docs/EXTERNAL_BLENDER_MCP_ADAPTER.md",
   "docs/APP_INTEGRATION_STRATEGY.md",
   "docs/PROVIDER_REGISTRY.md",
+  "docs/PROVIDER_SIMULATOR.md",
   "docs/CAPCUT_ADAPTERS.md",
   "docs/CAPCUT_SECURITY.md",
   "docs/CAPCUT_PROVIDER.md",
@@ -31,6 +32,7 @@ const requiredFiles = [
   "docs/INSTALL_PREMIERE.md",
   "docs/PREMIERE_MCP_REFERENCES.md",
   "docs/examples/adapter_check_report.sample.json",
+  "docs/examples/provider_workflow_simulation.sample.json",
   "docs/examples/cep_status_export_success.sample.json",
   "docs/examples/delivery_qc_report.sample.json",
   "examples/projects/youtube-16x9/project.json",
@@ -41,6 +43,7 @@ const requiredFiles = [
   "examples/profiles/game_ready_glb.json",
   "examples/profiles/cycles_final_exr.json",
   "scripts/wait-premiere-e2e-status.mjs",
+  "scripts/simulate-provider-workflows.mjs",
   "scripts/check-v1-freeze.mjs",
   ".github/workflows/ci.yml",
   ".github/workflows/windows-premiere-e2e.yml",
@@ -57,6 +60,7 @@ assert(pkg.files.includes("examples"), "package files must include examples");
 assert(pkg.scripts["check:schemas"], "package must expose check:schemas");
 assert(pkg.scripts["check:v1-freeze"], "package must expose check:v1-freeze");
 assert(pkg.scripts["check:release"], "package must expose check:release");
+assert(pkg.scripts["simulate:providers"], "package must expose simulate:providers");
 assert(pkg.scripts["smoke:npm-install"], "package must expose smoke:npm-install");
 assert(pkg.scripts["wait:premiere-e2e"], "package must expose wait:premiere-e2e");
 

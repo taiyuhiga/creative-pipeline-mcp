@@ -1,0 +1,48 @@
+{
+  "schema": "creative.pipeline.provider_workflow_simulation.v1",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "status": "pass",
+  "artifactRoot": "/workspace/artifacts/examples/provider-simulator",
+  "robloxProjectRoot": "/workspace/artifacts/examples/provider-simulator/fixtures/roblox-demo",
+  "commands": [
+    {
+      "action": "provider.resolve_video_editor",
+      "ok": true,
+      "message": "Provider selected: capcut",
+      "artifacts": ["providers/video_editor_resolution.json"]
+    },
+    {
+      "action": "capcut.create_social_draft",
+      "ok": true,
+      "message": "CapCut social draft artifacts written",
+      "artifacts": ["capcut/draft_plan.json", "capcut/draft_manifest.json", "capcut/draft_qc_report.json"]
+    },
+    {
+      "action": "ae.queue_aerender",
+      "ok": true,
+      "message": "aerender queue manifest written",
+      "artifacts": ["after-effects/render_queue/aerender_command.json", "after-effects/render_status.json"]
+    },
+    {
+      "action": "roblox.generate_project_report",
+      "ok": true,
+      "message": "Roblox combined project report written",
+      "artifacts": ["roblox/combined_project_report.json"]
+    }
+  ],
+  "coverage": {
+    "providerRegistry": true,
+    "capcut": true,
+    "afterEffects": true,
+    "roblox": true,
+    "director": true,
+    "projectWriteManifests": true
+  },
+  "policy": {
+    "rawAppProxy": false,
+    "typedOperationsOnly": true,
+    "artifactFirst": true,
+    "approvalForProjectWrites": true,
+    "liveExecutionClaims": false
+  }
+}

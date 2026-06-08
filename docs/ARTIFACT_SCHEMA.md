@@ -47,6 +47,7 @@ artifacts/
   providers/
     availability_report.json
     provider_report.json
+    provider_workflow_simulation.json
     video_editor_resolution.json
     motion_engine_resolution.json
     game_engine_resolution.json
@@ -141,6 +142,7 @@ Every acquired or generated asset should include `assets/provenance.json` and `a
 Provider tools write planning and safety evidence rather than raw app side effects:
 
 - `providers/*` records availability, selected provider, and raw-proxy policy.
+- `providers/provider_workflow_simulation.json` records deterministic simulator coverage across provider families.
 - `capcut/*` records copy-on-write draft plans, manifests, and draft QC.
 - `after-effects/*` records render plans, queue manifests, render status, and motion QC.
 - `roblox/*` records read-only project inspection, script indexes, Luau QC, and command manifests.

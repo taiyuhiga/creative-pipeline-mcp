@@ -1,6 +1,6 @@
 {
   "name": "creative-pipeline-mcp",
-  "version": "0.3.1-alpha.0",
+  "version": "0.3.2-alpha.0",
   "private": false,
   "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
   "license": "Apache-2.0",
@@ -63,6 +63,7 @@
     "check:schemas": "node scripts/check-tool-schemas.mjs",
     "check:v1-freeze": "node scripts/check-v1-freeze.mjs",
     "check:release": "node scripts/check-release-readiness.mjs",
+    "simulate:providers": "node scripts/simulate-provider-workflows.mjs",
     "smoke:npm-install": "node scripts/npm-install-smoke.mjs",
     "release:assets": "node scripts/release-assets.mjs",
     "blender:bridge-worker": "node scripts/blender-bridge-worker.mjs",

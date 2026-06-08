@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2-alpha.0
+
+### Added
+
+- Added `npm run simulate:providers` for deterministic Provider Registry, CapCut, After Effects, Roblox, and Director workflow simulation.
+- Added provider workflow simulation docs and a sample simulation artifact.
+- Added test coverage for provider workflow simulation artifacts and safety policy evidence.
+
+### Changed
+
+- Expanded release-readiness checks to require the provider simulator script, docs, and sample artifact.
+
 ## 0.3.1-alpha.0
 
 ### Added

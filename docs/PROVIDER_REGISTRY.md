@@ -31,3 +31,9 @@ Every provider report records:
 - post-operation QC requirement
 
 The registry is intentionally small. It selects provider families; it does not expose every app command.
+
+## Simulator
+
+Run `npm run simulate:providers` after `npm run build` to generate deterministic Provider Registry, CapCut, After Effects, Roblox, and Director artifacts under `artifacts/examples/provider-simulator/`.
+
+The simulator proves provider fallback planning, artifact creation, project-write queue manifests, and raw-proxy policy coverage. It does not claim live CapCut, After Effects, Roblox Studio, or Premiere execution.
