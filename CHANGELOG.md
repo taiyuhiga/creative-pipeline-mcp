@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6-alpha.0
+
+### Added
+
+- Added `ae.prepare_render_execution` for approved external-runner render plans without executing commands.
+- Added argv-array-only After Effects execution plan artifacts with shell-string and raw JSX guardrails.
+- Added simulator and test coverage for `after-effects/render_execution_plan.json`.
+
 ## 0.3.5-alpha.0
 
 ### Added

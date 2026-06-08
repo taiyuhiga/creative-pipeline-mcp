@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.5-alpha.0",
+  "packageVersion": "0.3.6-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -110,6 +110,55 @@
         "required": [
           "compName"
         ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.prepare_render_execution",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Write a bounded After Effects render execution plan for an approved external runner without executing commands.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "compName": {
+            "type": "string"
+          },
+          "engine": {
+            "enum": [
+              "aerender",
+              "nexrender"
+            ],
+            "type": "string"
+          },
+          "executablePath": {
+            "type": "string"
+          },
+          "jobManifestPath": {
+            "type": "string"
+          },
+          "outputModule": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          },
+          "renderSettings": {
+            "type": "string"
+          },
+          "requireExecutablePath": {
+            "type": "boolean"
+          },
+          "templatePath": {
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },

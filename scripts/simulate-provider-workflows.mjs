@@ -110,6 +110,13 @@ await run("ae.collect_render_evidence", {
   outputPath: "artifacts/after-effects/provider-output.mov",
   status: "queued"
 });
+await run("ae.prepare_render_execution", {
+  commandId: "provider-simulator-ae-exec",
+  engine: "aerender",
+  projectPath: "templates/provider-simulator.aep",
+  compName: "Main",
+  outputPath: "artifacts/after-effects/provider-output.mov"
+});
 
 await run("roblox.check_availability", {});
 await run("roblox.inspect_project", { projectRoot: robloxProjectRoot });
@@ -173,6 +180,7 @@ const summary = {
     videoEditFallback: commands.some((command) => command.action === "video.create_edit"),
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
     afterEffectsRenderEvidence: commands.some((command) => command.action === "ae.collect_render_evidence"),
+    afterEffectsRenderExecutionPlan: commands.some((command) => command.action === "ae.prepare_render_execution"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
     robloxStudioEvidence: commands.some((command) => command.action === "roblox.collect_studio_evidence"),
     director: commands.some((command) => command.action.startsWith("director.")),

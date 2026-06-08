@@ -1,3 +1,6 @@
+import { constants } from "node:fs";
+import { access } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 import type { ToolDefinition } from "../../../core/dist/index.js";
 import { checkProviderAvailability, getProviderCapability } from "../../../core/dist/index.js";
 
@@ -274,6 +277,105 @@ export const afterEffectsTools: ToolDefinition[] = [
         data: { evidence }
       };
     }
+  },
+  {
+    name: "ae.prepare_render_execution",
+    description: "Write a bounded After Effects render execution plan for an approved external runner without executing commands.",
+    category: "ae",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        engine: { type: "string", enum: ["aerender", "nexrender"] },
+        executablePath: { type: "string" },
+        projectPath: { type: "string" },
+        templatePath: { type: "string" },
+        compName: { type: "string" },
+        outputPath: { type: "string" },
+        renderSettings: { type: "string" },
+        outputModule: { type: "string" },
+        jobManifestPath: { type: "string" },
+        requireExecutablePath: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const engine = optionalString(input.engine) === "nexrender" ? "nexrender" : "aerender";
+      const executablePath = optionalString(input.executablePath);
+      let executableReadable = false;
+      let resolvedExecutablePath: string | undefined;
+      if (executablePath && isAbsolute(executablePath)) {
+        try {
+          await access(executablePath, constants.X_OK);
+          executableReadable = true;
+          resolvedExecutablePath = executablePath;
+        } catch {
+          executableReadable = false;
+        }
+      }
+      const requireExecutablePath = input.requireExecutablePath === true;
+      const projectPath = optionalString(input.projectPath);
+      const templatePath = optionalString(input.templatePath);
+      const outputPath = optionalString(input.outputPath) ?? "artifacts/after-effects/output.mov";
+      const jobManifestPath = optionalString(input.jobManifestPath) ?? "artifacts/after-effects/render_queue/nexrender_job.json";
+      const executable = executablePath ?? (engine === "aerender" ? "aerender" : "nexrender-cli");
+      const argv = engine === "aerender"
+        ? buildAerenderArgv(executable, {
+          projectPath,
+          compName: optionalString(input.compName) ?? "Main",
+          outputPath,
+          renderSettings: optionalString(input.renderSettings) ?? "Best Settings",
+          outputModule: optionalString(input.outputModule) ?? "High Quality"
+        })
+        : [executable, "--file", jobManifestPath];
+      const requiredInputsPresent = engine === "aerender" ? Boolean(projectPath && outputPath) : Boolean(templatePath || jobManifestPath);
+      const readyToRun = requiredInputsPresent && (!requireExecutablePath || executableReadable);
+      const plan = {
+        schema: "creative.pipeline.ae_render_execution_plan.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? commandId("ae-exec"),
+        engine,
+        mode: "approved_external_runner_plan",
+        executable,
+        executablePath,
+        resolvedExecutablePath,
+        executableReadable: executablePath ? executableReadable : "path_lookup_required",
+        projectPath,
+        templatePath,
+        compName: optionalString(input.compName) ?? "Main",
+        outputPath,
+        jobManifestPath,
+        argv,
+        readyToRun,
+        checks: [
+          check("argv_array_only", true, argv),
+          check("shell_string_absent", true, true),
+          check("raw_jsx_disabled", true, true),
+          check("license_bypass_absent", true, true),
+          check("required_inputs_present", requiredInputsPresent, { projectPath, templatePath, outputPath, jobManifestPath }),
+          check("required_executable_readable", !requireExecutablePath || executableReadable, executablePath ?? "path_lookup_required")
+        ],
+        expectedSideEffects: ["render_output_only"],
+        requiresApproval: true,
+        policy: {
+          ...aePolicy(),
+          externalRunnerOnly: true,
+          liveExecutionClaim: false,
+          rawJsx: false,
+          shellString: false
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("after-effects/render_execution_plan.json", plan);
+      const status = renderStatus(plan.commandId, readyToRun ? "ready_for_approved_runner" : "pending_preflight", "After Effects execution plan written");
+      const statusArtifact = await context.artifactStore.writeJson("after-effects/render_status.json", status);
+      return {
+        ok: true,
+        message: `After Effects render execution plan written: ${status.status}`,
+        artifacts: [artifact, statusArtifact],
+        data: { plan, status }
+      };
+    }
   }
 ];
 
@@ -322,6 +424,24 @@ function renderStatus(commandId: string, status: string, message: string) {
     message,
     generatedAt: new Date().toISOString()
   };
+}
+
+function buildAerenderArgv(executable: string, input: {
+  projectPath?: string;
+  compName: string;
+  outputPath: string;
+  renderSettings: string;
+  outputModule: string;
+}) {
+  const argv = [executable];
+  if (input.projectPath) {
+    argv.push("-project", input.projectPath);
+  }
+  argv.push("-comp", input.compName);
+  argv.push("-output", input.outputPath);
+  argv.push("-RStemplate", input.renderSettings);
+  argv.push("-OMtemplate", input.outputModule);
+  return argv;
 }
 
 function commandId(prefix: string): string {
