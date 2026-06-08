@@ -1,0 +1,21 @@
+{
+  "name": "@creative-pipeline-mcp/after-effects-mcp",
+  "version": "0.3.0-alpha.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "bin": {
+    "after-effects-mcp": "dist/server.js"
+  },
+  "dependencies": {
+    "@creative-pipeline-mcp/core": "0.3.0-alpha.0"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "creative-pipeline-mcp",
-  "version": "0.2.27-alpha.0",
+  "version": "0.3.0-alpha.0",
   "private": false,
   "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
   "license": "Apache-2.0",
@@ -37,6 +37,9 @@
     "premiere-pro-mcp": "packages/premiere-pro-mcp/dist/server.js",
     "creative-pipeline-director": "packages/director-agent/dist/server.js",
     "creative-asset-sourcing": "packages/asset-sourcing/dist/server.js",
+    "capcut-social-mcp": "packages/capcut-social-mcp/dist/server.js",
+    "after-effects-mcp": "packages/after-effects-mcp/dist/server.js",
+    "roblox-pro-mcp": "packages/roblox-pro-mcp/dist/server.js",
     "creative-mcp-dashboard": "packages/dashboard/dist/server.js"
   },
   "exports": {
@@ -45,12 +48,15 @@
     "./blender": "./packages/blender-pro-mcp/dist/index.js",
     "./premiere": "./packages/premiere-pro-mcp/dist/index.js",
     "./director": "./packages/director-agent/dist/index.js",
+    "./capcut": "./packages/capcut-social-mcp/dist/index.js",
+    "./after-effects": "./packages/after-effects-mcp/dist/index.js",
+    "./roblox": "./packages/roblox-pro-mcp/dist/index.js",
     "./blender-gpl-adapters": "./packages/blender-gpl-adapters/dist/index.js",
     "./premiere-windows-adapter": "./packages/premiere-windows-adapter/dist/index.js"
   },
   "scripts": {
-    "build": "tsc -b packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
-    "clean": "tsc -b --clean packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
+    "build": "tsc -b packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/capcut-social-mcp packages/after-effects-mcp packages/roblox-pro-mcp packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
+    "clean": "tsc -b --clean packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/capcut-social-mcp packages/after-effects-mcp packages/roblox-pro-mcp packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
     "test": "npm run build && node --test tests/*.mjs",
     "prepack": "npm run build",
     "check:adapters": "node scripts/check-adapters.mjs",
@@ -70,6 +76,9 @@
     "start:blender": "node packages/blender-pro-mcp/dist/server.js",
     "start:premiere": "node packages/premiere-pro-mcp/dist/server.js",
     "start:director": "node packages/director-agent/dist/server.js",
+    "start:capcut": "node packages/capcut-social-mcp/dist/server.js",
+    "start:after-effects": "node packages/after-effects-mcp/dist/server.js",
+    "start:roblox": "node packages/roblox-pro-mcp/dist/server.js",
     "start:dashboard": "node packages/dashboard/dist/server.js"
   },
   "dependencies": {

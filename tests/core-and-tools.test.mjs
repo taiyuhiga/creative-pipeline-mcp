@@ -18,12 +18,16 @@ import {
   getDeliveryProfile,
   getQualityProfile,
   McpServer,
+  providerTools,
   qualityProfiles
 } from "../packages/core/dist/index.js";
 import { assetTools } from "../packages/asset-sourcing/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
+import { capcutTools } from "../packages/capcut-social-mcp/dist/index.js";
+import { afterEffectsTools } from "../packages/after-effects-mcp/dist/index.js";
+import { robloxTools } from "../packages/roblox-pro-mcp/dist/index.js";
 
 const packageVersion = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")).version;
 
@@ -61,6 +65,154 @@ test("Premiere tool surface includes optional real adapter tools", async () => {
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.add_marker"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.set_clip_speed"));
   assert.ok(premiereTools.some((tool) => tool.name === "premiere.watch_export_output"));
+});
+
+test("Provider registry resolves video, motion, and game providers without raw proxies", async () => {
+  const toolNames = providerTools.map((tool) => tool.name);
+  for (const name of [
+    "provider.check_availability",
+    "provider.resolve_video_editor",
+    "provider.resolve_motion_engine",
+    "provider.resolve_game_engine",
+    "provider.write_provider_report"
+  ]) {
+    assert.ok(toolNames.includes(name), `${name} should be registered`);
+  }
+  const availabilityTool = providerTools.find((tool) => tool.name === "provider.check_availability");
+  const videoTool = providerTools.find((tool) => tool.name === "provider.resolve_video_editor");
+  const reportTool = providerTools.find((tool) => tool.name === "provider.write_provider_report");
+  assert.ok(availabilityTool);
+  assert.ok(videoTool);
+  assert.ok(reportTool);
+  const availability = await availabilityTool.execute(await context(), { provider: "capcut" });
+  assert.equal(availability.ok, true);
+  assert.equal(availability.data.policy.rawProxy, false);
+  assert.equal(availability.data.availability[0].provider, "capcut");
+  assert.ok(availability.data.availability[0].blockedOperations.includes("raw_draft_overwrite"));
+  const resolution = await videoTool.execute(await context(), { preferredProvider: "capcut" });
+  assert.equal(resolution.ok, true);
+  assert.equal(resolution.data.selected.provider, "capcut");
+  const report = await reportTool.execute(await context(), { project: "provider-test" });
+  assert.equal(report.ok, true);
+  assert.equal(report.data.policy.rawAppProxy, false);
+  assert.ok(report.artifacts.some((artifact) => artifact.endsWith("providers/provider_report.json")));
+});
+
+test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifacts", async () => {
+  const toolNames = capcutTools.map((tool) => tool.name);
+  for (const name of [
+    "capcut.check_availability",
+    "capcut.create_draft_plan",
+    "capcut.write_draft_manifest",
+    "capcut.run_draft_qc",
+    "capcut.create_social_draft"
+  ]) {
+    assert.ok(toolNames.includes(name), `${name} should be registered`);
+  }
+  const macro = capcutTools.find((tool) => tool.name === "capcut.create_social_draft");
+  assert.ok(macro);
+  const result = await macro.execute(await context(), {
+    title: "Vertical launch clip",
+    deliveryProfile: "shorts_1080x1920_high_quality",
+    aspectRatio: "9:16",
+    media: [{ path: "source.mp4", role: "main" }]
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.data.plan.copyOnWrite, true);
+  assert.equal(result.data.plan.policy.noEncryptedDraftBypass, true);
+  assert.equal(result.data.qc.status, "pass");
+  assert.ok(result.artifacts.some((artifact) => artifact.endsWith("capcut/draft_manifest.json")));
+});
+
+test("After Effects provider writes render, queue, preview, and motion QC artifacts", async () => {
+  const toolNames = afterEffectsTools.map((tool) => tool.name);
+  for (const name of [
+    "ae.check_availability",
+    "ae.create_render_plan",
+    "ae.queue_aerender",
+    "ae.queue_nexrender",
+    "ae.render_frame_preview",
+    "ae.run_motion_qc"
+  ]) {
+    assert.ok(toolNames.includes(name), `${name} should be registered`);
+  }
+  const planTool = afterEffectsTools.find((tool) => tool.name === "ae.create_render_plan");
+  const queueTool = afterEffectsTools.find((tool) => tool.name === "ae.queue_aerender");
+  const qcTool = afterEffectsTools.find((tool) => tool.name === "ae.run_motion_qc");
+  assert.ok(planTool);
+  assert.ok(queueTool);
+  assert.ok(qcTool);
+  const plan = await planTool.execute(await context(), { compName: "Main", outputFormat: "mov" });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.data.plan.rawJsx, false);
+  const queued = await queueTool.execute(await context(), { compName: "Main" });
+  assert.equal(queued.ok, true);
+  assert.equal(queued.data.manifest.rawJsx, false);
+  assert.ok(queued.artifacts.some((artifact) => artifact.endsWith("after-effects/render_status.json")));
+  const qc = await qcTool.execute(await context(), { compName: "Main", width: 1920, height: 1080, outputFormat: "mov" });
+  assert.equal(qc.ok, true);
+  assert.equal(qc.data.report.status, "pass");
+});
+
+test("Roblox provider inspects project, indexes scripts, and writes command manifests", async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), "creative-mcp-roblox-"));
+  await mkdir(join(projectRoot, "src", "ServerScriptService"), { recursive: true });
+  await writeFile(join(projectRoot, "default.project.json"), JSON.stringify({
+    name: "TestPlace",
+    tree: { "$className": "DataModel", ServerScriptService: { "$path": "src/ServerScriptService" } }
+  }), "utf8");
+  await writeFile(join(projectRoot, "src", "ServerScriptService", "Main.server.luau"), "print('ok')\n", "utf8");
+  const toolNames = robloxTools.map((tool) => tool.name);
+  for (const name of [
+    "roblox.check_availability",
+    "roblox.inspect_project",
+    "roblox.inspect_place_tree",
+    "roblox.index_scripts",
+    "roblox.validate_luau_project",
+    "roblox.sync_rojo",
+    "roblox.run_wally_install",
+    "roblox.run_selene",
+    "roblox.run_stylua_check",
+    "roblox.generate_project_report"
+  ]) {
+    assert.ok(toolNames.includes(name), `${name} should be registered`);
+  }
+  const inspect = robloxTools.find((tool) => tool.name === "roblox.inspect_project");
+  const index = robloxTools.find((tool) => tool.name === "roblox.index_scripts");
+  const sync = robloxTools.find((tool) => tool.name === "roblox.sync_rojo");
+  const reportTool = robloxTools.find((tool) => tool.name === "roblox.generate_project_report");
+  assert.ok(inspect);
+  assert.ok(index);
+  assert.ok(sync);
+  assert.ok(reportTool);
+  const inspected = await inspect.execute(await context(projectRoot), { projectRoot });
+  assert.equal(inspected.ok, true);
+  assert.equal(inspected.data.report.scriptCount, 1);
+  const indexed = await index.execute(await context(projectRoot), { projectRoot });
+  assert.equal(indexed.ok, true);
+  assert.equal(indexed.data.index.scripts[0].kind, "server");
+  const manifest = await sync.execute(await context(projectRoot), { projectRoot });
+  assert.equal(manifest.ok, true);
+  assert.equal(manifest.data.manifest.mode, "manifest_only");
+  assert.equal(manifest.data.manifest.policy.noExecutorTools, true);
+  const report = await reportTool.execute(await context(projectRoot), { projectRoot });
+  assert.equal(report.ok, true);
+  assert.equal(report.data.report.status, "ready_for_human_review");
+});
+
+test("Director provider workflows write social, motion, Roblox feature, and trailer plans", async () => {
+  for (const name of [
+    "director.create_social_video",
+    "director.create_motion_package",
+    "director.build_roblox_feature",
+    "director.create_roblox_trailer"
+  ]) {
+    const tool = directorTools.find((candidate) => candidate.name === name);
+    assert.ok(tool, `${name} should be registered`);
+    const result = await tool.execute(await context(), { brief: "Create a provider-aware workflow" });
+    assert.equal(result.ok, true);
+    assert.ok(result.data.providerResolutionTool || result.data.providerResolutionTools?.length > 0);
+  }
 });
 
 test("Delivery and quality profiles define QC-checkable highest-quality outputs", async () => {

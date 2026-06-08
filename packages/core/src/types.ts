@@ -39,7 +39,18 @@ export interface ToolExecutionContext {
 export interface ToolDefinition {
   name: string;
   description: string;
-  category: "core" | "asset" | "blender" | "premiere" | "gpl" | "dashboard";
+  category:
+    | "core"
+    | "asset"
+    | "blender"
+    | "premiere"
+    | "gpl"
+    | "dashboard"
+    | "provider"
+    | "video"
+    | "capcut"
+    | "ae"
+    | "roblox";
   risk: ToolRisk;
   inputSchema: JsonSchema;
   execute(context: ToolExecutionContext, input: Record<string, unknown>): Promise<ToolResult>;

@@ -27,11 +27,36 @@ artifacts/
     pending/
     resolved/
   blender/
+  capcut/
+    availability_report.json
+    draft_plan.json
+    draft_manifest.json
+    draft_qc_report.json
+  after-effects/
+    availability_report.json
+    render_plan.json
+    frame_preview_plan.json
+    render_status.json
+    motion_qc_report.json
+    render_queue/
   examples/
   logs/
   premiere/
     cep_queue/
     cep_status/
+  providers/
+    availability_report.json
+    provider_report.json
+    video_editor_resolution.json
+    motion_engine_resolution.json
+    game_engine_resolution.json
+  roblox/
+    availability_report.json
+    project_report.json
+    place_tree.json
+    script_index.json
+    luau_qc_report.json
+    combined_project_report.json
   dashboard/
     reruns/
 ```
@@ -110,3 +135,12 @@ Asset sourcing artifacts use explicit provenance and are stored under `artifacts
 ```
 
 Every acquired or generated asset should include `assets/provenance.json` and `assets/license_manifest.json`. Final delivery must include a QC report from `blender.validate_asset` or equivalent evidence under `assets/qc/`.
+
+## Provider Artifacts
+
+Provider tools write planning and safety evidence rather than raw app side effects:
+
+- `providers/*` records availability, selected provider, and raw-proxy policy.
+- `capcut/*` records copy-on-write draft plans, manifests, and draft QC.
+- `after-effects/*` records render plans, queue manifests, render status, and motion QC.
+- `roblox/*` records read-only project inspection, script indexes, Luau QC, and command manifests.

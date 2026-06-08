@@ -7,6 +7,7 @@ This project is a QC-first creative pipeline, not a raw Blender or Premiere remo
 The v1 stable claim is limited to the surfaces that can be verified through typed operations, artifacts, QC reports, approval policy, and CI or local evidence:
 
 - `creative-mcp-core` registry, router, approval policy, artifact store, schema validation, and structured tool result shape
+- Provider Registry availability, provider resolution, and provider report tools as planning/reporting surfaces
 - Dashboard artifact, QC, approval, adapter, CEP status, gallery, retry, and rerun views
 - Blender GLB/glTF metadata QC, preview rendering, optimization, basic repair, and game-ready artifact planning
 - Premiere media QC, delivery QC, subtitle QC, brand package schema, export planning, typed CEP command generation, CEP queue/status fixtures, and project-delivery command generation
@@ -23,6 +24,9 @@ These surfaces remain available for alpha/beta use, but should be described as e
 - GPL-separated adapter manifests
 - signed ZXP distribution with a trusted production certificate
 - experimental external Blender MCP adapter tools for bounded health, import, preview, export, transform, and validate calls
+- CapCut social draft planning, copy-on-write draft manifests, and draft QC
+- After Effects render plans, aerender/nexrender queue manifests, and motion QC
+- Roblox read-only project inspection, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and project reports
 
 ## Known External Blocker
 
@@ -35,6 +39,8 @@ Until that runner exists and produces successful status JSON for `build_timeline
 - Do not expose raw `bpy` execution as a default production tool.
 - Do not expose raw ExtendScript or QE DOM execution as a default production tool.
 - Do not direct-proxy external Blender or Premiere MCP servers to users.
+- Do not direct-proxy CapCut, After Effects, Roblox Studio, or external MCP APIs as raw app control.
+- Do not expose encrypted draft bypasses, raw JSX, Roblox executor/client exploit tools, or license bypasses.
 - Do not mark pre-release packages as stable v1.
 
 ## Release Decision

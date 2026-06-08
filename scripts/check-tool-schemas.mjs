@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { coreTools } from "../packages/core/dist/coreTools.js";
+import { coreTools, providerTools } from "../packages/core/dist/index.js";
 import { assetTools } from "../packages/asset-sourcing/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
+import { capcutTools } from "../packages/capcut-social-mcp/dist/index.js";
+import { afterEffectsTools } from "../packages/after-effects-mcp/dist/index.js";
+import { robloxTools } from "../packages/roblox-pro-mcp/dist/index.js";
 
 const root = process.cwd();
 const snapshotPath = resolve(root, "docs", "API_TOOL_SCHEMAS.snapshot.json");
@@ -28,10 +31,14 @@ console.log(JSON.stringify({ ok: true, snapshotPath, tools: snapshot.tools.lengt
 function buildSnapshot() {
   const tools = [
     ...coreTools,
+    ...providerTools,
     ...assetTools,
     ...blenderTools,
     ...premiereTools,
-    ...directorTools
+    ...directorTools,
+    ...capcutTools,
+    ...afterEffectsTools,
+    ...robloxTools
   ].map((tool) => ({
     name: tool.name,
     category: tool.category,
@@ -43,11 +50,14 @@ function buildSnapshot() {
     schema: "creative.pipeline.api_tool_schemas.snapshot.v1",
     packageVersion: JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version,
     generatedFrom: [
-      "packages/core/dist/coreTools.js",
+      "packages/core/dist/index.js",
       "packages/asset-sourcing/dist/index.js",
       "packages/blender-pro-mcp/dist/index.js",
       "packages/premiere-pro-mcp/dist/index.js",
-      "packages/director-agent/dist/index.js"
+      "packages/director-agent/dist/index.js",
+      "packages/capcut-social-mcp/dist/index.js",
+      "packages/after-effects-mcp/dist/index.js",
+      "packages/roblox-pro-mcp/dist/index.js"
     ],
     tools
   };

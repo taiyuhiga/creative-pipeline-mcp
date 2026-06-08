@@ -7,6 +7,14 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `core.health`
 - `core.license_manifest`
 
+## Provider Registry
+
+- `provider.check_availability`
+- `provider.resolve_video_editor`
+- `provider.resolve_motion_engine`
+- `provider.resolve_game_engine`
+- `provider.write_provider_report`
+
 ## Asset Sourcing
 
 - `asset.resolve_source_plan`
@@ -82,12 +90,46 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `premiere.repurpose_podcast`
 - `premiere.fix_qc_issues`
 
+## CapCut
+
+- `capcut.check_availability`
+- `capcut.create_draft_plan`
+- `capcut.write_draft_manifest`
+- `capcut.run_draft_qc`
+- `capcut.create_social_draft`
+
+## After Effects
+
+- `ae.check_availability`
+- `ae.create_render_plan`
+- `ae.queue_aerender`
+- `ae.queue_nexrender`
+- `ae.render_frame_preview`
+- `ae.run_motion_qc`
+
+## Roblox
+
+- `roblox.check_availability`
+- `roblox.inspect_project`
+- `roblox.inspect_place_tree`
+- `roblox.index_scripts`
+- `roblox.validate_luau_project`
+- `roblox.sync_rojo`
+- `roblox.run_wally_install`
+- `roblox.run_selene`
+- `roblox.run_stylua_check`
+- `roblox.generate_project_report`
+
 ## Director
 
 - `director.plan_production`
 - `director.handoff_blender_asset`
 - `director.full_production_report`
 - `director.multi_agent_review`
+- `director.create_social_video`
+- `director.create_motion_package`
+- `director.build_roblox_feature`
+- `director.create_roblox_trailer`
 
 ## Stability
 

@@ -14,6 +14,7 @@ For the current beta/v1 readiness contract, see `docs/SCHEMA_STABILITY.md`. Publ
 - artifact layout
 - CEP status schema
 - typed Premiere CEP command safety metadata
+- provider availability/resolution report shape
 - approval artifact shape
 
 ## `structuredContent` Shape
@@ -56,6 +57,9 @@ Adapters that depend on optional external tools remain experimental until v1 unl
 - VMAF scoring
 - GPL-separated adapter manifests
 - external Blender MCP adapters
+- CapCut provider tools
+- After Effects provider tools
+- Roblox provider tools
 
 For the stable and experimental v1 release boundaries, see `docs/V1_SCOPE.md`.
 

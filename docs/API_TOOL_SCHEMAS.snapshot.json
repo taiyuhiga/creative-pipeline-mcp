@@ -1,14 +1,193 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.27-alpha.0",
+  "packageVersion": "0.3.0-alpha.0",
   "generatedFrom": [
-    "packages/core/dist/coreTools.js",
+    "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
     "packages/blender-pro-mcp/dist/index.js",
     "packages/premiere-pro-mcp/dist/index.js",
-    "packages/director-agent/dist/index.js"
+    "packages/director-agent/dist/index.js",
+    "packages/capcut-social-mcp/dist/index.js",
+    "packages/after-effects-mcp/dist/index.js",
+    "packages/roblox-pro-mcp/dist/index.js"
   ],
   "tools": [
+    {
+      "name": "ae.check_availability",
+      "category": "ae",
+      "risk": "read",
+      "description": "Check After Effects render-provider availability for aerender and nexrender.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.create_render_plan",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Create an artifact-first After Effects render plan without enabling raw JSX by default.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "compName": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "fps": {
+            "type": "number"
+          },
+          "frame": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "outputFormat": {
+            "enum": [
+              "mov",
+              "mp4",
+              "png_sequence",
+              "exr_sequence"
+            ],
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          },
+          "templatePath": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "compName"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.queue_aerender",
+      "category": "ae",
+      "risk": "project_write",
+      "description": "Queue an aerender command manifest for approval-controlled render execution.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "compName": {
+            "type": "string"
+          },
+          "outputModule": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          },
+          "renderSettings": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "compName"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.queue_nexrender",
+      "category": "ae",
+      "risk": "project_write",
+      "description": "Queue a nexrender job manifest for approval-controlled template rendering.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "type": "array"
+          },
+          "compName": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "templatePath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "templatePath"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.render_frame_preview",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Write a frame preview render plan for a single After Effects frame.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "compName": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "number"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "compName"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.run_motion_qc",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Run motion render QC checks against an After Effects render plan.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "compName": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "outputFormat": {
+            "enum": [
+              "mov",
+              "mp4",
+              "png_sequence",
+              "exr_sequence"
+            ],
+            "type": "string"
+          },
+          "width": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
     {
       "name": "asset.acquire_asset",
       "category": "asset",
@@ -971,6 +1150,162 @@
       }
     },
     {
+      "name": "capcut.check_availability",
+      "category": "capcut",
+      "risk": "read",
+      "description": "Check optional CapCut provider backends without proxying raw app APIs.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.create_draft_plan",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Create a copy-on-write CapCut social draft plan for human-approved execution.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:5"
+            ],
+            "type": "string"
+          },
+          "captionsPath": {
+            "type": "string"
+          },
+          "copyOnWrite": {
+            "type": "boolean"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "media": {
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.create_social_draft",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Create a CapCut social-video draft plan, manifest, and QC report in one artifact-first macro.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:5"
+            ],
+            "type": "string"
+          },
+          "captionsPath": {
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "media": {
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.run_draft_qc",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Run policy and delivery checks on a CapCut draft plan or manifest.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:5"
+            ],
+            "type": "string"
+          },
+          "captionsPath": {
+            "type": "string"
+          },
+          "copyOnWrite": {
+            "type": "boolean"
+          },
+          "media": {
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.write_draft_manifest",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Write a CapCut draft manifest that records source media and copy-on-write safety constraints.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "media": {
+            "type": "array"
+          },
+          "outputDirectory": {
+            "type": "string"
+          },
+          "planPath": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "core.health",
       "category": "core",
       "risk": "read",
@@ -989,6 +1324,100 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.build_roblox_feature",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a Roblox feature build plan focused on read-only inspection, Luau QC, and command manifests.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.create_motion_package",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create an After Effects/Blender motion package plan with render QC gates.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "compName": {
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.create_roblox_trailer",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a Roblox trailer plan that combines Roblox project QC with video-provider delivery.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "director.create_social_video",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a provider-aware social video plan with Premiere first and CapCut fallback.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          },
+          "preferredProvider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
         "type": "object"
       }
     },
@@ -2016,6 +2445,263 @@
           },
           "timeoutMs": {
             "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider.check_availability",
+      "category": "provider",
+      "risk": "read",
+      "description": "Inspect local availability and safety posture for registered creative app providers.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "enum": [
+              "video_editor",
+              "motion_engine",
+              "game_engine"
+            ],
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider.resolve_game_engine",
+      "category": "provider",
+      "risk": "read",
+      "description": "Resolve a safe game-engine provider for Roblox project QC and future Studio integration.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "allowExperimental": {
+            "type": "boolean"
+          },
+          "preferredProvider": {
+            "type": "string"
+          },
+          "requireAvailable": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider.resolve_motion_engine",
+      "category": "provider",
+      "risk": "read",
+      "description": "Resolve a safe motion/render provider such as After Effects aerender/nexrender or Blender motion.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "allowExperimental": {
+            "type": "boolean"
+          },
+          "preferredProvider": {
+            "type": "string"
+          },
+          "requireAvailable": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider.resolve_video_editor",
+      "category": "provider",
+      "risk": "read",
+      "description": "Resolve a safe video editor provider, preferring Premiere when available and CapCut for social fallback.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "allowExperimental": {
+            "type": "boolean"
+          },
+          "preferredProvider": {
+            "type": "string"
+          },
+          "requireAvailable": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider.write_provider_report",
+      "category": "provider",
+      "risk": "safe_write",
+      "description": "Write a combined provider strategy report for video, motion, and game workflows.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "includeUnavailable": {
+            "type": "boolean"
+          },
+          "project": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.check_availability",
+      "category": "roblox",
+      "risk": "read",
+      "description": "Check Roblox Studio/Rojo/Wally/Selene/Stylua availability for read-only QC workflows.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.generate_project_report",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Generate combined Roblox project, script index, command manifest, and QC report artifacts.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.index_scripts",
+      "category": "roblox",
+      "risk": "read",
+      "description": "Index Luau/Lua scripts in a Roblox project without executing them.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxFiles": {
+            "type": "number"
+          },
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.inspect_place_tree",
+      "category": "roblox",
+      "risk": "read",
+      "description": "Read a Rojo project file and write a normalized Roblox place-tree report.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectFile": {
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.inspect_project",
+      "category": "roblox",
+      "risk": "read",
+      "description": "Inspect a Roblox/Rojo project tree without mutating files.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.run_selene",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a Selene lint command manifest for Luau QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.run_stylua_check",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a StyLua check command manifest for Luau formatting QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.run_wally_install",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a Wally install command manifest; actual install requires explicit external execution.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.sync_rojo",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a safe Rojo sync command manifest without publishing or mutating Studio.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.validate_luau_project",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a Luau project QC report using local file inspection and command-manifest checks.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "projectRoot": {
+            "type": "string"
           }
         },
         "type": "object"

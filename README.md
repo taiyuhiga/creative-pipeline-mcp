@@ -13,8 +13,12 @@ This repository implements a split creative pipeline architecture:
 
 - `creative-mcp-core`: tool registry, router, approval policy, artifact store, QC reports, license manifest
 - `asset-sourcing`: source planning, candidate scoring, provenance, Poly Haven and Sketchfab search manifests, user-supplied Fab URL provenance, and fal 3D generation guardrails
+- `provider-registry`: provider availability, resolution, and strategy reports for video, motion, and game workflows
 - `blender-pro-mcp`: Blender/glTF asset inspection, preview artifacts, validation, optimization/export fallbacks
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
+- `capcut-social-mcp`: experimental CapCut social draft plans, copy-on-write manifests, and draft QC
+- `after-effects-mcp`: experimental After Effects render plans, aerender/nexrender queue manifests, and motion QC
+- `roblox-pro-mcp`: experimental Roblox/Rojo project inspection, script indexing, Luau QC, and command manifests
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
 - `premiere-windows-adapter`: Windows CEP/WebSocket reference guardrails
 - `premiere-cep-panel`: minimal CEP panel scaffold for consuming Premiere IPC commands
@@ -23,7 +27,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.27-alpha.0`
+Current version: `0.3.0-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -54,6 +58,10 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - typed delivery profiles and quality presets for QC-checkable "highest quality" requests
 - provenance and license manifests for acquired or generated assets, with final Blender QC required before delivery
+- provider registry tools for app availability, video editor resolution, motion engine resolution, game engine resolution, and combined provider reports
+- experimental CapCut provider tools for social draft plan, manifest, and QC artifacts
+- experimental After Effects provider tools for render plan, frame preview plan, aerender/nexrender queue manifests, render status, and motion QC
+- experimental Roblox provider tools for read-only project inspection, place-tree reports, script indexing, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and combined project reports
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 - guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
@@ -76,6 +84,10 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Dashboard approvals/previews | Localhost-only, token-protected alpha |
 | Premiere timeline creation | Project delivery builder + CEP scaffold |
 | Premiere final export | Project export plan + CEP queue command |
+| Provider Registry | Working for availability, resolution, and reports |
+| CapCut provider | Experimental, manifest-only draft planning/QC |
+| After Effects provider | Experimental, render-plan and queue-manifest only |
+| Roblox provider | Experimental, read-only/QC and command-manifest only |
 | Full professional editing | Not v1 complete |
 
 ## Install
@@ -86,6 +98,9 @@ Published alpha package:
 npm install creative-pipeline-mcp@alpha
 npx -p creative-pipeline-mcp@alpha creative-mcp-core
 npx -p creative-pipeline-mcp@alpha creative-asset-sourcing
+npx -p creative-pipeline-mcp@alpha capcut-social-mcp
+npx -p creative-pipeline-mcp@alpha after-effects-mcp
+npx -p creative-pipeline-mcp@alpha roblox-pro-mcp
 ```
 
 Do not install the unqualified `creative-pipeline-mcp` package for alpha work. The npm `latest` dist-tag is reserved for the first stable v1 release and may not point to the newest alpha. Use `@alpha` until `1.0.0` is intentionally published.
@@ -166,6 +181,9 @@ artifacts/
 npm run start:core
 npm run start:blender
 npm run start:premiere
+npm run start:capcut
+npm run start:after-effects
+npm run start:roblox
 ```
 
 Dashboard server:
@@ -180,7 +198,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.27-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.0-alpha.0.zip
 ```
 
 Release assets:
@@ -213,6 +231,10 @@ Detailed docs:
 - `docs/ARTIFACT_SCHEMA.md`
 - `docs/EXTERNAL_MCP_ADAPTERS.md`
 - `docs/EXTERNAL_BLENDER_MCP_ADAPTER.md`
+- `docs/PROVIDER_REGISTRY.md`
+- `docs/CAPCUT_ADAPTERS.md`
+- `docs/AFTER_EFFECTS_ADAPTERS.md`
+- `docs/ROBLOX_ADAPTERS.md`
 - `docs/PREMIERE_MCP_REFERENCES.md`
 - `docs/RELEASE_PROCESS.md`
 - `docs/SECURITY_CHECKLIST.md`

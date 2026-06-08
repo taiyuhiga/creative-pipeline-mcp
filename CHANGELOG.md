@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0-alpha.0
+
+### Added
+
+- Added Provider Registry tools for app availability, video editor resolution, motion engine resolution, game engine resolution, and provider reports.
+- Added experimental `@creative-pipeline-mcp/capcut-social-mcp` with CapCut availability, copy-on-write draft planning, draft manifests, social draft macro artifacts, and draft QC.
+- Added experimental `@creative-pipeline-mcp/after-effects-mcp` with After Effects availability, render plans, aerender/nexrender queue manifests, frame preview plans, render status, and motion QC.
+- Added experimental `@creative-pipeline-mcp/roblox-pro-mcp` with Roblox availability, project inspection, place-tree reports, script indexing, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and combined project reports.
+- Added Director provider workflow plans for social videos, motion packages, Roblox features, and Roblox trailers.
+- Added app integration, provider registry, CapCut, After Effects, and Roblox docs.
+
+### Changed
+
+- Expanded the public API schema snapshot and npm package exports for provider packages.
+- Kept CapCut, After Effects, Roblox, external Blender MCP, and live Premiere CEP execution outside the stable v1 scope.
+
 ## 0.2.27-alpha.0
 
 ### Added
