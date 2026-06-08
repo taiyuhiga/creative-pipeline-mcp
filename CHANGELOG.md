@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.22-alpha.0
+
+### Added
+
+- Expanded the experimental external Blender MCP adapter from the initial health/preview/export surface to the full bounded macro set: `blender.external_import_asset`, `blender.external_render_preview`, `blender.external_export_asset`, `blender.external_apply_transform`, and `blender.external_validate_scene`.
+- Added env-overridable external tool bindings for import, transform, and validate while keeping runtime users unable to select arbitrary external tool names.
+- Added simulator coverage for import, preview, export, transform, and validate JSON-RPC calls.
+
+### Changed
+
+- Updated external Blender MCP docs, README, API tools docs, v1 scope docs, and schema snapshot for the complete bounded macro surface.
+- Expanded the public tool schema snapshot from 60 to 63 tools.
+
 ## 0.2.21-alpha.0
 
 ### Added

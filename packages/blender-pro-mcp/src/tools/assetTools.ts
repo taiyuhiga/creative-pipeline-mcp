@@ -113,6 +113,63 @@ export const blenderTools: ToolDefinition[] = [
     }
   },
   {
+    name: "blender.external_import_asset",
+    description: "Import an asset through an opt-in external Blender MCP adapter, with request/response artifact capture and local source QC.",
+    category: "blender",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        collectionName: { type: "string", maxLength: 120 },
+        maxTriangles: { type: "number" },
+        maxDimension: { type: "number" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const config = externalBlenderMcpConfig();
+      const manifest = externalAdapterManifest("import", path, null, config, {
+        collectionName: typeof input.collectionName === "string" ? input.collectionName : null
+      });
+      const manifestArtifact = await context.artifactStore.writeJson(artifactName(path, "_external_import_request.json"), manifest);
+      const unavailable = externalBlenderMcpUnavailableReason(config);
+      if (unavailable) {
+        return {
+          ok: true,
+          message: "External Blender MCP import request written; adapter is disabled or not configured",
+          artifacts: [manifestArtifact],
+          data: { manifest, unavailable }
+        };
+      }
+      const call = await callExternalBlenderMcp({
+        operation: "import",
+        arguments: {
+          sourcePath: path,
+          collectionName: typeof input.collectionName === "string" ? input.collectionName : undefined
+        }
+      }, config);
+      const responseArtifact = await context.artifactStore.writeJson(artifactName(path, "_external_import_response.json"), call);
+      const report = await inspectAndReport(
+        path,
+        typeof input.maxTriangles === "number" ? input.maxTriangles : 50000,
+        typeof input.maxDimension === "number" ? input.maxDimension : undefined
+      );
+      const qc = await context.artifactStore.writeJson(artifactName(path, "_external_import_source_qc.json"), report);
+      return {
+        ok: call.ok && report.summary.status !== "fail",
+        message: call.ok
+          ? `External Blender MCP import accepted; source QC ${report.summary.status}`
+          : "External Blender MCP import did not complete cleanly",
+        artifacts: [manifestArtifact, responseArtifact, qc],
+        data: { manifest, external: call, qc: report }
+      };
+    }
+  },
+  {
     name: "blender.external_render_preview",
     description: "Render a preview through an opt-in external Blender MCP adapter, with artifact capture and local source QC.",
     category: "blender",
@@ -246,6 +303,132 @@ export const blenderTools: ToolDefinition[] = [
         ok: report.summary.status !== "fail",
         message: `External Blender MCP export captured; output QC ${report.summary.status}`,
         artifacts: [manifestArtifact, exportPath, qc],
+        data: { manifest, external: call, qc: report }
+      };
+    }
+  },
+  {
+    name: "blender.external_apply_transform",
+    description: "Apply a bounded transform through an opt-in external Blender MCP adapter, then rerun local QC where supported.",
+    category: "blender",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        transform: { type: "object" },
+        format: { type: "string", enum: ["glb", "gltf"] },
+        outputName: { type: "string", maxLength: 120 },
+        maxTriangles: { type: "number" },
+        maxDimension: { type: "number" }
+      },
+      required: ["path", "transform"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const config = externalBlenderMcpConfig();
+      if (config.requireApprovalForWrite) {
+        await context.approvalPolicy.assertAllowed("blender.external_apply_transform", "project_write");
+      }
+      const format = input.format === "gltf" ? "gltf" : "glb";
+      const outputRelative = externalExportArtifactName(path, input.outputName ?? `${parse(basename(path)).name}_external_transform`, format);
+      const outputPath = join(context.artifactStore.root, outputRelative);
+      const manifest = externalAdapterManifest("transform", path, outputPath, config, {
+        transform: input.transform ?? {},
+        format
+      });
+      const manifestArtifact = await context.artifactStore.writeJson(artifactName(path, "_external_transform_request.json"), manifest);
+      const unavailable = externalBlenderMcpUnavailableReason(config);
+      if (unavailable) {
+        return {
+          ok: true,
+          message: "External Blender MCP transform request written; adapter is disabled or not configured",
+          artifacts: [manifestArtifact],
+          data: { manifest, unavailable }
+        };
+      }
+      const call = await callExternalBlenderMcp({
+        operation: "transform",
+        arguments: {
+          sourcePath: path,
+          outputPath,
+          transform: input.transform ?? {},
+          format
+        }
+      }, config);
+      if (!call.ok || !existsSync(outputPath)) {
+        return {
+          ok: false,
+          message: "External Blender MCP transform did not produce the expected artifact",
+          artifacts: [manifestArtifact],
+          data: { manifest, external: call, expectedOutput: outputPath }
+        };
+      }
+      const report = await inspectAndReport(
+        outputPath,
+        typeof input.maxTriangles === "number" ? input.maxTriangles : 50000,
+        typeof input.maxDimension === "number" ? input.maxDimension : undefined
+      );
+      const qc = await context.artifactStore.writeJson(artifactName(outputPath, "_external_transform_qc.json"), report);
+      return {
+        ok: report.summary.status !== "fail",
+        message: `External Blender MCP transform captured; output QC ${report.summary.status}`,
+        artifacts: [manifestArtifact, outputPath, qc],
+        data: { manifest, external: call, qc: report }
+      };
+    }
+  },
+  {
+    name: "blender.external_validate_scene",
+    description: "Validate a scene through an opt-in external Blender MCP adapter and capture the normalized response artifact.",
+    category: "blender",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        maxTriangles: { type: "number" },
+        maxDimension: { type: "number" }
+      },
+      required: ["path"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const path = requirePath(input);
+      await context.artifactStore.assertReadableFile(path);
+      const config = externalBlenderMcpConfig();
+      const manifest = externalAdapterManifest("validate", path, null, config);
+      const manifestArtifact = await context.artifactStore.writeJson(artifactName(path, "_external_validate_request.json"), manifest);
+      const unavailable = externalBlenderMcpUnavailableReason(config);
+      if (unavailable) {
+        return {
+          ok: true,
+          message: "External Blender MCP validation request written; adapter is disabled or not configured",
+          artifacts: [manifestArtifact],
+          data: { manifest, unavailable }
+        };
+      }
+      const call = await callExternalBlenderMcp({
+        operation: "validate",
+        arguments: {
+          sourcePath: path
+        }
+      }, config);
+      const responseArtifact = await context.artifactStore.writeJson(artifactName(path, "_external_validate_response.json"), call);
+      const report = await inspectAndReport(
+        path,
+        typeof input.maxTriangles === "number" ? input.maxTriangles : 50000,
+        typeof input.maxDimension === "number" ? input.maxDimension : undefined
+      );
+      const qc = await context.artifactStore.writeJson(artifactName(path, "_external_validate_local_qc.json"), report);
+      return {
+        ok: call.ok && report.summary.status !== "fail",
+        message: call.ok
+          ? `External Blender MCP validation captured; local QC ${report.summary.status}`
+          : "External Blender MCP validation did not complete cleanly",
+        artifacts: [manifestArtifact, responseArtifact, qc],
         data: { manifest, external: call, qc: report }
       };
     }
@@ -804,12 +987,17 @@ export const blenderTools: ToolDefinition[] = [
 ];
 
 function externalAdapterManifest(
-  operation: "preview" | "export",
+  operation: "import" | "preview" | "export" | "transform" | "validate",
   sourcePath: string,
-  outputPath: string,
+  outputPath: string | null,
   config: ReturnType<typeof externalBlenderMcpConfig>,
   extra: Record<string, unknown> = {}
 ) {
+  const outputPostCheck = operation === "preview"
+    ? "local_source_qc"
+    : operation === "import" || operation === "validate"
+      ? "local_validate_asset"
+      : "local_validate_asset";
   return {
     schema: "creative.pipeline.blender.external_mcp_request.v1",
     operation,
@@ -822,7 +1010,7 @@ function externalAdapterManifest(
     requireApprovalForWrite: config.requireApprovalForWrite,
     rawProxy: false,
     blockedOperations: ["external_raw_call", "execute_python", "execute_blender_code", "full_proxy"],
-    requiredPostChecks: operation === "export" ? ["artifact_capture", "local_validate_asset"] : ["artifact_capture", "local_source_qc"],
+    requiredPostChecks: ["artifact_capture", outputPostCheck],
     ...extra
   };
 }

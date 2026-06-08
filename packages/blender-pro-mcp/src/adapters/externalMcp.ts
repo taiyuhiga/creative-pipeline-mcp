@@ -1,4 +1,4 @@
-export type ExternalBlenderOperation = "health" | "preview" | "export";
+export type ExternalBlenderOperation = "health" | "import" | "preview" | "export" | "transform" | "validate";
 
 export interface ExternalBlenderMcpConfig {
   enabled: boolean;
@@ -22,7 +22,7 @@ export interface ExternalBlenderMcpResult {
   error?: string;
 }
 
-const ALLOWED_OPERATIONS: ExternalBlenderOperation[] = ["health", "preview", "export"];
+const ALLOWED_OPERATIONS: ExternalBlenderOperation[] = ["health", "import", "preview", "export", "transform", "validate"];
 
 export function externalBlenderMcpConfig(): ExternalBlenderMcpConfig {
   return {
@@ -31,8 +31,11 @@ export function externalBlenderMcpConfig(): ExternalBlenderMcpConfig {
     allowedOperations: parseAllowedOperations(process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW),
     requireApprovalForWrite: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_REQUIRE_APPROVAL !== "false",
     toolNames: {
+      import: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_IMPORT_TOOL ?? "blender.import_asset",
       preview: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_PREVIEW_TOOL ?? "blender.render_preview",
-      export: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_EXPORT_TOOL ?? "blender.export_asset"
+      export: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_EXPORT_TOOL ?? "blender.export_asset",
+      transform: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_TRANSFORM_TOOL ?? "blender.apply_transform",
+      validate: process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_VALIDATE_TOOL ?? "blender.validate_scene"
     }
   };
 }

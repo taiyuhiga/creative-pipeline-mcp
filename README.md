@@ -22,7 +22,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.21-alpha.0`
+Current version: `0.2.22-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -34,7 +34,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - pending approval artifacts for elevated tools
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction, FFmpeg `libvmaf` scoring
 - Blender bridge queue/status IPC and a headless worker for trusted external scene and asset adapters
-- experimental external Blender MCP adapter tools for bounded health, preview, and export calls, disabled by default
+- experimental external Blender MCP adapter tools for bounded health, import, preview, export, transform, and validate calls, disabled by default
 - Blender asset QC for triangle budget, origin, scale, normals, primary UVs, material count, and texture slots
 - Blender optimization size comparison metrics and safe generated Blender script artifacts for game asset jobs
 - template-based basic Blender repair for GLB/glTF assets when Blender is installed
@@ -165,7 +165,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.21-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.22-alpha.0.zip
 ```
 
 Release assets:

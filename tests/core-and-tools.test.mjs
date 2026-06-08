@@ -108,8 +108,11 @@ test("Blender asset QC writes a report", async () => {
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.read_bridge_status"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.await_bridge_status"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_adapter_health"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_import_asset"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_render_preview"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_export_asset"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_apply_transform"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_validate_scene"));
   const result = await tool.execute(await context(), {
     path: resolve("examples/minimal.gltf"),
     maxTriangles: 10
@@ -142,7 +145,7 @@ test("External Blender MCP adapter is disabled by default and writes bounded man
   }
 });
 
-test("External Blender MCP adapter simulator handles only bounded preview and export operations", async () => {
+test("External Blender MCP adapter simulator handles only bounded import, preview, export, transform, and validate operations", async () => {
   const requests = [];
   const server = createHttpServer(async (request, response) => {
     let body = "";
@@ -159,13 +162,21 @@ test("External Blender MCP adapter simulator handles only bounded preview and ex
         return;
       }
       const args = payload.params.arguments;
-      if (payload.params.name === "blender.render_preview") {
+      if (payload.params.name === "blender.import_asset") {
+        response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: { ok: true, imported: args.sourcePath } }));
+        return;
+      } else if (payload.params.name === "blender.render_preview") {
         await writeFile(args.outputPath, Buffer.from(
           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lrWZ2wAAAABJRU5ErkJggg==",
           "base64"
         ));
       } else if (payload.params.name === "blender.export_asset") {
         await writeFile(args.outputPath, await readFile(args.sourcePath));
+      } else if (payload.params.name === "blender.apply_transform") {
+        await writeFile(args.outputPath, await readFile(args.sourcePath));
+      } else if (payload.params.name === "blender.validate_scene") {
+        response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: { ok: true, validated: args.sourcePath } }));
+        return;
       } else {
         response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, error: { code: -32601, message: "unsupported tool" } }));
         return;
@@ -181,17 +192,26 @@ test("External Blender MCP adapter simulator handles only bounded preview and ex
   const previousAllow = process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW;
   process.env.CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP = "true";
   process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL = `http://127.0.0.1:${address.port}/mcp`;
-  process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW = "health,preview,export";
+  process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW = "health,import,preview,export,transform,validate";
   try {
     const source = resolve("examples/minimal.gltf");
     const healthTool = blenderTools.find((candidate) => candidate.name === "blender.external_adapter_health");
+    const importTool = blenderTools.find((candidate) => candidate.name === "blender.external_import_asset");
     const previewTool = blenderTools.find((candidate) => candidate.name === "blender.external_render_preview");
     const exportTool = blenderTools.find((candidate) => candidate.name === "blender.external_export_asset");
+    const transformTool = blenderTools.find((candidate) => candidate.name === "blender.external_apply_transform");
+    const validateTool = blenderTools.find((candidate) => candidate.name === "blender.external_validate_scene");
     assert.ok(healthTool);
+    assert.ok(importTool);
     assert.ok(previewTool);
     assert.ok(exportTool);
+    assert.ok(transformTool);
+    assert.ok(validateTool);
     const health = await healthTool.execute(await context(), {});
     assert.equal(health.ok, true);
+    const imported = await importTool.execute(await context(), { path: source, collectionName: "ImportedAssets" });
+    assert.equal(imported.ok, true);
+    assert.equal(imported.artifacts.length, 3);
     const preview = await previewTool.execute(await context(), { path: source });
     assert.equal(preview.ok, true);
     assert.equal(preview.artifacts.length, 3);
@@ -199,8 +219,26 @@ test("External Blender MCP adapter simulator handles only bounded preview and ex
     assert.equal(exported.ok, true);
     assert.equal(exported.artifacts.length, 3);
     assert.ok(exported.artifacts.some((artifact) => artifact.endsWith("simulated-output.gltf")));
-    assert.deepEqual(requests.map((request) => request.method), ["tools/list", "tools/call", "tools/call"]);
-    assert.deepEqual(requests.slice(1).map((request) => request.params.name), ["blender.render_preview", "blender.export_asset"]);
+    const transformed = await transformTool.execute(await context(), {
+      path: source,
+      transform: { scale: [1, 1, 1], rotation: [0, 0, 0], translation: [0, 0, 0] },
+      format: "gltf",
+      outputName: "simulated-transform"
+    });
+    assert.equal(transformed.ok, true);
+    assert.equal(transformed.artifacts.length, 3);
+    assert.ok(transformed.artifacts.some((artifact) => artifact.endsWith("simulated-transform.gltf")));
+    const validated = await validateTool.execute(await context(), { path: source });
+    assert.equal(validated.ok, true);
+    assert.equal(validated.artifacts.length, 3);
+    assert.deepEqual(requests.map((request) => request.method), ["tools/list", "tools/call", "tools/call", "tools/call", "tools/call", "tools/call"]);
+    assert.deepEqual(requests.slice(1).map((request) => request.params.name), [
+      "blender.import_asset",
+      "blender.render_preview",
+      "blender.export_asset",
+      "blender.apply_transform",
+      "blender.validate_scene"
+    ]);
     assert.ok(!requests.some((request) => JSON.stringify(request).includes("execute_blender_code")));
   } finally {
     restoreEnv("CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP", previousEnabled);

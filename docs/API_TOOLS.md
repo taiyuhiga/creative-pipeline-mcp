@@ -12,8 +12,11 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `blender.read_bridge_status`
 - `blender.await_bridge_status`
 - `blender.external_adapter_health`
+- `blender.external_import_asset`
 - `blender.external_render_preview`
 - `blender.external_export_asset`
+- `blender.external_apply_transform`
+- `blender.external_validate_scene`
 - `blender.create_scene`
 - `blender.apply_material`
 - `blender.modify_asset`

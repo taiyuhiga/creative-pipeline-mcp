@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.21-alpha.0",
+  "packageVersion": "0.2.22-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/blender-pro-mcp/dist/index.js",
@@ -254,6 +254,45 @@
       }
     },
     {
+      "name": "blender.external_apply_transform",
+      "category": "blender",
+      "risk": "project_write",
+      "description": "Apply a bounded transform through an opt-in external Blender MCP adapter, then rerun local QC where supported.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "glb",
+              "gltf"
+            ],
+            "type": "string"
+          },
+          "maxDimension": {
+            "type": "number"
+          },
+          "maxTriangles": {
+            "type": "number"
+          },
+          "outputName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "transform": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path",
+          "transform"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "blender.external_export_asset",
       "category": "blender",
       "risk": "project_write",
@@ -290,10 +329,62 @@
       }
     },
     {
+      "name": "blender.external_import_asset",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Import an asset through an opt-in external Blender MCP adapter, with request/response artifact capture and local source QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "collectionName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxDimension": {
+            "type": "number"
+          },
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "blender.external_render_preview",
       "category": "blender",
       "risk": "safe_write",
       "description": "Render a preview through an opt-in external Blender MCP adapter, with artifact capture and local source QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxDimension": {
+            "type": "number"
+          },
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.external_validate_scene",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Validate a scene through an opt-in external Blender MCP adapter and capture the normalized response artifact.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
