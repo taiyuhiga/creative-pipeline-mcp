@@ -11,6 +11,8 @@ const requiredFiles = [
   "docs/V1_SCOPE.md",
   "docs/DELIVERY_PROFILES.md",
   "docs/QUALITY_PRESETS.md",
+  "docs/EXTERNAL_MCP_ADAPTERS.md",
+  "docs/EXTERNAL_BLENDER_MCP_ADAPTER.md",
   "docs/MIGRATIONS.md",
   "docs/SCHEMA_STABILITY.md",
   "docs/EXAMPLE_PROJECTS.md",

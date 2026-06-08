@@ -41,7 +41,8 @@ v1 policy:
 - Keep `dcc-mcp-blender` as an experimental optional adapter candidate.
 - Do not expose its full tool surface directly to users.
 - Do not add a raw external MCP proxy in v1.
-- If implemented later, require `CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP=true`, a local URL allowlist, bounded operation names, approval checks for writes, artifact capture, and local QC after external outputs.
+- The initial experimental implementation is documented in `docs/EXTERNAL_BLENDER_MCP_ADAPTER.md`.
+- It requires `CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP=true`, a configured local URL, bounded operation names, approval checks for writes, artifact capture, and local QC after external outputs where supported.
 
 ## Candidate: ahujasid/blender-mcp
 

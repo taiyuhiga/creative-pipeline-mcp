@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { createServer as createNetServer } from "node:net";
 import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -106,12 +107,107 @@ test("Blender asset QC writes a report", async () => {
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.repair_basic_asset"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.read_bridge_status"));
   assert.ok(blenderTools.some((candidate) => candidate.name === "blender.await_bridge_status"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_adapter_health"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_render_preview"));
+  assert.ok(blenderTools.some((candidate) => candidate.name === "blender.external_export_asset"));
   const result = await tool.execute(await context(), {
     path: resolve("examples/minimal.gltf"),
     maxTriangles: 10
   });
   assert.equal(result.ok, true);
   assert.equal(result.artifacts.length, 1);
+});
+
+test("External Blender MCP adapter is disabled by default and writes bounded manifests only", async () => {
+  const previousEnabled = process.env.CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP;
+  const previousUrl = process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL;
+  delete process.env.CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP;
+  delete process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL;
+  try {
+    const healthTool = blenderTools.find((candidate) => candidate.name === "blender.external_adapter_health");
+    const previewTool = blenderTools.find((candidate) => candidate.name === "blender.external_render_preview");
+    assert.ok(healthTool);
+    assert.ok(previewTool);
+    const health = await healthTool.execute(await context(), {});
+    assert.equal(health.ok, false);
+    assert.equal(health.data.enabled, false);
+    const preview = await previewTool.execute(await context(), { path: resolve("examples/minimal.gltf") });
+    assert.equal(preview.ok, true);
+    assert.equal(preview.artifacts.length, 1);
+    assert.equal(preview.data.manifest.rawProxy, false);
+    assert.ok(preview.data.manifest.blockedOperations.includes("execute_blender_code"));
+  } finally {
+    restoreEnv("CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP", previousEnabled);
+    restoreEnv("CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL", previousUrl);
+  }
+});
+
+test("External Blender MCP adapter simulator handles only bounded preview and export operations", async () => {
+  const requests = [];
+  const server = createHttpServer(async (request, response) => {
+    let body = "";
+    request.setEncoding("utf8");
+    request.on("data", (chunk) => {
+      body += chunk;
+    });
+    request.on("end", async () => {
+      const payload = JSON.parse(body);
+      requests.push(payload);
+      response.setHeader("Content-Type", "application/json");
+      if (payload.method === "tools/list") {
+        response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: { tools: [] } }));
+        return;
+      }
+      const args = payload.params.arguments;
+      if (payload.params.name === "blender.render_preview") {
+        await writeFile(args.outputPath, Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lrWZ2wAAAABJRU5ErkJggg==",
+          "base64"
+        ));
+      } else if (payload.params.name === "blender.export_asset") {
+        await writeFile(args.outputPath, await readFile(args.sourcePath));
+      } else {
+        response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, error: { code: -32601, message: "unsupported tool" } }));
+        return;
+      }
+      response.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: { ok: true } }));
+    });
+  });
+  await listen(server);
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const previousEnabled = process.env.CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP;
+  const previousUrl = process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL;
+  const previousAllow = process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW;
+  process.env.CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP = "true";
+  process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL = `http://127.0.0.1:${address.port}/mcp`;
+  process.env.CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW = "health,preview,export";
+  try {
+    const source = resolve("examples/minimal.gltf");
+    const healthTool = blenderTools.find((candidate) => candidate.name === "blender.external_adapter_health");
+    const previewTool = blenderTools.find((candidate) => candidate.name === "blender.external_render_preview");
+    const exportTool = blenderTools.find((candidate) => candidate.name === "blender.external_export_asset");
+    assert.ok(healthTool);
+    assert.ok(previewTool);
+    assert.ok(exportTool);
+    const health = await healthTool.execute(await context(), {});
+    assert.equal(health.ok, true);
+    const preview = await previewTool.execute(await context(), { path: source });
+    assert.equal(preview.ok, true);
+    assert.equal(preview.artifacts.length, 3);
+    const exported = await exportTool.execute(await context(), { path: source, format: "gltf", outputName: "simulated-output" });
+    assert.equal(exported.ok, true);
+    assert.equal(exported.artifacts.length, 3);
+    assert.ok(exported.artifacts.some((artifact) => artifact.endsWith("simulated-output.gltf")));
+    assert.deepEqual(requests.map((request) => request.method), ["tools/list", "tools/call", "tools/call"]);
+    assert.deepEqual(requests.slice(1).map((request) => request.params.name), ["blender.render_preview", "blender.export_asset"]);
+    assert.ok(!requests.some((request) => JSON.stringify(request).includes("execute_blender_code")));
+  } finally {
+    restoreEnv("CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP", previousEnabled);
+    restoreEnv("CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL", previousUrl);
+    restoreEnv("CREATIVE_MCP_EXTERNAL_BLENDER_MCP_ALLOW", previousAllow);
+    await closeServer(server);
+  }
 });
 
 test("Blender asset QC checks texture files, dimensions, PBR data, naming, and bounds", async () => {
@@ -1255,4 +1351,24 @@ async function waitForDashboard(port) {
     }
   }
   throw new Error("Dashboard did not start");
+}
+
+async function listen(server) {
+  await new Promise((resolveListen) => {
+    server.listen(0, "127.0.0.1", resolveListen);
+  });
+}
+
+async function closeServer(server) {
+  await new Promise((resolveClose) => {
+    server.close(resolveClose);
+  });
+}
+
+function restoreEnv(name, value) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
 }

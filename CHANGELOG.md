@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.21-alpha.0
+
+### Added
+
+- Added experimental external Blender MCP adapter tools: `blender.external_adapter_health`, `blender.external_render_preview`, and `blender.external_export_asset`.
+- Added `CREATIVE_MCP_ENABLE_EXTERNAL_BLENDER_MCP`, `CREATIVE_MCP_EXTERNAL_BLENDER_MCP_URL`, and bounded operation allowlist configuration for trusted local Blender MCP servers.
+- Added simulator coverage for external Blender MCP health, preview, and export calls without exposing raw external tool proxying.
+- Added `docs/EXTERNAL_BLENDER_MCP_ADAPTER.md` with the opt-in configuration, safety policy, and JSON-RPC adapter contract.
+
+### Changed
+
+- Updated the external MCP adapter policy to describe the initial experimental implementation while keeping `dcc-mcp-blender` optional and disabled by default.
+- Expanded the public tool schema snapshot from 57 to 60 tools.
+
 ## 0.2.20-alpha.0
 
 ### Changed

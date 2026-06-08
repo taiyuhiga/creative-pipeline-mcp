@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/blender-gpl-adapters",
-  "version": "0.2.20-alpha.0",
+  "version": "0.2.21-alpha.0",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "main": "dist/index.js",
@@ -14,6 +14,6 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@creative-pipeline-mcp/core": "0.2.20-alpha.0"
+    "@creative-pipeline-mcp/core": "0.2.21-alpha.0"
   }
 }

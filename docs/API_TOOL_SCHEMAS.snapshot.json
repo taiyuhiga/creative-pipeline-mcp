@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.20-alpha.0",
+  "packageVersion": "0.2.21-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/blender-pro-mcp/dist/index.js",
@@ -229,6 +229,77 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "maxTriangles": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.external_adapter_health",
+      "category": "blender",
+      "risk": "read",
+      "description": "Check the opt-in external Blender MCP adapter without exposing its raw tool surface.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.external_export_asset",
+      "category": "blender",
+      "risk": "project_write",
+      "description": "Export an asset through an opt-in external Blender MCP adapter, then rerun local QC where supported.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "glb",
+              "gltf",
+              "usd"
+            ],
+            "type": "string"
+          },
+          "maxDimension": {
+            "type": "number"
+          },
+          "maxTriangles": {
+            "type": "number"
+          },
+          "outputName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "blender.external_render_preview",
+      "category": "blender",
+      "risk": "safe_write",
+      "description": "Render a preview through an opt-in external Blender MCP adapter, with artifact capture and local source QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "maxDimension": {
+            "type": "number"
+          },
           "maxTriangles": {
             "type": "number"
           },

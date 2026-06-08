@@ -22,7 +22,7 @@ These surfaces remain available for alpha/beta use, but should be described as e
 - WhisperX, PySceneDetect, pyloudnorm, FFmpeg VMAF, `gltfpack`, and other optional external adapters
 - GPL-separated adapter manifests
 - signed ZXP distribution with a trusted production certificate
-- external Blender MCP adapters such as `dcc-mcp-blender`
+- experimental external Blender MCP adapter tools for bounded health, preview, and export calls
 
 ## Known External Blocker
 
