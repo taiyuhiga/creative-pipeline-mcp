@@ -517,6 +517,29 @@ test("Delivery and quality profiles define QC-checkable highest-quality outputs"
   }
 });
 
+test("MCP Registry metadata and client config examples stay aligned", async () => {
+  const rootPackage = JSON.parse(await readFile(resolve("package.json"), "utf8"));
+  const serverJson = JSON.parse(await readFile(resolve("server.json"), "utf8"));
+  assert.equal(serverJson.name, rootPackage.mcpName);
+  assert.equal(serverJson.version, rootPackage.version);
+  assert.equal(serverJson.packages[0].registryType, "npm");
+  assert.equal(serverJson.packages[0].identifier, rootPackage.name);
+  assert.equal(serverJson.packages[0].version, rootPackage.version);
+  assert.equal(serverJson.packages[0].transport.type, "stdio");
+  assert.ok(rootPackage.files.includes("server.json"));
+
+  const claude = JSON.parse(await readFile(resolve("examples", "mcp", "claude_desktop_config.json"), "utf8"));
+  const cursor = JSON.parse(await readFile(resolve("examples", "mcp", "cursor_mcp_config.json"), "utf8"));
+  const vscode = JSON.parse(await readFile(resolve("examples", "mcp", "vscode_mcp_config.json"), "utf8"));
+  for (const config of [claude.mcpServers, cursor.mcpServers, vscode.servers]) {
+    assert.ok(config);
+    for (const server of Object.values(config)) {
+      assert.equal(server.command, "npx");
+      assert.ok(server.args.includes("creative-pipeline-mcp@alpha"));
+    }
+  }
+});
+
 test("Asset sourcing tools resolve source priority and write provenance-safe artifacts", async () => {
   const toolNames = assetTools.map((tool) => tool.name);
   for (const name of [

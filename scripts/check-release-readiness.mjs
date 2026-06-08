@@ -27,6 +27,7 @@ const requiredFiles = [
   "docs/ROBLOX_SECURITY.md",
   "docs/ROBLOX_WORKFLOW.md",
   "docs/MIGRATIONS.md",
+  "docs/MCP_REGISTRY.md",
   "docs/SCHEMA_STABILITY.md",
   "docs/EXAMPLE_PROJECTS.md",
   "docs/INSTALL_PREMIERE.md",
@@ -42,6 +43,10 @@ const requiredFiles = [
   "examples/profiles/shorts_1080x1920_high_quality.json",
   "examples/profiles/game_ready_glb.json",
   "examples/profiles/cycles_final_exr.json",
+  "examples/mcp/claude_desktop_config.json",
+  "examples/mcp/cursor_mcp_config.json",
+  "examples/mcp/vscode_mcp_config.json",
+  "server.json",
   "scripts/wait-premiere-e2e-status.mjs",
   "scripts/simulate-provider-workflows.mjs",
   "scripts/check-v1-freeze.mjs",
@@ -57,6 +62,8 @@ assert(snapshot.packageVersion === pkg.version, "API tool schema snapshot packag
 assert(Array.isArray(snapshot.tools) && snapshot.tools.length > 0, "API tool schema snapshot must include tools");
 assert(pkg.files.includes("docs"), "package files must include docs");
 assert(pkg.files.includes("examples"), "package files must include examples");
+assert(pkg.files.includes("server.json"), "package files must include server.json");
+assert(pkg.mcpName, "package must define mcpName for MCP Registry ownership verification");
 assert(pkg.scripts["check:schemas"], "package must expose check:schemas");
 assert(pkg.scripts["check:v1-freeze"], "package must expose check:v1-freeze");
 assert(pkg.scripts["check:release"], "package must expose check:release");
@@ -85,6 +92,14 @@ const installPremiere = readText("docs/INSTALL_PREMIERE.md");
 assert(installPremiere.includes("--verify"), "INSTALL_PREMIERE.md must document unsigned CEP verification");
 assert(installPremiere.includes("--sign"), "INSTALL_PREMIERE.md must document signed ZXP generation");
 assert(installPremiere.includes("--zxp"), "INSTALL_PREMIERE.md must document ZXP install fallback");
+
+const serverJson = readJson("server.json");
+assert(serverJson.name === pkg.mcpName, "server.json name must match package mcpName");
+assert(serverJson.version === pkg.version, "server.json version must match package version");
+assert(serverJson.packages?.[0]?.registryType === "npm", "server.json must describe npm package distribution");
+assert(serverJson.packages?.[0]?.identifier === pkg.name, "server.json npm identifier must match package name");
+assert(serverJson.packages?.[0]?.version === pkg.version, "server.json package version must match package version");
+assert(serverJson.packages?.[0]?.transport?.type === "stdio", "server.json transport must be stdio");
 
 console.log(JSON.stringify({ ok: true, version: pkg.version, checkedFiles: requiredFiles.length, tools: snapshot.tools.length }, null, 2));
 

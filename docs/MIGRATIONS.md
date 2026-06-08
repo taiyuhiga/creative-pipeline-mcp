@@ -2,6 +2,66 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.0-alpha.0
+
+Changed:
+- Added experimental provider execution-planning tools for CapCut adapter resolution, CapCut draft package export, CapCut delivery QC, After Effects template replacement planning, After Effects file bridge planning, Roblox Studio operation planning, Roblox playtest reports, Roblox WEPPY provider planning, asset license policy evaluation, and asset package SBOM output.
+- Added Dashboard provider tab metadata and MCP Registry distribution metadata.
+- Public tool schema snapshot now covers 117 tools.
+
+Migration:
+- Continue to treat CapCut, After Effects, Roblox, WEPPY, and live app execution as experimental provider surfaces.
+- Use `asset.evaluate_license_policy` and `asset.write_asset_sbom` before packaging acquired or generated asset bundles for downstream delivery.
+- Use `creative-pipeline-mcp@alpha` in MCP client configs when the newest post-v1 experimental provider tools are required.
+
+Compatibility:
+- Stable v1 structured tool result shape is unchanged.
+- Provider execution-planning schemas are additive alpha surfaces and may still change before being promoted to stable.
+- `server.json` and `package.json` `mcpName` must remain synchronized for MCP Registry ownership verification.
+
+## 1.0.0
+
+Changed:
+- Stable scope is limited to QC-first surfaces: core routing, provider planning, asset sourcing/provenance, Blender QC/artifact planning, Premiere media/delivery QC, Dashboard review, schema snapshots, artifact layouts, CI gates, and npm packaging.
+- Live app execution providers remain experimental.
+- npm `latest` is intentionally stable v1; alpha builds continue on the `alpha` dist-tag.
+
+Migration:
+- For production integrations, depend on stable core, Blender QC, Premiere QC, asset sourcing, provider planning, artifact, approval, Dashboard, and schema surfaces.
+- Keep CapCut, After Effects, Roblox, external Blender MCP, optional adapter, and live Premiere CEP execution usage behind experimental controls.
+- When installing the stable release, use `npm install creative-pipeline-mcp`; when installing post-v1 alpha provider tools, use `npm install creative-pipeline-mcp@alpha`.
+
+Compatibility:
+- v1 keeps public `structuredContent`, approval artifact, artifact layout, QC report, provider report, and CEP status schema expectations stable.
+- Windows + Premiere live E2E remains outside the stable v1 claim until an interactive Windows Premiere host supplies status evidence.
+
+## 0.3.3-alpha.0
+
+Changed:
+- Added provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts.
+
+Migration:
+- Callers that previously expected only Premiere rough-cut artifacts can inspect `data.plan.selectedProvider` and `data.fallbackDraft` to handle CapCut fallback output.
+- Use the generated CapCut fallback artifacts as copy-on-write draft plans, not as raw draft mutation instructions.
+
+Compatibility:
+- This is an additive alpha surface.
+- Live Premiere execution and CapCut execution are not implied by the artifact package.
+
+## 0.3.0-alpha.0
+
+Changed:
+- Added Provider Registry tools for availability checks, video editor resolution, motion engine resolution, game engine resolution, and provider report writing.
+- Added experimental CapCut, After Effects, and Roblox provider packages.
+
+Migration:
+- Use Provider Registry tools to choose the intended provider before invoking provider-specific planning tools.
+- Keep provider-specific app execution behind the documented experimental/provider guardrails.
+
+Compatibility:
+- Provider reports are artifact-first planning outputs.
+- Raw external app proxying remains unsupported.
+
 ## 0.2.16-alpha.0
 
 - Public tool input schemas are snapshot-gated by `docs/API_TOOL_SCHEMAS.snapshot.json`.

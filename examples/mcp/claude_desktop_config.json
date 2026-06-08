@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "creative-pipeline-core": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "creative-mcp-core"
+      ]
+    },
+    "creative-asset-sourcing": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "creative-asset-sourcing"
+      ]
+    },
+    "blender-pro-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "blender-pro-mcp"
+      ]
+    },
+    "premiere-pro-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "premiere-pro-mcp"
+      ]
+    }
+  }
+}

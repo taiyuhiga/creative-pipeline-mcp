@@ -25,9 +25,11 @@ This repository implements a split creative pipeline architecture:
 - `director-agent`: production planning, Blender to Premiere handoff, full production reports, multi-agent review
 - `dashboard`: local artifact/QC report viewer
 
+<!-- mcp-name: io.github.taiyuhiga/creative-pipeline-mcp -->
+
 ## Status
 
-Current version: `1.1.0-alpha.0`
+Current version: `1.1.1-alpha.0`
 
 This is the first stable release for the QC-first pipeline surface. The stable v1 claim is intentionally limited to typed operations, artifacts, QC reports, approval policy, provider planning, and packaging. Live app execution surfaces remain experimental unless explicitly documented with runtime evidence.
 
@@ -127,6 +129,16 @@ npx -p creative-pipeline-mcp roblox-pro-mcp
 
 Pre-release builds continue to use the `alpha` dist-tag. Use `creative-pipeline-mcp@alpha` only when you explicitly want the newest experimental build after v1.
 
+MCP Registry and client config metadata:
+
+```text
+server.json
+docs/MCP_REGISTRY.md
+examples/mcp/claude_desktop_config.json
+examples/mcp/cursor_mcp_config.json
+examples/mcp/vscode_mcp_config.json
+```
+
 Local repository development:
 
 ```bash
@@ -220,7 +232,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.0-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.1-alpha.0.zip
 ```
 
 Release assets:

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1-alpha.0
+
+### Added
+
+- Added MCP Registry-ready `server.json` metadata and `package.json` `mcpName` ownership mapping.
+- Added Claude Desktop, Cursor, and VS Code MCP config examples under `examples/mcp/`.
+- Added `docs/MCP_REGISTRY.md` with stable and experimental scope notes for registry consumers.
+- Expanded `docs/MIGRATIONS.md` with 0.3.0, 0.3.3, 1.0.0, and 1.1.x migration guidance.
+- Added release-readiness and unit-test coverage for MCP Registry metadata and client config alignment.
+
 ## 1.1.0-alpha.0
 
 ### Added

@@ -1,8 +1,9 @@
 {
   "name": "creative-pipeline-mcp",
-  "version": "1.1.0-alpha.0",
+  "version": "1.1.1-alpha.0",
   "private": false,
   "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
+  "mcpName": "io.github.taiyuhiga/creative-pipeline-mcp",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
     "examples",
     "scripts",
     "third_party_licenses",
+    "server.json",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",

@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "creative-pipeline-core": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "creative-mcp-core"
+      ]
+    },
+    "creative-pipeline-director": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "creative-pipeline-director"
+      ]
+    },
+    "capcut-social-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "capcut-social-mcp"
+      ]
+    },
+    "after-effects-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "after-effects-mcp"
+      ]
+    },
+    "roblox-pro-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "creative-pipeline-mcp@alpha",
+        "roblox-pro-mcp"
+      ]
+    }
+  }
+}
