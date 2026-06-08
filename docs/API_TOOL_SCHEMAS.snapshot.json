@@ -1,13 +1,377 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.24-alpha.0",
+  "packageVersion": "0.2.25-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
+    "packages/asset-sourcing/dist/index.js",
     "packages/blender-pro-mcp/dist/index.js",
     "packages/premiere-pro-mcp/dist/index.js",
     "packages/director-agent/dist/index.js"
   ],
   "tools": [
+    {
+      "name": "asset.acquire_asset",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Acquire a selected local/user asset into artifact storage or write a remote acquisition manifest with provenance and license records.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "type": "object"
+          },
+          "license": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "sourcePath": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.acquire_or_generate",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Macro tool that resolves candidates and selects an existing asset when possible, otherwise writes a fal fallback request under the selected policy.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "intent": {
+            "enum": [
+              "specific_object",
+              "generic_furniture",
+              "generic_prop",
+              "environment_hdri",
+              "texture",
+              "material",
+              "character",
+              "vehicle",
+              "generated_concept"
+            ],
+            "type": "string"
+          },
+          "maxCandidates": {
+            "maximum": 20,
+            "minimum": 1,
+            "type": "number"
+          },
+          "policy": {
+            "enum": [
+              "fallback_only",
+              "candidate",
+              "force"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "style": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "userSuppliedPath": {
+            "type": "string"
+          },
+          "userSuppliedUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.finalize_asset",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write final asset package manifest and require final Blender QC evidence before delivery.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "assetPath": {
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "provenancePath": {
+            "type": "string"
+          },
+          "qcReportPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetPath"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.generate_3d",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write or submit a fal 3D generation request with server-side FAL_KEY guardrails.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "enablePbr": {
+            "type": "boolean"
+          },
+          "faceCount": {
+            "maximum": 300000,
+            "minimum": 1000,
+            "type": "number"
+          },
+          "imageUrls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "intent": {
+            "enum": [
+              "specific_object",
+              "generic_furniture",
+              "generic_prop",
+              "environment_hdri",
+              "texture",
+              "material",
+              "character",
+              "vehicle",
+              "generated_concept"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.postprocess_generated_asset",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write generated-asset postprocess plan for smart topology, glTF optimization, and final Blender QC.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "optimize": {
+            "type": "boolean"
+          },
+          "smartTopology": {
+            "type": "boolean"
+          },
+          "sourcePath": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "targetFormat": {
+            "enum": [
+              "glb",
+              "gltf",
+              "fbx",
+              "obj"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.resolve_source_plan",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Classify asset intent and write a source priority plan across local cache, Poly Haven, Sketchfab/Fab, and fal fallback generation.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "intent": {
+            "enum": [
+              "specific_object",
+              "generic_furniture",
+              "generic_prop",
+              "environment_hdri",
+              "texture",
+              "material",
+              "character",
+              "vehicle",
+              "generated_concept"
+            ],
+            "type": "string"
+          },
+          "policy": {
+            "enum": [
+              "fallback_only",
+              "candidate",
+              "force"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "style": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "userSuppliedPath": {
+            "type": "string"
+          },
+          "userSuppliedUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.search_candidates",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write scored asset candidates using the source policy. Remote providers are represented as provenance-safe candidates unless explicit acquisition is enabled.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "intent": {
+            "enum": [
+              "specific_object",
+              "generic_furniture",
+              "generic_prop",
+              "environment_hdri",
+              "texture",
+              "material",
+              "character",
+              "vehicle",
+              "generated_concept"
+            ],
+            "type": "string"
+          },
+          "maxCandidates": {
+            "maximum": 20,
+            "minimum": 1,
+            "type": "number"
+          },
+          "policy": {
+            "enum": [
+              "fallback_only",
+              "candidate",
+              "force"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "style": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "userSuppliedPath": {
+            "type": "string"
+          },
+          "userSuppliedUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.write_provenance",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write a standalone provenance and license manifest for an acquired or generated asset.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "downloadUrl": {
+            "type": "string"
+          },
+          "generated": {
+            "type": "boolean"
+          },
+          "license": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "sourceId",
+          "title",
+          "license"
+        ],
+        "type": "object"
+      }
+    },
     {
       "name": "blender.apply_material",
       "category": "blender",

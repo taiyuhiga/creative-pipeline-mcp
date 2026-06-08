@@ -20,6 +20,7 @@
 - pending approval artifact queue
 - Dashboard localhost bind and token-protected API
 - adapter availability JSON report
+- Asset Sourcing Layer for source priority planning, candidate scoring, provenance, license manifests, and fal fallback generation guardrails
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
 - Blender bridge queue/status adapter surface
 - Blender bridge worker process for queue draining, status writing, processed-command archival, and headless Blender script execution
@@ -59,7 +60,8 @@
 
 ## Next Release
 
-- `v0.2.24-alpha.0` is the current published alpha pre-release. It includes npm `@alpha` install guidance, dist-tag maintenance docs, bounded external Blender MCP macro tools, typed Premiere CEP edit commands, and updated external adapter snapshots.
+- `v0.2.25-alpha.0` is the current published alpha pre-release. It includes npm `@alpha` install guidance, dist-tag maintenance docs, bounded external Blender MCP macro tools, typed Premiere CEP edit commands, and updated external adapter snapshots.
+- The next alpha should publish the Asset Sourcing Layer so source selection, candidate scoring, provenance, and fal fallback requests are available through typed tools.
 - Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.
@@ -75,6 +77,7 @@ Current v1-ready scope:
 - strict public tool schema snapshot
 - v1 freeze validation for tools, inputs, `structuredContent`, QC reports, artifact layout, and CEP status schema
 - typed delivery profiles and quality presets for QC-checkable "highest quality" requests
+- typed asset sourcing plans and provenance manifests for source-selection workflows
 - release assets and npm trusted-publishing workflow
 
 Deferred or explicitly limited scope:

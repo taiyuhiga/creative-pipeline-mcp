@@ -20,6 +20,7 @@ import {
   McpServer,
   qualityProfiles
 } from "../packages/core/dist/index.js";
+import { assetTools } from "../packages/asset-sourcing/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
@@ -99,6 +100,56 @@ test("Delivery and quality profiles define QC-checkable highest-quality outputs"
     assert.ok(getDeliveryProfile(id) || getQualityProfile(id));
     assert.ok(example.expectedOutputs.length > 0);
   }
+});
+
+test("Asset sourcing tools resolve source priority and write provenance-safe artifacts", async () => {
+  const toolNames = assetTools.map((tool) => tool.name);
+  for (const name of [
+    "asset.resolve_source_plan",
+    "asset.search_candidates",
+    "asset.acquire_asset",
+    "asset.generate_3d",
+    "asset.postprocess_generated_asset",
+    "asset.finalize_asset",
+    "asset.write_provenance",
+    "asset.acquire_or_generate"
+  ]) {
+    assert.ok(toolNames.includes(name), `${name} should be registered`);
+  }
+
+  const resolvePlan = assetTools.find((tool) => tool.name === "asset.resolve_source_plan");
+  const search = assetTools.find((tool) => tool.name === "asset.search_candidates");
+  const macro = assetTools.find((tool) => tool.name === "asset.acquire_or_generate");
+  assert.ok(resolvePlan);
+  assert.ok(search);
+  assert.ok(macro);
+
+  const plan = await resolvePlan.execute(await context(), {
+    prompt: "modern wooden dining chair",
+    intent: "generic_furniture"
+  });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.data.plan.intent, "generic_furniture");
+  assert.ok(plan.data.plan.priority.includes("polyhaven"));
+  assert.equal(plan.data.plan.guardrails.serverSideFalKeyOnly, true);
+
+  const candidates = await search.execute(await context(), {
+    prompt: "studio sunset hdri",
+    intent: "environment_hdri",
+    maxCandidates: 4
+  });
+  assert.equal(candidates.ok, true);
+  assert.ok(candidates.data.candidates.some((candidate) => candidate.provider === "polyhaven"));
+  assert.ok(!candidates.data.candidates.some((candidate) => candidate.provider === "sketchfab"));
+
+  const generated = await macro.execute(await context(), {
+    prompt: "original fantasy crystal engine",
+    intent: "generated_concept",
+    policy: "force"
+  });
+  assert.equal(generated.ok, true);
+  assert.equal(generated.data.selected.generated, true);
+  assert.ok(generated.artifacts.some((artifact) => artifact.endsWith("assets/generated/fal_request.json")));
 });
 
 test("Blender asset QC writes a report", async () => {

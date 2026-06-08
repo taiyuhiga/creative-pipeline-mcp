@@ -12,6 +12,7 @@ Creative Pipeline MCP is not just a Blender or Premiere controller. It is a QC-f
 This repository implements a split creative pipeline architecture:
 
 - `creative-mcp-core`: tool registry, router, approval policy, artifact store, QC reports, license manifest
+- `asset-sourcing`: source planning, candidate scoring, provenance, Poly Haven/Sketchfab/Fab search manifests, and fal 3D generation guardrails
 - `blender-pro-mcp`: Blender/glTF asset inspection, preview artifacts, validation, optimization/export fallbacks
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
@@ -22,7 +23,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.24-alpha.0`
+Current version: `0.2.25-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -32,6 +33,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - server-side JSON Schema validation
 - workspace input allowlists for local file reads
 - pending approval artifacts for elevated tools
+- asset sourcing plans for local cache, user-supplied files/URLs, Poly Haven, Sketchfab/Fab, and fal fallback generation
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction, FFmpeg `libvmaf` scoring
 - Blender bridge queue/status IPC and a headless worker for trusted external scene and asset adapters
 - experimental external Blender MCP adapter tools for bounded health, import, preview, export, transform, and validate calls, disabled by default
@@ -50,6 +52,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - Blender and generated-MP4 Premiere e2e examples
 - v2.0+ manifests for USD, MaterialX, engine profiles, brand packages, social variants, subtitles, thumbnails, and Director Agent handoff
 - typed delivery profiles and quality presets for QC-checkable "highest quality" requests
+- provenance and license manifests for acquired or generated assets, with final Blender QC required before delivery
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 - guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
@@ -61,6 +64,7 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Feature | Status |
 | --- | --- |
 | GLB/glTF metadata QC | Working |
+| Asset source planning | Working with provenance-safe manifests |
 | Headless Blender preview | Working when Blender is installed |
 | Blender bridge queue/status | Alpha worker process |
 | glTF optimization | Working with `gltf-transform`; optional `gltfpack` |
@@ -80,6 +84,7 @@ Published alpha package:
 ```bash
 npm install creative-pipeline-mcp@alpha
 npx -p creative-pipeline-mcp@alpha creative-mcp-core
+npx -p creative-pipeline-mcp@alpha creative-asset-sourcing
 ```
 
 Do not install the unqualified `creative-pipeline-mcp` package for alpha work. The npm `latest` dist-tag is reserved for the first stable v1 release and may not point to the newest alpha. Use `@alpha` until `1.0.0` is intentionally published.
@@ -104,6 +109,15 @@ node examples/blender-e2e.mjs
 ```
 
 Expected outputs include preview, QC, optimized asset, and repair artifacts under `artifacts/blender/` when the relevant optional adapters are available.
+
+### Asset Sourcing
+
+```bash
+npm run build
+node examples/asset-sourcing-plan.mjs
+```
+
+Expected outputs include sourcing plans, candidates, selected asset metadata, and provenance artifacts under `artifacts/assets/`.
 
 ### Blender Bridge Queue
 
@@ -165,7 +179,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.24-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.25-alpha.0.zip
 ```
 
 Release assets:

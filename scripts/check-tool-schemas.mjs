@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { coreTools } from "../packages/core/dist/coreTools.js";
+import { assetTools } from "../packages/asset-sourcing/dist/index.js";
 import { blenderTools } from "../packages/blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../packages/premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
@@ -27,6 +28,7 @@ console.log(JSON.stringify({ ok: true, snapshotPath, tools: snapshot.tools.lengt
 function buildSnapshot() {
   const tools = [
     ...coreTools,
+    ...assetTools,
     ...blenderTools,
     ...premiereTools,
     ...directorTools
@@ -42,6 +44,7 @@ function buildSnapshot() {
     packageVersion: JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version,
     generatedFrom: [
       "packages/core/dist/coreTools.js",
+      "packages/asset-sourcing/dist/index.js",
       "packages/blender-pro-mcp/dist/index.js",
       "packages/premiere-pro-mcp/dist/index.js",
       "packages/director-agent/dist/index.js"

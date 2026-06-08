@@ -7,6 +7,17 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `core.health`
 - `core.license_manifest`
 
+## Asset Sourcing
+
+- `asset.resolve_source_plan`
+- `asset.search_candidates`
+- `asset.acquire_asset`
+- `asset.generate_3d`
+- `asset.postprocess_generated_asset`
+- `asset.finalize_asset`
+- `asset.write_provenance`
+- `asset.acquire_or_generate`
+
 ## Blender
 
 - `blender.read_bridge_status`

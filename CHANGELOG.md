@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.25-alpha.0
+
+### Added
+
+- Added `@creative-pipeline-mcp/asset-sourcing` with typed source planning, candidate scoring, provenance, acquisition manifests, fal 3D generation requests, and final asset package manifests.
+- Added public asset tools: `asset.resolve_source_plan`, `asset.search_candidates`, `asset.acquire_asset`, `asset.generate_3d`, `asset.postprocess_generated_asset`, `asset.finalize_asset`, `asset.write_provenance`, and `asset.acquire_or_generate`.
+- Added `docs/ASSET_SOURCING_POLICY.md`, asset artifact schema docs, and an `examples/asset-sourcing-plan.mjs` example.
+
+### Changed
+
+- Expanded the public API schema snapshot from 63 to 71 tools.
+- Added `@fal-ai/client` as the fal 3D generation client dependency while keeping generation disabled unless `CREATIVE_MCP_ENABLE_FAL_3D=true` and server-side `FAL_KEY` are configured.
+
 ## 0.2.24-alpha.0
 
 ### Changed

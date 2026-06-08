@@ -1,0 +1,20 @@
+{
+  "schema": "creative.pipeline.example_project.v1",
+  "id": "asset-sourcing-demo",
+  "title": "Asset sourcing demo",
+  "tools": [
+    "asset.resolve_source_plan",
+    "asset.search_candidates",
+    "asset.acquire_or_generate",
+    "blender.validate_asset"
+  ],
+  "prompt": "modern wooden dining chair",
+  "intent": "generic_furniture",
+  "policy": "fallback_only",
+  "expectedArtifacts": [
+    "artifacts/assets/sourcing_plan.json",
+    "artifacts/assets/candidates.json",
+    "artifacts/assets/provenance.json",
+    "artifacts/assets/qc/asset_qc_report.json"
+  ]
+}

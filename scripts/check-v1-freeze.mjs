@@ -46,7 +46,7 @@ for (const phrase of [
   assert(schemaStability.includes(phrase), `SCHEMA_STABILITY.md must cover ${phrase}`);
 }
 
-for (const path of ["approvals/", "pending/", "resolved/", "blender/", "premiere/", "cep_queue/", "cep_status/", "dashboard/", "reruns/"]) {
+for (const path of ["approvals/", "pending/", "resolved/", "assets/", "blender/", "premiere/", "cep_queue/", "cep_status/", "dashboard/", "reruns/"]) {
   assert(artifactSchema.includes(path), `ARTIFACT_SCHEMA.md must freeze ${path}`);
 }
 

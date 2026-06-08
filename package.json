@@ -1,6 +1,6 @@
 {
   "name": "creative-pipeline-mcp",
-  "version": "0.2.24-alpha.0",
+  "version": "0.2.25-alpha.0",
   "private": false,
   "description": "QC-first MCP pipeline for Blender assets and Premiere media workflows.",
   "license": "Apache-2.0",
@@ -36,10 +36,12 @@
     "blender-pro-mcp": "packages/blender-pro-mcp/dist/server.js",
     "premiere-pro-mcp": "packages/premiere-pro-mcp/dist/server.js",
     "creative-pipeline-director": "packages/director-agent/dist/server.js",
+    "creative-asset-sourcing": "packages/asset-sourcing/dist/server.js",
     "creative-mcp-dashboard": "packages/dashboard/dist/server.js"
   },
   "exports": {
     "./core": "./packages/core/dist/index.js",
+    "./asset-sourcing": "./packages/asset-sourcing/dist/index.js",
     "./blender": "./packages/blender-pro-mcp/dist/index.js",
     "./premiere": "./packages/premiere-pro-mcp/dist/index.js",
     "./director": "./packages/director-agent/dist/index.js",
@@ -47,8 +49,8 @@
     "./premiere-windows-adapter": "./packages/premiere-windows-adapter/dist/index.js"
   },
   "scripts": {
-    "build": "tsc -b packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
-    "clean": "tsc -b --clean packages/core packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
+    "build": "tsc -b packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard",
+    "clean": "tsc -b --clean packages/core packages/asset-sourcing packages/blender-pro-mcp packages/premiere-pro-mcp packages/director-agent packages/blender-gpl-adapters packages/premiere-windows-adapter packages/dashboard && rm -rf artifacts",
     "test": "npm run build && node --test tests/*.mjs",
     "prepack": "npm run build",
     "check:adapters": "node scripts/check-adapters.mjs",
@@ -64,12 +66,14 @@
     "install:premiere-cep": "node scripts/install-premiere-cep.mjs",
     "uninstall:premiere-cep": "node scripts/install-premiere-cep.mjs --uninstall",
     "start:core": "node packages/core/dist/server.js",
+    "start:asset-sourcing": "node packages/asset-sourcing/dist/server.js",
     "start:blender": "node packages/blender-pro-mcp/dist/server.js",
     "start:premiere": "node packages/premiere-pro-mcp/dist/server.js",
     "start:director": "node packages/director-agent/dist/server.js",
     "start:dashboard": "node packages/dashboard/dist/server.js"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.10.1",
     "@gltf-transform/cli": "4.3.0",
     "ajv": "^8.20.0"
   },

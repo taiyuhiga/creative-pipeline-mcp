@@ -1,5 +1,5 @@
 {
-  "name": "@creative-pipeline-mcp/core",
+  "name": "@creative-pipeline-mcp/asset-sourcing",
   "version": "0.2.25-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
@@ -13,9 +13,10 @@
     "src"
   ],
   "bin": {
-    "creative-mcp-core": "dist/server.js"
+    "creative-asset-sourcing": "dist/server.js"
   },
   "dependencies": {
-    "ajv": "^8.17.1"
+    "@creative-pipeline-mcp/core": "0.2.25-alpha.0",
+    "@fal-ai/client": "^1.10.1"
   }
 }

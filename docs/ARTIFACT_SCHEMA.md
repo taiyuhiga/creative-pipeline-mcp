@@ -7,6 +7,18 @@ Artifacts are written under `CREATIVE_MCP_ARTIFACTS`, defaulting to `artifacts/`
 ```text
 artifacts/
   adapter_check_report.json
+  assets/
+    sourcing_plan.json
+    candidates.json
+    selected_asset.json
+    provenance.json
+    license_manifest.json
+    original/
+    generated/
+      fal_request.json
+      fal_result.json
+    optimized/
+    qc/
   approvals/
     pending/
     resolved/
@@ -71,3 +83,26 @@ QC reports use the core shape from `packages/core/src/qcReport.ts`:
 ```
 
 The required keys are `kind`, `target`, `generatedAt`, `summary`, and `checks`. `metadata` is optional.
+
+## Asset Sourcing
+
+Asset sourcing artifacts use explicit provenance and are stored under `artifacts/assets/`.
+
+```json
+{
+  "schema": "creative.pipeline.asset_sourcing_plan.v1",
+  "prompt": "studio chair",
+  "intent": "generic_furniture",
+  "policy": "fallback_only",
+  "priority": ["local_cache", "user_supplied", "polyhaven", "sketchfab", "fal_hunyuan"],
+  "guardrails": {
+    "fallbackOnlyDefault": true,
+    "serverSideFalKeyOnly": true,
+    "writeProvenance": true,
+    "requireFinalQc": true,
+    "noRawExternalProxy": true
+  }
+}
+```
+
+Every acquired or generated asset should include `assets/provenance.json` and `assets/license_manifest.json`. Final delivery must include a QC report from `blender.validate_asset` or equivalent evidence under `assets/qc/`.
