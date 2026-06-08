@@ -46,6 +46,7 @@ export interface AssetCandidate {
   localPath?: string;
   requiresAuth?: boolean;
   generated?: boolean;
+  metadata?: Record<string, unknown>;
   score: AssetCandidateScore;
 }
 

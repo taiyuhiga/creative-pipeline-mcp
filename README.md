@@ -12,7 +12,7 @@ Creative Pipeline MCP is not just a Blender or Premiere controller. It is a QC-f
 This repository implements a split creative pipeline architecture:
 
 - `creative-mcp-core`: tool registry, router, approval policy, artifact store, QC reports, license manifest
-- `asset-sourcing`: source planning, candidate scoring, provenance, Poly Haven/Sketchfab/Fab search manifests, and fal 3D generation guardrails
+- `asset-sourcing`: source planning, candidate scoring, provenance, Poly Haven and Sketchfab search manifests, user-supplied Fab URL provenance, and fal 3D generation guardrails
 - `blender-pro-mcp`: Blender/glTF asset inspection, preview artifacts, validation, optimization/export fallbacks
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
@@ -23,7 +23,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.25-alpha.0`
+Current version: `0.2.26-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -33,7 +33,8 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - server-side JSON Schema validation
 - workspace input allowlists for local file reads
 - pending approval artifacts for elevated tools
-- asset sourcing plans for local cache, user-supplied files/URLs, Poly Haven, Sketchfab/Fab, and fal fallback generation
+- asset sourcing plans for local cache, user-supplied files/URLs, Poly Haven, Sketchfab, manual Fab URLs, and fal fallback generation
+- optional remote asset provider search for Poly Haven and authenticated Sketchfab when explicitly enabled
 - real CLI adapters when optional tools are installed: headless Blender preview, bundled `gltf-transform`, optional `gltfpack`, FFmpeg black/silence/loudness checks, thumbnail extraction, FFmpeg `libvmaf` scoring
 - Blender bridge queue/status IPC and a headless worker for trusted external scene and asset adapters
 - experimental external Blender MCP adapter tools for bounded health, import, preview, export, transform, and validate calls, disabled by default
@@ -179,7 +180,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.25-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.26-alpha.0.zip
 ```
 
 Release assets:

@@ -40,14 +40,14 @@ export async function resolveAssetCandidates(input: {
     style: plan.style,
     limit
   }));
-  candidates.push(...polyhavenCandidates({
+  candidates.push(...await polyhavenCandidates({
     prompt: input.prompt,
     intent: plan.intent,
     priority: plan.priority,
     style: plan.style,
     limit
   }));
-  candidates.push(...sketchfabCandidates({
+  candidates.push(...await sketchfabCandidates({
     prompt: input.prompt,
     intent: plan.intent,
     priority: plan.priority,

@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.25-alpha.0",
+  "packageVersion": "0.2.26-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/asset-sourcing/dist/index.js",
@@ -219,7 +219,7 @@
       "name": "asset.resolve_source_plan",
       "category": "asset",
       "risk": "safe_write",
-      "description": "Classify asset intent and write a source priority plan across local cache, Poly Haven, Sketchfab/Fab, and fal fallback generation.",
+      "description": "Classify asset intent and write a source priority plan across local cache, Poly Haven, Sketchfab, manual Fab URLs, and fal fallback generation.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {

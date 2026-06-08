@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.26-alpha.0
+
+### Changed
+
+- Added opt-in live Poly Haven API search with deterministic fallback candidates when remote API access is disabled or unavailable.
+- Added opt-in authenticated Sketchfab Data API search with per-asset license capture and Download API URL recording.
+- Added remote provider environment-variable docs and mock API test coverage for Poly Haven and Sketchfab search paths.
+
 ## 0.2.25-alpha.0
 
 ### Added

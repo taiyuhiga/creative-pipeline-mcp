@@ -152,6 +152,79 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
   assert.ok(generated.artifacts.some((artifact) => artifact.endsWith("assets/generated/fal_request.json")));
 });
 
+test("Asset sourcing tools can use mocked Poly Haven and Sketchfab API adapters when enabled", async () => {
+  const server = createHttpServer((request, response) => {
+    const url = new URL(request.url, "http://127.0.0.1");
+    response.setHeader("Content-Type", "application/json");
+    if (url.pathname === "/assets") {
+      response.end(JSON.stringify({
+        wooden_chair_01: {
+          name: "Wooden Chair 01",
+          categories: ["furniture"],
+          tags: ["wooden", "chair"]
+        }
+      }));
+      return;
+    }
+    if (url.pathname === "/search") {
+      assert.equal(request.headers.authorization, "Token test-token");
+      response.end(JSON.stringify({
+        results: [{
+          uid: "sketchfab-chair",
+          name: "Sketchfab Chair",
+          viewerUrl: "https://sketchfab.com/3d-models/sketchfab-chair",
+          license: { label: "CC-BY" },
+          isDownloadable: true
+        }]
+      }));
+      return;
+    }
+    response.statusCode = 404;
+    response.end(JSON.stringify({ error: "not found" }));
+  });
+  await listen(server);
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const previousPoly = process.env.CREATIVE_MCP_ENABLE_POLYHAVEN_API;
+  const previousPolyBase = process.env.CREATIVE_MCP_POLYHAVEN_API_BASE_URL;
+  const previousSketchfab = process.env.CREATIVE_MCP_ENABLE_SKETCHFAB_API;
+  const previousSketchfabBase = process.env.CREATIVE_MCP_SKETCHFAB_API_BASE_URL;
+  const previousToken = process.env.SKETCHFAB_TOKEN;
+  process.env.CREATIVE_MCP_ENABLE_POLYHAVEN_API = "true";
+  process.env.CREATIVE_MCP_POLYHAVEN_API_BASE_URL = baseUrl;
+  process.env.CREATIVE_MCP_ENABLE_SKETCHFAB_API = "true";
+  process.env.CREATIVE_MCP_SKETCHFAB_API_BASE_URL = baseUrl;
+  process.env.SKETCHFAB_TOKEN = "test-token";
+  try {
+    const search = assetTools.find((tool) => tool.name === "asset.search_candidates");
+    assert.ok(search);
+    const furniture = await search.execute(await context(), {
+      prompt: "wooden chair",
+      intent: "generic_furniture",
+      maxCandidates: 4
+    });
+    assert.equal(furniture.ok, true);
+    assert.ok(furniture.data.candidates.some((candidate) => candidate.id === "polyhaven:wooden_chair_01"));
+    assert.ok(furniture.data.candidates.some((candidate) => candidate.id === "sketchfab:sketchfab-chair"));
+
+    const specific = await search.execute(await context(), {
+      prompt: "sketchfab chair",
+      intent: "specific_object",
+      maxCandidates: 4
+    });
+    assert.equal(specific.ok, true);
+    assert.ok(specific.data.candidates.some((candidate) => candidate.provider === "sketchfab" && candidate.license === "CC-BY"));
+  } finally {
+    restoreEnv("CREATIVE_MCP_ENABLE_POLYHAVEN_API", previousPoly);
+    restoreEnv("CREATIVE_MCP_POLYHAVEN_API_BASE_URL", previousPolyBase);
+    restoreEnv("CREATIVE_MCP_ENABLE_SKETCHFAB_API", previousSketchfab);
+    restoreEnv("CREATIVE_MCP_SKETCHFAB_API_BASE_URL", previousSketchfabBase);
+    restoreEnv("SKETCHFAB_TOKEN", previousToken);
+    await closeServer(server);
+  }
+});
+
 test("Blender asset QC writes a report", async () => {
   const tool = blenderTools.find((candidate) => candidate.name === "blender.validate_asset");
   assert.ok(tool);

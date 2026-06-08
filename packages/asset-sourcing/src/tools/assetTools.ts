@@ -27,7 +27,7 @@ const policySchema = { type: "string", enum: ["fallback_only", "candidate", "for
 export const assetTools: ToolDefinition[] = [
   {
     name: "asset.resolve_source_plan",
-    description: "Classify asset intent and write a source priority plan across local cache, Poly Haven, Sketchfab/Fab, and fal fallback generation.",
+    description: "Classify asset intent and write a source priority plan across local cache, Poly Haven, Sketchfab, manual Fab URLs, and fal fallback generation.",
     category: "asset",
     risk: "safe_write",
     inputSchema: {
@@ -120,9 +120,8 @@ export const assetTools: ToolDefinition[] = [
         const copied = await context.artifactStore.copyIn(candidate.localPath, `assets/original/${basename(candidate.localPath)}`);
         artifacts.push(copied);
       } else if (candidate.downloadUrl && process.env.CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD === "true") {
-        const response = await fetch(candidate.downloadUrl);
-        if (!response.ok) throw new Error(`Asset download failed: ${response.status} ${response.statusText}`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
+        const { bytes, resolvedUrl } = await downloadCandidateBytes(candidate);
+        candidate.metadata = { ...(candidate.metadata ?? {}), resolvedDownloadUrl: resolvedUrl };
         const copied = await context.artifactStore.writeBytes(`assets/original/${safeName(candidate.title)}.${extensionFor(candidate)}`, bytes);
         artifacts.push(copied);
       }
@@ -434,4 +433,51 @@ function extensionFor(candidate: AssetCandidate): string {
   const match = source.toLowerCase().match(/\.([a-z0-9]+)(?:\?|$)/);
   if (match?.[1]) return match[1];
   return candidate.format === "unknown" || candidate.format === "material" ? "json" : candidate.format;
+}
+
+async function downloadCandidateBytes(candidate: AssetCandidate): Promise<{ bytes: Uint8Array; resolvedUrl: string }> {
+  let url = candidate.downloadUrl;
+  if (!url) throw new Error("candidate.downloadUrl is required");
+  if (candidate.provider === "sketchfab") {
+    if (!process.env.SKETCHFAB_TOKEN) throw new Error("SKETCHFAB_TOKEN is required for Sketchfab downloads");
+    const downloadInfo = await fetchJson<Record<string, unknown>>(url, {
+      Authorization: `Token ${process.env.SKETCHFAB_TOKEN}`
+    });
+    url = findSketchfabArchiveUrl(downloadInfo);
+    if (!url) throw new Error("Sketchfab download API did not expose a GLTF/GLB archive URL");
+  }
+  const response = await fetch(url, { headers: { "User-Agent": "creative-pipeline-mcp/asset-sourcing" } });
+  if (!response.ok) throw new Error(`Asset download failed: ${response.status} ${response.statusText}`);
+  return { bytes: new Uint8Array(await response.arrayBuffer()), resolvedUrl: url };
+}
+
+async function fetchJson<T>(url: string, headers: Record<string, string> = {}): Promise<T> {
+  const response = await fetch(url, {
+    headers: {
+      ...headers,
+      "Accept": "application/json",
+      "User-Agent": "creative-pipeline-mcp/asset-sourcing"
+    }
+  });
+  if (!response.ok) throw new Error(`JSON fetch failed: ${response.status} ${response.statusText}`);
+  return await response.json() as T;
+}
+
+function findSketchfabArchiveUrl(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  for (const key of ["gltf", "glb", "source"]) {
+    const nested = record[key];
+    if (nested && typeof nested === "object") {
+      const url = (nested as Record<string, unknown>).url;
+      if (typeof url === "string") return url;
+    }
+  }
+  for (const nested of Object.values(record)) {
+    if (nested && typeof nested === "object") {
+      const url = findSketchfabArchiveUrl(nested);
+      if (url) return url;
+    }
+  }
+  return undefined;
 }
