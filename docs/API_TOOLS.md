@@ -13,6 +13,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `asset.search_candidates`
 - `asset.acquire_asset`
 - `asset.generate_3d`
+- `asset.ingest_generated_result`
 - `asset.postprocess_generated_asset`
 - `asset.finalize_asset`
 - `asset.write_provenance`

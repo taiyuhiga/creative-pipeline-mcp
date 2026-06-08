@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, extname } from "node:path";
 
 import type { ToolDefinition, ToolExecutionContext } from "../../../core/dist/types.js";
 import { resolveAssetCandidates } from "../assetResolver.js";
@@ -200,6 +201,84 @@ export const assetTools: ToolDefinition[] = [
         message: submission.submitted ? "fal 3D generation submitted" : "fal 3D generation request written but not submitted",
         artifacts: [requestArtifact, resultArtifact],
         data: { request, submission }
+      };
+    }
+  },
+  {
+    name: "asset.ingest_generated_result",
+    description: "Extract generated model, preview, and texture URLs from a fal-style result and optionally download generated outputs into artifact storage.",
+    category: "asset",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        falResult: { type: "object" },
+        falResultPath: { type: "string" },
+        download: { type: "boolean" },
+        title: { type: "string", maxLength: 300 },
+        license: { type: "string", maxLength: 100 }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const result = await loadGeneratedResult(context, input);
+      const outputs = extractGeneratedOutputs(result);
+      const shouldDownload = input.download === true && process.env.CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD === "true";
+      const downloaded: Array<{ role: string; url: string; artifact: string }> = [];
+      const artifacts: string[] = [];
+      if (shouldDownload) {
+        for (const output of outputs) {
+          const bytes = await downloadUrlBytes(output.url);
+          const artifact = await context.artifactStore.writeBytes(`assets/generated/${output.fileName}`, bytes);
+          downloaded.push({ role: output.role, url: output.url, artifact });
+          artifacts.push(artifact);
+        }
+      }
+      const manifest = {
+        schema: "creative.pipeline.generated_asset_outputs.v1",
+        title: typeof input.title === "string" ? input.title : "generated asset",
+        license: typeof input.license === "string" ? input.license : "Generated",
+        outputs,
+        downloaded,
+        downloadEnabled: process.env.CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD === "true",
+        downloadRequested: input.download === true,
+        postprocess: {
+          nextTool: "asset.postprocess_generated_asset",
+          requiredFinalQc: "Run blender.validate_asset against the downloaded or postprocessed model before delivery."
+        }
+      };
+      const outputsArtifact = await context.artifactStore.writeJson("assets/generated/fal_outputs.json", manifest);
+      const provenanceArtifact = await context.artifactStore.writeJson("assets/provenance.json", {
+        schema: "creative.pipeline.asset_provenance.v1",
+        sourceProvider: "fal_hunyuan",
+        sourceId: "fal_result",
+        title: manifest.title,
+        license: manifest.license,
+        sourceUrl: outputs.find((output) => output.role === "model")?.url ?? outputs[0]?.url,
+        downloadUrl: downloaded.find((output) => output.role === "model")?.artifact,
+        generated: true,
+        acquiredAt: new Date().toISOString(),
+        notes: [
+          "Generated outputs were extracted from a fal-style result.",
+          "Run postprocess and final Blender QC before delivery."
+        ]
+      });
+      const licenseArtifact = await context.artifactStore.writeJson("assets/license_manifest.json", {
+        schema: "creative.pipeline.asset_license_manifest.v1",
+        entries: [{
+          title: manifest.title,
+          provider: "fal",
+          license: manifest.license,
+          generated: true,
+          urls: outputs.map((output) => output.url)
+        }]
+      });
+      artifacts.push(outputsArtifact, provenanceArtifact, licenseArtifact);
+      return {
+        ok: true,
+        message: shouldDownload ? `Generated outputs ingested and downloaded: ${downloaded.length}` : `Generated outputs ingested: ${outputs.length}`,
+        artifacts,
+        data: { manifest }
       };
     }
   },
@@ -449,6 +528,89 @@ async function downloadCandidateBytes(candidate: AssetCandidate): Promise<{ byte
   const response = await fetch(url, { headers: { "User-Agent": "creative-pipeline-mcp/asset-sourcing" } });
   if (!response.ok) throw new Error(`Asset download failed: ${response.status} ${response.statusText}`);
   return { bytes: new Uint8Array(await response.arrayBuffer()), resolvedUrl: url };
+}
+
+async function loadGeneratedResult(context: ToolExecutionContext, input: Record<string, unknown>): Promise<unknown> {
+  if (input.falResult && typeof input.falResult === "object") return input.falResult;
+  if (typeof input.falResultPath === "string") {
+    const path = await context.artifactStore.assertReadableFile(input.falResultPath);
+    return JSON.parse(await readFile(path, "utf8")) as unknown;
+  }
+  throw new Error("falResult or falResultPath is required");
+}
+
+function extractGeneratedOutputs(value: unknown): Array<{ role: string; url: string; fileName: string }> {
+  const found: Array<{ keyPath: string; url: string }> = [];
+  collectUrls(value, [], found);
+  const seen = new Set<string>();
+  const outputs = found
+    .filter((item) => {
+      if (seen.has(item.url)) return false;
+      seen.add(item.url);
+      return generatedOutputRole(item.url, item.keyPath) !== "other";
+    })
+    .map((item, index) => {
+      const role = generatedOutputRole(item.url, item.keyPath);
+      return { role, url: item.url, fileName: generatedFileName(item.url, role, index) };
+    });
+  if (outputs.length === 0) throw new Error("No generated model, preview, or texture URLs found in result");
+  outputs.sort((left, right) => outputRoleRank(left.role) - outputRoleRank(right.role));
+  return outputs;
+}
+
+function collectUrls(value: unknown, path: string[], output: Array<{ keyPath: string; url: string }>): void {
+  if (typeof value === "string") {
+    if (/^https?:\/\//.test(value)) output.push({ keyPath: path.join("."), url: value });
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectUrls(item, [...path, String(index)], output));
+    return;
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    collectUrls(nested, [...path, key], output);
+  }
+}
+
+function generatedOutputRole(url: string, keyPath: string): "model" | "preview" | "texture" | "archive" | "other" {
+  const text = `${keyPath} ${url}`.toLowerCase();
+  if (/\.(glb|gltf|fbx|obj|usd|usdz)(?:[?#]|$)/.test(text) || /\b(model|mesh)\b/.test(text)) return "model";
+  if (/\.(png|jpg|jpeg|webp)(?:[?#]|$)/.test(text) && /\b(preview|thumbnail|thumb|image)\b/.test(text)) return "preview";
+  if (/\.(png|jpg|jpeg|webp|tif|tiff)(?:[?#]|$)/.test(text) && /\b(texture|albedo|normal|roughness|metallic|map)\b/.test(text)) return "texture";
+  if (/\.(zip|tar|tgz)(?:[?#]|$)/.test(text) || /\b(archive|source)\b/.test(text)) return "archive";
+  return "other";
+}
+
+function generatedFileName(url: string, role: string, index: number): string {
+  const parsed = new URL(url);
+  const originalExtension = extname(parsed.pathname).replace(/^\./, "").toLowerCase();
+  const extension = originalExtension || (role === "model" ? "glb" : role === "archive" ? "zip" : "png");
+  const suffix = role === "texture" ? `_${index}` : "";
+  return `${role}${suffix}.${extension}`;
+}
+
+function outputRoleRank(role: string): number {
+  if (role === "model") return 0;
+  if (role === "archive") return 1;
+  if (role === "preview") return 2;
+  if (role === "texture") return 3;
+  return 4;
+}
+
+async function downloadUrlBytes(url: string): Promise<Uint8Array> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.CREATIVE_MCP_ASSET_FETCH_TIMEOUT_MS ?? 10000));
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "creative-pipeline-mcp/asset-sourcing" }
+    });
+    if (!response.ok) throw new Error(`Generated output download failed: ${response.status} ${response.statusText}`);
+    return new Uint8Array(await response.arrayBuffer());
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchJson<T>(url: string, headers: Record<string, string> = {}): Promise<T> {

@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.26-alpha.0",
+  "packageVersion": "0.2.27-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/asset-sourcing/dist/index.js",
@@ -179,6 +179,35 @@
         "required": [
           "prompt"
         ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.ingest_generated_result",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Extract generated model, preview, and texture URLs from a fal-style result and optionally download generated outputs into artifact storage.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "download": {
+            "type": "boolean"
+          },
+          "falResult": {
+            "type": "object"
+          },
+          "falResultPath": {
+            "type": "string"
+          },
+          "license": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },

@@ -60,7 +60,7 @@
 
 ## Next Release
 
-- `v0.2.26-alpha.0` is the current published alpha pre-release. It includes npm `@alpha` install guidance, dist-tag maintenance docs, bounded external Blender MCP macro tools, typed Premiere CEP edit commands, and updated external adapter snapshots.
+- `v0.2.27-alpha.0` is the current published alpha pre-release. It includes npm `@alpha` install guidance, dist-tag maintenance docs, bounded external Blender MCP macro tools, typed Premiere CEP edit commands, and updated external adapter snapshots.
 - The next alpha should publish the Asset Sourcing Layer so source selection, candidate scoring, provenance, and fal fallback requests are available through typed tools.
 - Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.

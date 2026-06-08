@@ -17,6 +17,10 @@ artifacts/
     generated/
       fal_request.json
       fal_result.json
+      fal_outputs.json
+      model.glb
+      preview.png
+      texture_*.png
     optimized/
     qc/
   approvals/

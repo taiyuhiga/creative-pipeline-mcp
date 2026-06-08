@@ -21,6 +21,7 @@ Creative Pipeline MCP resolves assets through typed source plans, candidate scor
 - `asset.search_candidates`
 - `asset.acquire_asset`
 - `asset.generate_3d`
+- `asset.ingest_generated_result`
 - `asset.postprocess_generated_asset`
 - `asset.finalize_asset`
 - `asset.write_provenance`
@@ -44,6 +45,8 @@ Supported model routes:
 - text to 3D: Hunyuan Pro, Hyper3D Rodin, Meshy, Tripo
 - image to 3D: Hunyuan Pro, Tripo, Meshy, Hyper3D
 - postprocess: Hunyuan Smart Topology
+
+After a generation job returns, pass the fal-style response to `asset.ingest_generated_result`. It extracts model, preview, texture, and archive URLs into `artifacts/assets/generated/fal_outputs.json`. Downloads remain disabled unless both the tool input sets `download: true` and `CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD=true`.
 
 ## Provenance
 

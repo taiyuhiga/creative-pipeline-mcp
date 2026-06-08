@@ -109,6 +109,7 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
     "asset.search_candidates",
     "asset.acquire_asset",
     "asset.generate_3d",
+    "asset.ingest_generated_result",
     "asset.postprocess_generated_asset",
     "asset.finalize_asset",
     "asset.write_provenance",
@@ -150,6 +151,62 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
   assert.equal(generated.ok, true);
   assert.equal(generated.data.selected.generated, true);
   assert.ok(generated.artifacts.some((artifact) => artifact.endsWith("assets/generated/fal_request.json")));
+});
+
+test("Asset sourcing tools ingest generated fal outputs and download only when explicitly enabled", async () => {
+  const server = createHttpServer((request, response) => {
+    if (request.url === "/model.glb") {
+      response.setHeader("Content-Type", "model/gltf-binary");
+      response.end(Buffer.from("glb"));
+      return;
+    }
+    if (request.url === "/preview.png") {
+      response.setHeader("Content-Type", "image/png");
+      response.end(Buffer.from("png"));
+      return;
+    }
+    if (request.url === "/albedo.png") {
+      response.setHeader("Content-Type", "image/png");
+      response.end(Buffer.from("texture"));
+      return;
+    }
+    response.statusCode = 404;
+    response.end("not found");
+  });
+  await listen(server);
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const previousDownload = process.env.CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD;
+  process.env.CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD = "true";
+  try {
+    const ingest = assetTools.find((tool) => tool.name === "asset.ingest_generated_result");
+    assert.ok(ingest);
+    const result = await ingest.execute(await context(), {
+      title: "generated chair",
+      download: true,
+      falResult: {
+        response: {
+          model_mesh: { url: `${baseUrl}/model.glb` },
+          thumbnail: { url: `${baseUrl}/preview.png` },
+          textures: [{ albedo_url: `${baseUrl}/albedo.png` }]
+        }
+      }
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.data.manifest.outputs.length, 3);
+    assert.ok(result.data.manifest.outputs.some((output) => output.role === "model"));
+    assert.ok(result.data.manifest.outputs.some((output) => output.role === "preview"));
+    assert.ok(result.data.manifest.outputs.some((output) => output.role === "texture"));
+    assert.equal(result.data.manifest.downloaded.length, 3);
+    assert.ok(result.artifacts.some((artifact) => artifact.endsWith("assets/generated/model.glb")));
+    assert.ok(result.artifacts.some((artifact) => artifact.endsWith("assets/generated/preview.png")));
+    assert.ok(result.artifacts.some((artifact) => artifact.endsWith("assets/generated/fal_outputs.json")));
+    assert.ok(existsSync(result.artifacts.find((artifact) => artifact.endsWith("assets/generated/model.glb"))));
+  } finally {
+    restoreEnv("CREATIVE_MCP_ENABLE_ASSET_DOWNLOAD", previousDownload);
+    await closeServer(server);
+  }
 });
 
 test("Asset sourcing tools can use mocked Poly Haven and Sketchfab API adapters when enabled", async () => {

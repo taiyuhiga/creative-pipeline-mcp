@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.27-alpha.0
+
+### Added
+
+- Added `asset.ingest_generated_result` to extract generated model, preview, texture, and archive URLs from fal-style responses.
+- Added explicit download gating for generated outputs into `artifacts/assets/generated/`.
+- Added generated-output provenance, license manifest, and postprocess/QC handoff artifacts.
+
 ## 0.2.26-alpha.0
 
 ### Changed
