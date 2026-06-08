@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.24-alpha.0
+
+### Changed
+
+- Updated the roadmap to treat `v0.2.23-alpha.0` as shipped and to keep future alpha releases on the npm `alpha` dist-tag until v1.
+- Refreshed the npm publish workflow dispatch example tag for the current alpha release train.
+- Clarified the remaining GitHub issues with explicit blocker reasons, required evidence, and current alpha release state.
+
 ## 0.2.23-alpha.0
 
 ### Changed

@@ -59,8 +59,8 @@
 
 ## Next Release
 
-- Publish `v0.2.20-alpha.0` as a pre-release so `main` and the latest release include npm `@alpha` install guidance and dist-tag maintenance docs.
-- Keep npm releases on the `alpha` dist-tag while package versions include pre-release suffixes.
+- `v0.2.24-alpha.0` is the current published alpha pre-release. It includes npm `@alpha` install guidance, dist-tag maintenance docs, bounded external Blender MCP macro tools, typed Premiere CEP edit commands, and updated external adapter snapshots.
+- Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.
 
