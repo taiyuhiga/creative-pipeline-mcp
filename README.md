@@ -27,7 +27,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.3.2-alpha.0`
+Current version: `0.3.3-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -61,6 +61,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - provenance and license manifests for acquired or generated assets, with final Blender QC required before delivery
 - provider registry tools for app availability, video editor resolution, motion engine resolution, game engine resolution, and combined provider reports
 - provider workflow simulator for Provider Registry, CapCut, After Effects, Roblox, and Director artifact coverage without live app execution claims
+- provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts
 - experimental CapCut provider tools for social draft plan, manifest, and QC artifacts
 - experimental After Effects provider tools for render plan, frame preview plan, aerender/nexrender queue manifests, render status, and motion QC
 - experimental Roblox provider tools for read-only project inspection, place-tree reports, script indexing, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and combined project reports
@@ -200,7 +201,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.2-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.3-alpha.0.zip
 ```
 
 Release assets:

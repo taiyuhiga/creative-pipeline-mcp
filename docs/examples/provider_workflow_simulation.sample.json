@@ -18,6 +18,18 @@
       "artifacts": ["capcut/draft_plan.json", "capcut/draft_manifest.json", "capcut/draft_qc_report.json"]
     },
     {
+      "action": "video.create_edit",
+      "ok": true,
+      "message": "Video edit provider package written: capcut",
+      "artifacts": [
+        "video/edit_provider_resolution.json",
+        "video/edit_plan.json",
+        "capcut/fallback_draft_plan.json",
+        "capcut/fallback_draft_manifest.json",
+        "capcut/fallback_draft_qc_report.json"
+      ]
+    },
+    {
       "action": "ae.queue_aerender",
       "ok": true,
       "message": "aerender queue manifest written",
@@ -33,6 +45,7 @@
   "coverage": {
     "providerRegistry": true,
     "capcut": true,
+    "videoEditFallback": true,
     "afterEffects": true,
     "roblox": true,
     "director": true,

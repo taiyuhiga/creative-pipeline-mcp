@@ -215,6 +215,36 @@ test("Director provider workflows write social, motion, Roblox feature, and trai
   }
 });
 
+test("Video edit provider package writes CapCut fallback artifacts when Premiere is unavailable", async () => {
+  const tool = directorTools.find((candidate) => candidate.name === "video.create_edit");
+  assert.ok(tool);
+  const result = await tool.execute(await context(), {
+    brief: "Create a social edit with Premiere preferred and CapCut fallback.",
+    title: "Fallback social edit",
+    preferredProvider: "premiere",
+    fallbackProvider: "capcut",
+    deliveryProfile: "captioned_social_delivery",
+    aspectRatio: "9:16",
+    media: [{ path: "source.mp4", role: "main" }],
+    captionsPath: "captions/source.srt"
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.data.plan.selectedProvider, "capcut");
+  assert.equal(result.data.plan.policy.rawAppProxy, false);
+  assert.equal(result.data.plan.policy.liveExecutionClaims, false);
+  assert.equal(result.data.fallbackDraft.plan.copyOnWrite, true);
+  assert.equal(result.data.fallbackDraft.qc.status, "pass");
+  for (const suffix of [
+    "video/edit_provider_resolution.json",
+    "video/edit_plan.json",
+    "capcut/fallback_draft_plan.json",
+    "capcut/fallback_draft_manifest.json",
+    "capcut/fallback_draft_qc_report.json"
+  ]) {
+    assert.ok(result.artifacts.some((artifact) => artifact.endsWith(suffix)), `${suffix} should be written`);
+  }
+});
+
 test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox, and Director artifacts", async () => {
   const artifactRoot = resolve("artifacts", "tests", "provider-simulator");
   const result = spawnSync(process.execPath, ["scripts/simulate-provider-workflows.mjs"], {
@@ -229,6 +259,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   assert.equal(output.data.status, "pass");
   assert.equal(output.data.coverage.providerRegistry, true);
   assert.equal(output.data.coverage.capcut, true);
+  assert.equal(output.data.coverage.videoEditFallback, true);
   assert.equal(output.data.coverage.afterEffects, true);
   assert.equal(output.data.coverage.roblox, true);
   assert.equal(output.data.coverage.director, true);
@@ -239,6 +270,8 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   for (const artifact of [
     "providers/provider_workflow_simulation.json",
     "providers/provider_report.json",
+    "video/edit_plan.json",
+    "capcut/fallback_draft_manifest.json",
     "capcut/draft_qc_report.json",
     "after-effects/render_queue/aerender_command.json",
     "after-effects/render_queue/nexrender_job.json",

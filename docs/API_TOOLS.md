@@ -127,6 +127,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `director.full_production_report`
 - `director.multi_agent_review`
 - `director.create_social_video`
+- `video.create_edit`
 - `director.create_motion_package`
 - `director.build_roblox_feature`
 - `director.create_roblox_trailer`

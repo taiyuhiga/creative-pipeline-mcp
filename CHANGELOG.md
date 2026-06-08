@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3-alpha.0
+
+### Added
+
+- Added `video.create_edit`, a provider-aware edit package tool that prefers Premiere and writes CapCut fallback draft artifacts when Premiere is unavailable.
+- Added CapCut fallback draft plan, manifest, and QC artifacts with copy-on-write policy and no live app execution claims.
+- Added test coverage for the Premiere-to-CapCut fallback path.
+
 ## 0.3.2-alpha.0
 
 ### Added

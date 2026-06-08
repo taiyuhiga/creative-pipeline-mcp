@@ -118,6 +118,16 @@ await run("director.create_social_video", {
   deliveryProfile: "captioned_social_delivery",
   preferredProvider: "capcut"
 });
+await run("video.create_edit", {
+  brief: "Create a provider-simulator edit package with Premiere preferred and CapCut fallback.",
+  title: "Provider Simulator Edit",
+  deliveryProfile: "captioned_social_delivery",
+  preferredProvider: "premiere",
+  fallbackProvider: "capcut",
+  aspectRatio: "9:16",
+  media: [{ path: "media/provider-simulator.mp4", role: "main" }],
+  captionsPath: "captions/provider-simulator.srt"
+});
 await run("director.create_motion_package", {
   brief: "Create a provider-simulator lower-third motion package.",
   compName: "Main",
@@ -146,6 +156,7 @@ const summary = {
   coverage: {
     providerRegistry: commands.some((command) => command.action.startsWith("provider.")),
     capcut: commands.some((command) => command.action.startsWith("capcut.")),
+    videoEditFallback: commands.some((command) => command.action === "video.create_edit"),
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
     director: commands.some((command) => command.action.startsWith("director.")),

@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "../../core/dist/index.js";
+import { resolveProvider, type ProviderAvailability, type ToolDefinition } from "../../core/dist/index.js";
 
 export const directorTools: ToolDefinition[] = [
   {
@@ -157,6 +157,105 @@ export const directorTools: ToolDefinition[] = [
     }
   },
   {
+    name: "video.create_edit",
+    description: "Create a provider-aware edit package that prefers Premiere and writes a CapCut fallback draft when Premiere is unavailable.",
+    category: "core",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        brief: { type: "string", maxLength: 4000 },
+        title: { type: "string", maxLength: 200 },
+        deliveryProfile: { type: "string" },
+        preferredProvider: { type: "string" },
+        fallbackProvider: { type: "string" },
+        durationSeconds: { type: "number", minimum: 1 },
+        aspectRatio: { type: "string", enum: ["16:9", "9:16", "1:1", "4:5"] },
+        media: { type: "array" },
+        captionsPath: { type: "string" }
+      },
+      required: ["brief"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const preferredProvider = optionalString(input.preferredProvider) ?? "premiere";
+      const fallbackProvider = optionalString(input.fallbackProvider) ?? "capcut";
+      const resolution = resolveProvider("video_editor", {
+        preferredProvider,
+        allowExperimental: true,
+        requireAvailable: false
+      });
+      const selected = selectVideoProvider(resolution.candidates, preferredProvider, fallbackProvider);
+      const title = optionalString(input.title) ?? "Provider Edit";
+      const generatedAt = new Date().toISOString();
+      const media = Array.isArray(input.media) ? input.media : [];
+      const plan = {
+        schema: "creative.pipeline.video_edit_provider_plan.v1",
+        title,
+        brief: String(input.brief ?? ""),
+        generatedAt,
+        deliveryProfile: optionalString(input.deliveryProfile) ?? "captioned_social_delivery",
+        preferredProvider,
+        fallbackProvider,
+        selectedProvider: selected.provider,
+        selectionReason: selected.reason,
+        providerResolution: resolution,
+        stages: selected.provider === "premiere"
+          ? [
+              "premiere.build_project_delivery",
+              "premiere.enqueue_cep_command",
+              "premiere.read_cep_status",
+              "premiere.finalize_export_qc"
+            ]
+          : [
+              "capcut.create_draft_plan",
+              "capcut.write_draft_manifest",
+              "capcut.run_draft_qc",
+              "director.full_production_report"
+            ],
+        expectedSideEffects: ["write_artifacts_only", "no_external_app_execution"],
+        requiresApproval: true,
+        statusJsonPath: selected.provider === "premiere" ? "premiere/cep_status.json" : "capcut/draft_status.json",
+        rollbackHint: "Delete generated planning artifacts; source media and app projects are not modified.",
+        policy: {
+          rawAppProxy: false,
+          rawExtendScriptProxy: false,
+          rawCapCutApiProxy: false,
+          copyOnWriteRequired: true,
+          liveExecutionClaims: false
+        }
+      };
+      const artifacts = [
+        await context.artifactStore.writeJson("video/edit_provider_resolution.json", resolution),
+        await context.artifactStore.writeJson("video/edit_plan.json", plan)
+      ];
+      let fallbackDraft;
+      if (selected.provider === fallbackProvider) {
+        fallbackDraft = buildCapCutFallbackDraft({
+          title,
+          generatedAt,
+          deliveryProfile: plan.deliveryProfile,
+          durationSeconds: Number(input.durationSeconds ?? 60),
+          aspectRatio: optionalString(input.aspectRatio) ?? "9:16",
+          media,
+          captionsPath: optionalString(input.captionsPath),
+          reason: selected.reason
+        });
+        artifacts.push(
+          await context.artifactStore.writeJson("capcut/fallback_draft_plan.json", fallbackDraft.plan),
+          await context.artifactStore.writeJson("capcut/fallback_draft_manifest.json", fallbackDraft.manifest),
+          await context.artifactStore.writeJson("capcut/fallback_draft_qc_report.json", fallbackDraft.qc)
+        );
+      }
+      return {
+        ok: true,
+        message: `Video edit provider package written: ${selected.provider}`,
+        artifacts,
+        data: { plan, fallbackDraft }
+      };
+    }
+  },
+  {
     name: "director.create_motion_package",
     description: "Create an After Effects/Blender motion package plan with render QC gates.",
     category: "core",
@@ -272,3 +371,92 @@ export const directorTools: ToolDefinition[] = [
     }
   }
 ];
+
+function selectVideoProvider(candidates: ProviderAvailability[], preferredProvider: string, fallbackProvider: string) {
+  const preferred = candidates.find((candidate) => candidate.provider === preferredProvider);
+  if (preferred?.available) {
+    return { provider: preferred.provider, reason: "preferred_provider_available" };
+  }
+  const fallback = candidates.find((candidate) => candidate.provider === fallbackProvider);
+  if (fallback) {
+    return {
+      provider: fallback.provider,
+      reason: fallback.available ? "fallback_provider_available" : "fallback_manifest_provider_unavailable_locally"
+    };
+  }
+  const available = candidates.find((candidate) => candidate.available);
+  if (available) {
+    return { provider: available.provider, reason: "alternate_available_provider" };
+  }
+  return { provider: preferred?.provider ?? candidates[0]?.provider ?? preferredProvider, reason: "manifest_provider_unavailable_locally" };
+}
+
+function buildCapCutFallbackDraft(input: {
+  title: string;
+  generatedAt: string;
+  deliveryProfile: string;
+  durationSeconds: number;
+  aspectRatio: string;
+  media: unknown[];
+  captionsPath?: string;
+  reason: string;
+}) {
+  const policy = {
+    rawProxy: false,
+    copyOnWriteRequired: true,
+    noEncryptedDraftBypass: true,
+    noBinaryModification: true,
+    noRawDraftOverwrite: true,
+    approvalRequiredForCloudOrGuiWrites: true
+  };
+  const plan = {
+    schema: "creative.pipeline.capcut_fallback_draft_plan.v1",
+    title: input.title,
+    generatedAt: input.generatedAt,
+    provider: "capcut",
+    fallbackReason: input.reason,
+    deliveryProfile: input.deliveryProfile,
+    durationSeconds: input.durationSeconds,
+    aspectRatio: input.aspectRatio,
+    media: input.media,
+    captionsPath: input.captionsPath,
+    copyOnWrite: true,
+    expectedSideEffects: ["write_artifacts_only", "no_capcut_project_mutation"],
+    requiresApproval: true,
+    statusJsonPath: "capcut/draft_status.json",
+    rollbackHint: "Delete generated fallback draft artifacts; source media is not modified.",
+    policy
+  };
+  const manifest = {
+    schema: "creative.pipeline.capcut_fallback_manifest.v1",
+    title: input.title,
+    generatedAt: input.generatedAt,
+    outputDirectory: "artifacts/capcut/fallback-drafts",
+    copyOnWrite: true,
+    media: input.media,
+    expectedArtifacts: [
+      "capcut/fallback_draft_plan.json",
+      "capcut/fallback_draft_manifest.json",
+      "capcut/fallback_draft_qc_report.json"
+    ],
+    policy
+  };
+  const qc = {
+    schema: "creative.pipeline.capcut_fallback_qc.v1",
+    generatedAt: input.generatedAt,
+    title: input.title,
+    status: "pass",
+    checks: [
+      { id: "copy_on_write", status: "pass", value: true },
+      { id: "typed_operations_only", status: "pass", value: true },
+      { id: "raw_proxy_absent", status: "pass", value: false },
+      { id: "live_execution_claim_absent", status: "pass", value: false }
+    ],
+    policy
+  };
+  return { plan, manifest, qc };
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}

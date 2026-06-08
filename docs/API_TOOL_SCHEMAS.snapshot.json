@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.2-alpha.0",
+  "packageVersion": "0.3.3-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -2704,6 +2704,57 @@
             "type": "string"
           }
         },
+        "type": "object"
+      }
+    },
+    {
+      "name": "video.create_edit",
+      "category": "core",
+      "risk": "safe_write",
+      "description": "Create a provider-aware edit package that prefers Premiere and writes a CapCut fallback draft when Premiere is unavailable.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:5"
+            ],
+            "type": "string"
+          },
+          "brief": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "captionsPath": {
+            "type": "string"
+          },
+          "deliveryProfile": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "fallbackProvider": {
+            "type": "string"
+          },
+          "media": {
+            "type": "array"
+          },
+          "preferredProvider": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "brief"
+        ],
         "type": "object"
       }
     }
