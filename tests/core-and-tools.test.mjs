@@ -1600,11 +1600,21 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
   await mkdir(join(artifactRoot, "premiere", "qc"), { recursive: true });
   await mkdir(join(artifactRoot, "premiere", "thumbnails"), { recursive: true });
   await mkdir(join(artifactRoot, "blender", "previews"), { recursive: true });
+  await mkdir(join(artifactRoot, "providers"), { recursive: true });
+  await mkdir(join(artifactRoot, "capcut"), { recursive: true });
+  await mkdir(join(artifactRoot, "after-effects"), { recursive: true });
+  await mkdir(join(artifactRoot, "roblox"), { recursive: true });
   await writeFile(join(artifactRoot, "report.json"), JSON.stringify({ summary: { status: "pass" } }), "utf8");
   await writeFile(join(artifactRoot, "logs", "tool.json"), JSON.stringify({ action: "core.write_run_log", status: "success" }), "utf8");
   await writeFile(join(artifactRoot, "logs", "failed.json"), JSON.stringify({
     action: "director.plan_production",
     input: { brief: "retry this production plan" },
+    risk: "safe_write",
+    status: "failed"
+  }), "utf8");
+  await writeFile(join(artifactRoot, "logs", "failed-provider.json"), JSON.stringify({
+    action: "provider.write_provider_report",
+    input: { project: "retry provider report" },
     risk: "safe_write",
     status: "failed"
   }), "utf8");
@@ -1614,6 +1624,29 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
       ffmpeg: { available: true, command: "ffmpeg", status: 0 },
       blender: { available: false, command: "blender", status: null }
     }
+  }), "utf8");
+  await writeFile(join(artifactRoot, "providers", "provider_report.json"), JSON.stringify({
+    schema: "creative.pipeline.provider_report.v1",
+    project: "dashboard",
+    resolutions: [{ domain: "video_editor", selected: { provider: "capcut", available: false } }],
+    policy: { rawAppProxy: false }
+  }), "utf8");
+  await writeFile(join(artifactRoot, "capcut", "draft_qc_report.json"), JSON.stringify({
+    schema: "creative.pipeline.capcut_draft_qc.v1",
+    title: "Dashboard draft",
+    status: "pass",
+    policy: { rawProxy: false }
+  }), "utf8");
+  await writeFile(join(artifactRoot, "after-effects", "motion_qc_report.json"), JSON.stringify({
+    schema: "creative.pipeline.ae_motion_qc.v1",
+    compName: "Main",
+    status: "pass",
+    policy: { rawJsxDefault: false }
+  }), "utf8");
+  await writeFile(join(artifactRoot, "roblox", "combined_project_report.json"), JSON.stringify({
+    schema: "creative.pipeline.roblox_combined_project_report.v1",
+    status: "ready_for_human_review",
+    policy: { noExecutorTools: true }
   }), "utf8");
   await writeFile(join(artifactRoot, "premiere", "qc", "delivery_qc_report.json"), JSON.stringify({
     schema: "creative.pipeline.delivery_qc_report.v1",
@@ -1661,6 +1694,13 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
     assert.equal(adaptersResponse.status, 200);
     const adapters = await adaptersResponse.json();
     assert.equal(adapters.reports[0].summary.available, 1);
+    const providersResponse = await fetch(`http://127.0.0.1:${port}/api/providers`, { headers });
+    assert.equal(providersResponse.status, 200);
+    const providers = await providersResponse.json();
+    assert.ok(providers.reports.some((report) => report.path === "providers/provider_report.json"));
+    assert.ok(providers.reports.some((report) => report.path === "capcut/draft_qc_report.json"));
+    assert.ok(providers.reports.some((report) => report.path === "after-effects/motion_qc_report.json"));
+    assert.ok(providers.reports.some((report) => report.path === "roblox/combined_project_report.json"));
     const qcResponse = await fetch(`http://127.0.0.1:${port}/api/qc-reports`, { headers });
     assert.equal(qcResponse.status, 200);
     const qcReports = await qcResponse.json();
@@ -1683,16 +1723,23 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
     assert.ok(jobs.jobs.some((job) => job.kind === "log"));
     assert.ok(jobs.jobs.some((job) => job.kind === "cep_status"));
     assert.ok(jobs.jobs.some((job) => job.id === "failed.json" && job.retryable === true));
+    assert.ok(jobs.jobs.some((job) => job.id === "failed-provider.json" && job.retryable === true));
     const retryResponse = await fetch(`http://127.0.0.1:${port}/api/jobs/retry`, {
       method: "POST",
       headers: { ...headers, "content-type": "application/json" },
       body: JSON.stringify({ id: "failed.json" })
     });
     assert.equal(retryResponse.status, 200);
+    const providerRetryResponse = await fetch(`http://127.0.0.1:${port}/api/jobs/retry`, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ id: "failed-provider.json" })
+    });
+    assert.equal(providerRetryResponse.status, 200);
     const rerunsResponse = await fetch(`http://127.0.0.1:${port}/api/reruns`, { headers });
     assert.equal(rerunsResponse.status, 200);
     const reruns = await rerunsResponse.json();
-    assert.equal(reruns.reruns.length, 1);
+    assert.equal(reruns.reruns.length, 2);
   } finally {
     child.kill();
     await Promise.race([exit, new Promise((resolveDelay) => setTimeout(resolveDelay, 1000))]);

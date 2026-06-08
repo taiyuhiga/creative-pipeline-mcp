@@ -7,6 +7,7 @@ import {
   ArtifactStore,
   coreTools,
   defaultLicenseManifest,
+  providerTools,
   Router,
   ToolRegistry,
   type PermissionLevel,
@@ -15,6 +16,9 @@ import {
 import { blenderTools } from "../../blender-pro-mcp/dist/index.js";
 import { premiereTools } from "../../premiere-pro-mcp/dist/index.js";
 import { directorTools } from "../../director-agent/dist/index.js";
+import { capcutTools } from "../../capcut-social-mcp/dist/index.js";
+import { afterEffectsTools } from "../../after-effects-mcp/dist/index.js";
+import { robloxTools } from "../../roblox-pro-mcp/dist/index.js";
 
 const artifactRoot = resolve(process.env.CREATIVE_MCP_ARTIFACTS ?? "artifacts");
 const port = Number(process.env.PORT ?? 4173);
@@ -164,6 +168,48 @@ async function listAdapterReports(): Promise<Array<{ path: string; updatedAt: st
   return reports;
 }
 
+async function listProviderReports(): Promise<Array<{
+  path: string;
+  updatedAt: string;
+  schema?: unknown;
+  provider?: unknown;
+  domain?: unknown;
+  status?: unknown;
+  selected?: unknown;
+  availability?: unknown;
+  policy?: unknown;
+  report: unknown;
+}>> {
+  const reports = [];
+  for (const artifact of await listArtifacts()) {
+    if (artifact.kind !== "json") continue;
+    const relativePath = artifact.relativePath.toLowerCase();
+    if (
+      !relativePath.startsWith("providers/") &&
+      !relativePath.startsWith("capcut/") &&
+      !relativePath.startsWith("after-effects/") &&
+      !relativePath.startsWith("roblox/")
+    ) {
+      continue;
+    }
+    const json = await readArtifactJson(resolveArtifactPath(artifact.relativePath));
+    const selected = isRecord(json.selected) ? json.selected.provider ?? json.selected : undefined;
+    reports.push({
+      path: artifact.relativePath,
+      updatedAt: artifact.updatedAt,
+      schema: json.schema,
+      provider: json.provider ?? (isRecord(json.availability) ? json.availability.provider : undefined),
+      domain: json.domain ?? (isRecord(json.availability) ? json.availability.domain : undefined),
+      status: json.status ?? json.message,
+      selected,
+      availability: json.availability,
+      policy: json.policy,
+      report: json
+    });
+  }
+  return reports;
+}
+
 async function listQcReports(): Promise<Array<{ path: string; updatedAt: string; title: string; summary?: unknown; report: unknown }>> {
   const reports = [];
   for (const artifact of await listArtifacts()) {
@@ -300,7 +346,16 @@ async function rerunApprovedTool(request: Record<string, unknown>): Promise<unkn
   const action = String(request.action ?? "");
   const input = isRecord(request.input) ? request.input : {};
   const registry = new ToolRegistry();
-  registry.registerMany([...coreTools, ...blenderTools, ...premiereTools, ...directorTools]);
+  registry.registerMany([
+    ...coreTools,
+    ...providerTools,
+    ...blenderTools,
+    ...premiereTools,
+    ...directorTools,
+    ...capcutTools,
+    ...afterEffectsTools,
+    ...robloxTools
+  ]);
   const router = new Router(registry);
   const store = new ArtifactStore(artifactRoot);
   return router.run(action, {
@@ -491,6 +546,12 @@ createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === "/api/providers" && req.method === "GET") {
+    void listProviderReports().then((reports) => {
+      writeJson(res, 200, { artifactRoot, reports });
+    });
+    return;
+  }
   if (url.pathname === "/api/qc-reports" && req.method === "GET") {
     void listQcReports().then((reports) => {
       writeJson(res, 200, { artifactRoot, reports });
@@ -599,6 +660,7 @@ createServer((req, res) => {
   <nav class="toolbar">
     <a href="#approvals-section">Approvals</a>
     <a href="#adapters-section">Adapters</a>
+    <a href="#providers-section">Providers</a>
     <a href="#qc-section">QC Reports</a>
     <a href="#cep-section">CEP Status</a>
     <a href="#blender-section">Blender Previews</a>
@@ -612,6 +674,13 @@ createServer((req, res) => {
 	  <section id="adapters-section">
 	    <h2>Adapter Availability</h2>
 	    <table id="adapters"><thead><tr><th>Report</th><th>Adapter</th><th>Status</th><th>Command</th></tr></thead><tbody></tbody></table>
+	  </section>
+	  <section id="providers-section">
+	    <h2>Provider Status</h2>
+	    <div class="detail-grid">
+	      <table id="providers"><thead><tr><th>Updated</th><th>Path</th><th>Provider</th><th>Domain</th><th>Status</th></tr></thead><tbody></tbody></table>
+	      <pre id="providerDetail" class="muted">Select a provider artifact.</pre>
+	    </div>
 	  </section>
 	  <section>
 	    <h2>Reports</h2>
@@ -744,6 +813,24 @@ createServer((req, res) => {
 	          appendCell(row, adapter.command || '');
 	          tbody.appendChild(row);
 	        }
+	      }
+	    });
+	    fetch('/api/providers', { headers }).then(r => r.json()).then(data => {
+	      const tbody = document.querySelector('#providers tbody');
+	      const detail = document.querySelector('#providerDetail');
+	      for (const report of data.reports) {
+	        const row = document.createElement('tr');
+	        appendCell(row, report.updatedAt);
+	        appendCell(row, report.path);
+	        appendCell(row, text(report.provider || report.selected));
+	        appendCell(row, text(report.domain));
+	        const status = appendCell(row, text(report.status || report.schema));
+	        status.className = statusClass(report.status || report.schema);
+	        row.onclick = () => {
+	          detail.textContent = JSON.stringify(report.report, null, 2);
+	          detail.className = '';
+	        };
+	        tbody.appendChild(row);
 	      }
 	    });
 	    fetch('/api/reports', { headers }).then(r => r.json()).then(data => {

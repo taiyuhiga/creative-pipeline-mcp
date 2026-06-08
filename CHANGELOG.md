@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1-alpha.0
+
+### Added
+
+- Added Dashboard provider status visibility for Provider Registry, CapCut, After Effects, and Roblox artifacts.
+- Added Dashboard retry/rerun coverage for provider, CapCut, After Effects, and Roblox tools.
+
+### Changed
+
+- Added provider packages as Dashboard dependencies so approved provider reruns work from the local review surface.
+
 ## 0.3.0-alpha.0
 
 ### Added

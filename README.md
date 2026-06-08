@@ -27,7 +27,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.3.0-alpha.0`
+Current version: `0.3.1-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -47,6 +47,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - template-based basic Blender repair for GLB/glTF assets when Blender is installed
 - optional WhisperX, PySceneDetect, pyloudnorm, and VMAF adapter tools
 - Dashboard approval queue UI, artifact previews, and job history
+- Dashboard provider status view and provider failed-job retry for Provider Registry, CapCut, After Effects, and Roblox artifacts
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, typed edit command queueing, export command queueing, brand package command queueing, and standardized status JSON
 - bounded Premiere typed edit commands: `trim_clip`, `split_clip`, `move_clip`, `add_marker`, and `set_clip_speed`
 - Premiere project-specific delivery builder for timeline, brand package, export plan, and CEP queue generation
@@ -198,7 +199,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.0-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.1-alpha.0.zip
 ```
 
 Release assets:

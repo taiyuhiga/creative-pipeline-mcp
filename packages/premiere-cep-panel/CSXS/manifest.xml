@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="creative.pipeline.mcp" ExtensionBundleVersion="0.3.0" ExtensionBundleName="Creative Pipeline MCP">
+<ExtensionManifest Version="7.0" ExtensionBundleId="creative.pipeline.mcp" ExtensionBundleVersion="0.3.1" ExtensionBundleName="Creative Pipeline MCP">
   <ExtensionList>
-    <Extension Id="creative.pipeline.mcp.panel" Version="0.3.0"/>
+    <Extension Id="creative.pipeline.mcp.panel" Version="0.3.1"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>

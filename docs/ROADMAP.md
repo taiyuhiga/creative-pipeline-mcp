@@ -36,6 +36,8 @@
 - optional FFmpeg libvmaf adapter tool
 - Dashboard approval queue UI, artifact previews, and job history
 - Dashboard adapter availability, QC detail, CEP status, Blender/Premiere galleries, failed-job retry, rerun history, and download controls
+- Dashboard provider status visibility for Provider Registry, CapCut, After Effects, and Roblox artifacts
+- Dashboard failed-job retry for provider, CapCut, After Effects, and Roblox tools
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
@@ -64,8 +66,8 @@
 
 ## Next Release
 
-- `v0.3.0-alpha.0` is the provider-layer alpha. It adds Provider Registry, CapCut, After Effects, and Roblox manifest/QC provider surfaces while keeping them experimental.
-- The next alpha should improve Dashboard provider visibility and add deeper provider simulator coverage without changing the v1 stable boundary.
+- `v0.3.1-alpha.0` is the provider-dashboard alpha. It adds Dashboard provider visibility and provider rerun coverage without changing the v1 stable boundary.
+- The next alpha should deepen provider simulator coverage and keep CapCut, After Effects, Roblox, and external app execution claims experimental until live evidence exists.
 - Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.
