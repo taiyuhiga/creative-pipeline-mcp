@@ -24,9 +24,8 @@
 - `npm pack --dry-run`
 - `npm run package:premiere-cep -- --verify`
 
-## Still Alpha
+## Stable Scope
 
-- Premiere editing depends on the trusted CEP panel.
-- Full professional editing is not v1 complete.
-- GPL adapters remain optional.
-- Manual macOS/Windows verification is tracked in `docs/COMPATIBILITY_MATRIX.md`.
+- Stable v1 covers QC-first typed operations, artifacts, schemas, approvals, provider planning, package distribution, and documented CI/local evidence.
+- Premiere live CEP editing/export, CapCut execution, After Effects execution, Roblox execution, and optional external adapters remain experimental.
+- Windows + Premiere live evidence is tracked separately in `docs/COMPATIBILITY_MATRIX.md`.

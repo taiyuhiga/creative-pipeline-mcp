@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/core",
-  "version": "0.3.7-alpha.0",
+  "version": "1.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",

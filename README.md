@@ -18,7 +18,7 @@ This repository implements a split creative pipeline architecture:
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
 - `capcut-social-mcp`: experimental CapCut social draft plans, copy-on-write manifests, and draft QC
 - `after-effects-mcp`: experimental After Effects render plans, aerender/nexrender queue manifests, and motion QC
-- `roblox-pro-mcp`: experimental Roblox/Rojo project inspection, script indexing, Luau QC, and command manifests
+- `roblox-pro-mcp`: experimental Roblox/Rojo project inspection, script indexing, Luau QC, Studio MCP session planning, and command manifests
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
 - `premiere-windows-adapter`: Windows CEP/WebSocket reference guardrails
 - `premiere-cep-panel`: minimal CEP panel scaffold for consuming Premiere IPC commands
@@ -27,9 +27,11 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.3.7-alpha.0`
+Current version: `1.0.0`
 
-This is an alpha. The QC-first path runs without Blender or Premiere installed:
+This is the first stable release for the QC-first pipeline surface. The stable v1 claim is intentionally limited to typed operations, artifacts, QC reports, approval policy, provider planning, and packaging. Live app execution surfaces remain experimental unless explicitly documented with runtime evidence.
+
+The QC-first path runs without Blender or Premiere installed:
 
 - GLB/glTF metadata inspection and asset QC
 - Media metadata QC through `ffprobe` when FFmpeg is installed
@@ -71,6 +73,23 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
 Premiere timeline mutation and export/brand-package requests are queued through a trusted CEP file-based IPC adapter, with a minimal CEP panel scaffold included. The CEP edit surface is typed and bounded; raw ExtendScript is not exposed. WhisperX, PySceneDetect, pyloudnorm, VMAF, and GPL tools remain optional external adapters.
 
+## v1 Stable And Experimental Surfaces
+
+| Surface | v1 status |
+| --- | --- |
+| Core registry/router/artifacts/approval/schema validation | Stable |
+| Provider Registry planning and reports | Stable |
+| Asset sourcing plans, provenance, license manifests, and generated-result ingestion | Stable |
+| Blender GLB/glTF QC, preview, optimize, repair, and artifact planning | Stable |
+| Premiere media QC, delivery QC, subtitles, export plans, typed CEP queue generation, and status schemas | Stable |
+| Dashboard artifact/QC/approval/provider review | Stable |
+| npm package, release assets, schema snapshot, and CI gates | Stable |
+| Premiere live CEP editing/export in a real project | Experimental |
+| CapCut draft provider | Experimental |
+| After Effects render provider | Experimental |
+| Roblox provider and Studio MCP session planning | Experimental |
+| External Blender MCP, GPL, WhisperX, PySceneDetect, pyloudnorm, VMAF, `gltfpack`, and other optional adapters | Experimental |
+
 ## Capability Status
 
 | Feature | Status |
@@ -87,26 +106,26 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Dashboard approvals/previews | Localhost-only, token-protected alpha |
 | Premiere timeline creation | Project delivery builder + CEP scaffold |
 | Premiere final export | Project export plan + CEP queue command |
-| Provider Registry | Working for availability, resolution, and reports |
+| Provider Registry | Stable for availability, resolution, and reports |
 | CapCut provider | Experimental, manifest-only draft planning/QC |
 | After Effects provider | Experimental, render-plan and queue-manifest only |
 | Roblox provider | Experimental, read-only/QC and command-manifest only |
-| Full professional editing | Not v1 complete |
+| Full professional editing | Outside stable v1 |
 
 ## Install
 
-Published alpha package:
+Published stable package:
 
 ```bash
-npm install creative-pipeline-mcp@alpha
-npx -p creative-pipeline-mcp@alpha creative-mcp-core
-npx -p creative-pipeline-mcp@alpha creative-asset-sourcing
-npx -p creative-pipeline-mcp@alpha capcut-social-mcp
-npx -p creative-pipeline-mcp@alpha after-effects-mcp
-npx -p creative-pipeline-mcp@alpha roblox-pro-mcp
+npm install creative-pipeline-mcp
+npx -p creative-pipeline-mcp creative-mcp-core
+npx -p creative-pipeline-mcp creative-asset-sourcing
+npx -p creative-pipeline-mcp capcut-social-mcp
+npx -p creative-pipeline-mcp after-effects-mcp
+npx -p creative-pipeline-mcp roblox-pro-mcp
 ```
 
-Do not install the unqualified `creative-pipeline-mcp` package for alpha work. The npm `latest` dist-tag is reserved for the first stable v1 release and may not point to the newest alpha. Use `@alpha` until `1.0.0` is intentionally published.
+Pre-release builds continue to use the `alpha` dist-tag. Use `creative-pipeline-mcp@alpha` only when you explicitly want the newest experimental build after v1.
 
 Local repository development:
 
@@ -201,7 +220,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.7-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.0.0.zip
 ```
 
 Release assets:

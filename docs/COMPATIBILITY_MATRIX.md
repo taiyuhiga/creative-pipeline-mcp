@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-This matrix tracks what must be verified before v1.
+This matrix tracks v1 stable evidence and deferred live-execution evidence.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
@@ -17,14 +17,14 @@ This matrix tracks what must be verified before v1.
 | macOS + Blender | Local covered | `node examples/blender-e2e.mjs` rendered preview, optimized GLB, and wrote QC report |
 | macOS + Premiere | Local covered | Premiere Pro 2026 CEP E2E on macOS 15/Darwin 24.6.0; timeline, brand, and export status success |
 | Windows + Blender | CI covered/manual optional | `windows-blender-e2e` passed on GitHub Actions run `27082352428`; manual workstation evidence is still useful |
-| Windows + Premiere | Self-hosted workflow required | `.github/workflows/windows-premiere-e2e.yml` can run on an interactive self-hosted Windows runner with Premiere installed |
+| Windows + Premiere | Deferred from stable v1 | `.github/workflows/windows-premiere-e2e.yml` can run on an interactive self-hosted Windows runner with Premiere installed |
 | WhisperX installed | Local covered | `/Users/higataiyu/.local/bin/whisperx`; adapter check reports available |
 | PySceneDetect installed | Local covered | `/Users/higataiyu/.local/bin/scenedetect`; adapter check reports available |
 | pyloudnorm installed | Local covered | `python3 -m pip install --user pyloudnorm soundfile`; adapter check reports available |
 
 ## Known External Blocker
 
-Windows + Premiere live E2E requires an interactive self-hosted Windows runner with Premiere installed. Hosted GitHub runners cannot launch Premiere or CEP panels. No such runner is currently registered for this repository, so `#20`, `#86`, and `#107` remain excluded from current alpha readiness and blocked for v1 until live CEP status evidence exists.
+Windows + Premiere live E2E requires an interactive self-hosted Windows runner with Premiere installed. Hosted GitHub runners cannot launch Premiere or CEP panels. No such runner is currently registered for this repository, so Windows + Premiere live editing/export is explicitly deferred from the stable v1 claim. Issues `#20` and `#86` remain open for that future live evidence.
 
 Manual results should be recorded with:
 

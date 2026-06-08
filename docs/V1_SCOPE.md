@@ -26,7 +26,7 @@ These surfaces remain available for alpha/beta use, but should be described as e
 - experimental external Blender MCP adapter tools for bounded health, import, preview, export, transform, and validate calls
 - CapCut social draft planning, copy-on-write draft manifests, and draft QC
 - After Effects render plans, aerender/nexrender queue manifests, and motion QC
-- Roblox read-only project inspection, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and project reports
+- Roblox read-only project inspection, Luau QC, official Studio MCP session planning, Rojo/Wally/Selene/Stylua command manifests, and project reports
 
 ## Known External Blocker
 
@@ -45,4 +45,4 @@ Until that runner exists and produces successful status JSON for `build_timeline
 
 ## Release Decision
 
-Use alpha/beta releases while Windows + Premiere is blocked or while optional adapters are still changing. Tag `1.0.0` only after the stable scope above is complete, documented, and verified, and after the release notes clearly identify any remaining experimental surfaces.
+`1.0.0` is approved for the stable scope above with Windows + Premiere live execution, Premiere live CEP editing/export, CapCut execution, After Effects execution, Roblox execution, and optional external adapters explicitly scoped as experimental. Future alpha/beta releases may continue for experimental provider execution while the v1 stable package remains limited to verified QC-first surfaces.

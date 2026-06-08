@@ -67,15 +67,14 @@
 ## Known Blockers
 
 - Windows + Premiere live E2E requires an interactive self-hosted Windows runner with Premiere installed. Hosted GitHub runners cannot launch Premiere or CEP panels.
-- v1 stable npm publishing is intentionally held until the Windows Premiere verification decision is resolved.
-- v1.0 GitHub Release is intentionally held until the stable npm package and final compatibility matrix are complete.
+- Windows + Premiere live editing/export remains deferred from the stable v1 claim until live evidence exists.
 
 ## Next Release
 
-- `v0.3.7-alpha.0` is the Roblox official Studio MCP session-plan alpha. It adds `roblox.prepare_studio_mcp_session` without changing the v1 stable boundary.
-- The next alpha should deepen actual After Effects runner integration evidence or Roblox Studio live status evidence while keeping CapCut, After Effects, Roblox, and external app execution claims experimental until live evidence exists.
+- `1.0.0` is the stable QC-first package release for verified core, provider planning, asset sourcing, Blender QC, Premiere QC, dashboard, schemas, artifacts, and package distribution.
+- The next alpha should deepen actual After Effects runner integration evidence, CapCut draft execution evidence, or Roblox Studio live status evidence while keeping CapCut, After Effects, Roblox, and external app execution claims experimental until live evidence exists.
 - Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
-- Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
+- Keep future alpha and beta GitHub releases marked as pre-releases. Keep stable releases on semver tags without pre-release suffixes.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.
 
 ## v1 Scope
@@ -97,7 +96,6 @@ Deferred or explicitly limited scope:
 
 - Windows + Premiere live E2E until an interactive self-hosted runner is available
 - production-signed Premiere CEP installer with a trusted commercial certificate
-- stable `latest` npm dist-tag and v1.0 GitHub Release
 - direct proxying of external Blender or Premiere MCP servers
 - stable CapCut, After Effects, or Roblox execution claims
 - direct proxying of CapCut, After Effects, Roblox Studio, or external MCP servers

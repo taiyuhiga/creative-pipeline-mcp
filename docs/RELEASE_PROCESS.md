@@ -66,13 +66,13 @@ Check dist-tags before and after publishing:
 npm view creative-pipeline-mcp dist-tags --json
 ```
 
-Pre-release versions must use `alpha`. Stable `1.0.0` must be the first intentional release published with `latest`. Users who want the newest alpha must install:
+Pre-release versions must use `alpha`. Stable `1.0.0` is the first intentional release published with `latest`. Users who want the newest experimental alpha must install:
 
 ```bash
 npm install creative-pipeline-mcp@alpha
 ```
 
-Do not tell users to install the unqualified `creative-pipeline-mcp` package until v1 stable is intentionally published.
+The unqualified `creative-pipeline-mcp` package is valid after the intentional v1 stable publish. Continue to use `@alpha` for experimental builds after v1.
 
 ## npm Dist-Tag Maintenance
 
@@ -110,9 +110,13 @@ Environment: leave empty unless a GitHub environment is added
 
 Then set the repository variable `NPM_TRUSTED_PUBLISHING_ENABLED=true`. The workflow publishes from release tags only after tests, adapter checks, Premiere project-delivery example, CEP package verification, npm pack dry-run, and package-version/tag matching pass. Pre-release package versions publish with the `alpha` dist-tag; stable versions publish with `latest`.
 
+## v1 Stable Scope Decision
+
+`1.0.0` is intentionally stable for core, provider planning, asset sourcing, Blender QC, Premiere media/delivery QC, dashboard review, schema snapshots, artifact layouts, release assets, and npm packaging. Windows + Premiere live editing/export, CapCut execution, After Effects execution, Roblox execution, external MCP proxying, and optional adapters remain experimental and must not be represented as stable v1 execution claims.
+
 ## Semver
 
 - `0.2.x-alpha`: scaffold, safety, docs, adapter gates
 - `0.3.x-alpha`: real Blender/Premiere E2E
-- `0.4.x-beta`: installers, stable docs, schema tightening
-- `1.0.0`: stable tool schemas and artifact schemas
+- `0.4.x-beta`: optional future beta line for execution adapters if needed
+- `1.0.0`: stable tool schemas, artifact schemas, QC-first surfaces, and package distribution

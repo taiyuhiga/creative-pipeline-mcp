@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0
+
+### Added
+
+- Promoted the verified QC-first surface to stable v1.
+- Documented stable and experimental surfaces in the README and v1 scope docs.
+- Scoped Windows + Premiere live editing/export, CapCut execution, After Effects execution, Roblox execution, and optional external adapters outside the stable v1 claim.
+
+### Changed
+
+- Stable package installs now use the unqualified `creative-pipeline-mcp` package.
+- Release process docs now distinguish stable v1 distribution from post-v1 alpha builds.
+- Premiere CEP simulator now processes queued commands with the same command priority order as the CEP panel, so timeline creation precedes brand/export commands.
+
 ## 0.3.7-alpha.0
 
 ### Added

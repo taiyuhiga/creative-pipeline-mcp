@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.7-alpha.0",
+  "packageVersion": "1.0.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",

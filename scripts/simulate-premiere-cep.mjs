@@ -26,15 +26,29 @@ vm.runInContext(readFileSync(resolve(root, "packages/premiere-cep-panel/jsx/host
 });
 
 let processed = 0;
-const files = readdirSync(options.queueDir)
+const pending = readdirSync(options.queueDir)
   .filter((file) => file.endsWith(".json"))
-  .sort();
-for (const file of files) {
+  .map((file) => {
+    const commandPath = join(options.queueDir, file);
+    return {
+      file,
+      commandPath,
+      command: JSON.parse(readFileSync(commandPath, "utf8"))
+    };
+  })
+  .sort((left, right) => {
+    const leftPriority = commandPriority(left.command);
+    const rightPriority = commandPriority(right.command);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+    return left.file < right.file ? -1 : left.file > right.file ? 1 : 0;
+  });
+for (const item of pending) {
   if (processed >= options.maxCommands) {
     break;
   }
-  const commandPath = join(options.queueDir, file);
-  const command = JSON.parse(readFileSync(commandPath, "utf8"));
+  const { commandPath, command, file } = item;
   const status = dispatch(context, command);
   status.command = command;
   status.processedAt = new Date().toISOString();
@@ -118,6 +132,28 @@ function createCepContext(state) {
       }
     }
   };
+}
+
+function commandPriority(command) {
+  if (command.type === "build_timeline_from_otio") {
+    return 0;
+  }
+  if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+    return 2;
+  }
+  if (command.type === "add_marker") {
+    return 4;
+  }
+  if (command.type === "apply_timeline_markers") {
+    return 5;
+  }
+  if (command.type === "apply_brand_package") {
+    return 6;
+  }
+  if (command.type === "export_sequence") {
+    return 7;
+  }
+  return 99;
 }
 
 function makeSequence(name, state) {
