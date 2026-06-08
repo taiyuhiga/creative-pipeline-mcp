@@ -15,6 +15,7 @@ import { capcutTools } from "../packages/capcut-social-mcp/dist/index.js";
 import { afterEffectsTools } from "../packages/after-effects-mcp/dist/index.js";
 import { robloxTools } from "../packages/roblox-pro-mcp/dist/index.js";
 import { directorTools } from "../packages/director-agent/dist/index.js";
+import { assetTools } from "../packages/asset-sourcing/dist/index.js";
 
 const root = process.cwd();
 const artifactRoot = resolve(process.env.CREATIVE_MCP_PROVIDER_SIM_ARTIFACTS ?? "artifacts/examples/provider-simulator");
@@ -41,6 +42,8 @@ await writeFixture(join(robloxProjectRoot, "src", "StarterPlayerScripts", "Hud.c
 await writeFixture(join(robloxProjectRoot, "wally.toml"), "[package]\nname = \"creative/provider-simulator\"\nversion = \"0.1.0\"\n");
 await writeFixture(join(robloxProjectRoot, "selene.toml"), "std = \"roblox\"\n");
 await writeFixture(join(robloxProjectRoot, "stylua.toml"), "column_width = 100\n");
+const assetFixturePath = join(artifactRoot, "fixtures", "assets", "provider-model.glb");
+await writeFixture(assetFixturePath, "provider simulator glb bytes");
 
 const registry = new ToolRegistry();
 registry.registerMany([
@@ -49,6 +52,7 @@ registry.registerMany([
   ...capcutTools,
   ...afterEffectsTools,
   ...robloxTools,
+  ...assetTools,
   ...directorTools
 ]);
 const router = new Router(registry);
@@ -77,6 +81,15 @@ await run("capcut.create_social_draft", {
     { path: "media/main.mp4", role: "main" }
   ],
   captionsPath: "captions/provider-simulator.srt"
+});
+await run("capcut.resolve_adapter", { preferredBackend: "capcut_cli" });
+await run("capcut.export_draft_package", { title: "Provider Simulator Social Cut", backend: "manual" });
+await run("capcut.run_delivery_qc", {
+  title: "Provider Simulator Social Cut",
+  outputPath: "artifacts/capcut/provider-output.mp4",
+  durationSeconds: 60,
+  aspectRatio: "9:16",
+  media: [{ path: "media/provider-simulator.mp4", role: "main" }]
 });
 
 await run("ae.check_availability", {});
@@ -117,6 +130,12 @@ await run("ae.prepare_render_execution", {
   compName: "Main",
   outputPath: "artifacts/after-effects/provider-output.mov"
 });
+await run("ae.prepare_template_replacements", {
+  compName: "Main",
+  textReplacements: [{ layerName: "Title", text: "Provider Simulator" }],
+  mediaReplacements: [{ layerName: "Hero", path: "artifacts/assets/provider-model.glb" }]
+});
+await run("ae.prepare_file_bridge", {});
 
 await run("roblox.check_availability", {});
 await run("roblox.inspect_project", { projectRoot: robloxProjectRoot });
@@ -142,6 +161,32 @@ await run("roblox.prepare_studio_mcp_session", {
   experienceName: "ProviderSimulatorPlace",
   mode: "read_only_inspection",
   allowedToolGroups: ["session_management", "data_model_read", "script_read"]
+});
+await run("roblox.prepare_studio_operation", {
+  projectRoot: robloxProjectRoot,
+  operation: "run_playtest"
+});
+await run("roblox.collect_playtest_report", {
+  projectRoot: robloxProjectRoot,
+  status: "pending"
+});
+await run("roblox.prepare_weppy_provider", { license: "AGPL-3.0" });
+
+await run("asset.evaluate_license_policy", {
+  title: "Provider Simulator Model",
+  provider: "user_supplied",
+  license: "User-Supplied",
+  sourceUrl: "https://example.com/provider-model"
+});
+await run("asset.write_asset_sbom", {
+  packageName: "provider simulator asset package",
+  entries: [{
+    title: "Provider Simulator Model",
+    provider: "user_supplied",
+    license: "User-Supplied",
+    path: assetFixturePath,
+    sourceUrl: "https://example.com/provider-model"
+  }]
 });
 
 await run("director.create_social_video", {
@@ -187,13 +232,23 @@ const summary = {
   coverage: {
     providerRegistry: commands.some((command) => command.action.startsWith("provider.")),
     capcut: commands.some((command) => command.action.startsWith("capcut.")),
+    capcutAdapterResolution: commands.some((command) => command.action === "capcut.resolve_adapter"),
+    capcutDraftPackage: commands.some((command) => command.action === "capcut.export_draft_package"),
+    capcutDeliveryQc: commands.some((command) => command.action === "capcut.run_delivery_qc"),
     videoEditFallback: commands.some((command) => command.action === "video.create_edit"),
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
     afterEffectsRenderEvidence: commands.some((command) => command.action === "ae.collect_render_evidence"),
     afterEffectsRenderExecutionPlan: commands.some((command) => command.action === "ae.prepare_render_execution"),
+    afterEffectsTemplateReplacements: commands.some((command) => command.action === "ae.prepare_template_replacements"),
+    afterEffectsFileBridge: commands.some((command) => command.action === "ae.prepare_file_bridge"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
     robloxStudioEvidence: commands.some((command) => command.action === "roblox.collect_studio_evidence"),
     robloxStudioMcpSessionPlan: commands.some((command) => command.action === "roblox.prepare_studio_mcp_session"),
+    robloxStudioOperationPlan: commands.some((command) => command.action === "roblox.prepare_studio_operation"),
+    robloxPlaytestReport: commands.some((command) => command.action === "roblox.collect_playtest_report"),
+    robloxWeppyProviderPlan: commands.some((command) => command.action === "roblox.prepare_weppy_provider"),
+    assetLicensePolicy: commands.some((command) => command.action === "asset.evaluate_license_policy"),
+    assetPackageSbom: commands.some((command) => command.action === "asset.write_asset_sbom"),
     director: commands.some((command) => command.action.startsWith("director.")),
     projectWriteManifests: commands.some((command) => command.action === "ae.queue_aerender") &&
       commands.some((command) => command.action === "ae.queue_nexrender")

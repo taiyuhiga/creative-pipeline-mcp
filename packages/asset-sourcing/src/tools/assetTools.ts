@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 
@@ -393,6 +394,73 @@ export const assetTools: ToolDefinition[] = [
     }
   },
   {
+    name: "asset.evaluate_license_policy",
+    description: "Normalize asset license metadata and write commercial-use, attribution, review, and postprocess requirements.",
+    category: "asset",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", maxLength: 300 },
+        provider: { type: "string" },
+        license: { type: "string", maxLength: 100 },
+        sourceUrl: { type: "string" },
+        generated: { type: "boolean" }
+      },
+      required: ["title", "provider", "license"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const policy = evaluateLicense({
+        title: stringInput(input.title, "title"),
+        provider: stringInput(input.provider, "provider"),
+        license: stringInput(input.license, "license"),
+        sourceUrl: typeof input.sourceUrl === "string" ? input.sourceUrl : undefined,
+        generated: input.generated === true
+      });
+      const artifact = await context.artifactStore.writeJson("assets/license_policy_report.json", policy);
+      return { ok: policy.status !== "blocked", message: `Asset license policy written: ${policy.status}`, artifacts: [artifact], data: { policy } };
+    }
+  },
+  {
+    name: "asset.write_asset_sbom",
+    description: "Write an asset package SBOM with checksums, license policy, provenance paths, and final QC requirements.",
+    category: "asset",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        packageName: { type: "string", maxLength: 200 },
+        entries: { type: "array" },
+        provenancePath: { type: "string" },
+        licenseManifestPath: { type: "string" },
+        qcReportPath: { type: "string" }
+      },
+      required: ["packageName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const entries = await normalizeSbomEntries(context, input.entries);
+      const sbom = {
+        schema: "creative.pipeline.asset_package_sbom.v1",
+        generatedAt: new Date().toISOString(),
+        packageName: stringInput(input.packageName, "packageName"),
+        entries,
+        provenancePath: typeof input.provenancePath === "string" ? input.provenancePath : "artifacts/assets/provenance.json",
+        licenseManifestPath: typeof input.licenseManifestPath === "string" ? input.licenseManifestPath : "artifacts/assets/license_manifest.json",
+        qcReportPath: typeof input.qcReportPath === "string" ? input.qcReportPath : "artifacts/assets/qc/asset_qc_report.json",
+        requirements: {
+          finalBlenderQcRequired: true,
+          attributionReportRequired: entries.some((entry) => entry.licensePolicy.attributionRequired),
+          manualReviewRequired: entries.some((entry) => entry.licensePolicy.manualReviewRequired),
+          postprocessQcRequired: entries.some((entry) => entry.postprocessQcRequired)
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("assets/asset_package_sbom.json", sbom);
+      return { ok: true, message: "Asset package SBOM written", artifacts: [artifact], data: { sbom } };
+    }
+  },
+  {
     name: "asset.acquire_or_generate",
     description: "Macro tool that resolves candidates and selects an existing asset when possible, otherwise writes a fal fallback request under the selected policy.",
     category: "asset",
@@ -459,6 +527,107 @@ async function resolveInput(context: ToolExecutionContext, input: Record<string,
     workspaceRoots: context.artifactStore.workspaceRoots ?? [process.cwd()],
     maxCandidates: typeof input.maxCandidates === "number" ? input.maxCandidates : Number(process.env.CREATIVE_MCP_FAL_MAX_CANDIDATES ?? 5)
   });
+}
+
+function evaluateLicense(input: {
+  title: string;
+  provider: string;
+  license: string;
+  sourceUrl?: string;
+  generated: boolean;
+}) {
+  const normalized = normalizeLicense(input.license);
+  const attributionRequired = ["CC-BY", "CC-BY-SA", "Generated"].includes(normalized.spdxLike);
+  const commercialUseAllowed = ["CC0", "CC-BY", "MIT", "Apache-2.0", "Generated", "User-Supplied"].includes(normalized.spdxLike);
+  const blocked = ["CC-BY-NC", "CC-BY-NC-SA", "Editorial-Only", "Unknown"].includes(normalized.spdxLike);
+  const manualReviewRequired = blocked || normalized.spdxLike === "Generated" || input.provider === "user_supplied";
+  return {
+    schema: "creative.pipeline.asset_license_policy.v1",
+    generatedAt: new Date().toISOString(),
+    title: input.title,
+    provider: input.provider,
+    licenseOriginal: input.license,
+    licenseNormalized: normalized,
+    sourceUrl: input.sourceUrl,
+    generated: input.generated,
+    status: blocked ? "blocked" : manualReviewRequired ? "review_required" : "allowed",
+    commercialUseAllowed,
+    attributionRequired,
+    manualReviewRequired,
+    postprocessQcRequired: true,
+    sourceUrlSnapshotRequired: Boolean(input.sourceUrl),
+    notes: [
+      blocked ? "License is not safe for commercial delivery without manual clearance." : "License is acceptable only with recorded provenance.",
+      attributionRequired ? "Attribution must be included in the delivery report." : "Attribution is not required by the normalized license policy.",
+      "Final Blender QC is required before delivery."
+    ]
+  };
+}
+
+function normalizeLicense(license: string): { spdxLike: string; confidence: "high" | "medium" | "low" } {
+  const text = license.trim().toLowerCase();
+  if (["cc0", "cc-0", "creative commons zero"].includes(text)) return { spdxLike: "CC0", confidence: "high" };
+  if (text.includes("cc-by-nc-sa")) return { spdxLike: "CC-BY-NC-SA", confidence: "high" };
+  if (text.includes("cc-by-nc") || text.includes("noncommercial")) return { spdxLike: "CC-BY-NC", confidence: "high" };
+  if (text.includes("cc-by-sa")) return { spdxLike: "CC-BY-SA", confidence: "high" };
+  if (text.includes("cc-by") || text.includes("attribution")) return { spdxLike: "CC-BY", confidence: "high" };
+  if (text.includes("apache")) return { spdxLike: "Apache-2.0", confidence: "high" };
+  if (text.includes("mit")) return { spdxLike: "MIT", confidence: "high" };
+  if (text.includes("generated")) return { spdxLike: "Generated", confidence: "medium" };
+  if (text.includes("user")) return { spdxLike: "User-Supplied", confidence: "medium" };
+  if (text.includes("editorial")) return { spdxLike: "Editorial-Only", confidence: "medium" };
+  return { spdxLike: "Unknown", confidence: "low" };
+}
+
+async function normalizeSbomEntries(context: ToolExecutionContext, value: unknown): Promise<Array<{
+  title: string;
+  provider: string;
+  path?: string;
+  sourceUrl?: string;
+  sha256?: string;
+  licensePolicy: ReturnType<typeof evaluateLicense>;
+  postprocessQcRequired: boolean;
+}>> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const entries = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const record = item as Record<string, unknown>;
+    const title = typeof record.title === "string" ? record.title : typeof record.path === "string" ? basename(record.path) : "asset";
+    const provider = typeof record.provider === "string" ? record.provider : "unknown";
+    const license = typeof record.license === "string" ? record.license : "Unknown";
+    const path = typeof record.path === "string" ? record.path : undefined;
+    let sha256: string | undefined;
+    if (path) {
+      try {
+        const readablePath = await context.artifactStore.assertReadableFile(path);
+        sha256 = createHash("sha256").update(await readFile(readablePath)).digest("hex");
+      } catch {
+        sha256 = undefined;
+      }
+    }
+    const licensePolicy = evaluateLicense({
+      title,
+      provider,
+      license,
+      sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl : undefined,
+      generated: record.generated === true
+    });
+    entries.push({
+      title,
+      provider,
+      path,
+      sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl : undefined,
+      sha256,
+      licensePolicy,
+      postprocessQcRequired: true
+    });
+  }
+  return entries;
 }
 
 function normalizeCandidate(input: Record<string, unknown>): AssetCandidate {

@@ -210,6 +210,48 @@ async function listProviderReports(): Promise<Array<{
   return reports;
 }
 
+async function listProviderTabs(): Promise<Array<{
+  id: string;
+  label: string;
+  artifactPrefixes: string[];
+  reports: Array<{ path: string; updatedAt: string; schema?: unknown; status?: unknown; summary?: unknown }>;
+}>> {
+  const reports = await listProviderReports();
+  const artifacts = await listArtifacts();
+  const tabs = [
+    { id: "blender", label: "Blender", artifactPrefixes: ["blender/", "assets/qc/"] },
+    { id: "premiere", label: "Premiere", artifactPrefixes: ["premiere/", "video/"] },
+    { id: "capcut", label: "CapCut", artifactPrefixes: ["capcut/"] },
+    { id: "after-effects", label: "After Effects", artifactPrefixes: ["after-effects/"] },
+    { id: "roblox", label: "Roblox", artifactPrefixes: ["roblox/"] },
+    { id: "assets", label: "Assets", artifactPrefixes: ["assets/"] }
+  ];
+  return tabs.map((tab) => ({
+    ...tab,
+    reports: [
+      ...reports
+        .filter((report) => tab.artifactPrefixes.some((prefix) => report.path.startsWith(prefix)))
+        .map((report) => ({
+          path: report.path,
+          updatedAt: report.updatedAt,
+          schema: report.schema,
+          status: report.status,
+          summary: report.selected ?? report.provider ?? report.domain
+        })),
+      ...artifacts
+        .filter((artifact) => artifact.kind !== "json")
+        .filter((artifact) => tab.artifactPrefixes.some((prefix) => artifact.relativePath.startsWith(prefix)))
+        .map((artifact) => ({
+          path: artifact.relativePath,
+          updatedAt: artifact.updatedAt,
+          schema: artifact.kind,
+          status: "artifact",
+          summary: artifact.preview
+        }))
+    ].slice(0, maxDashboardItems)
+  }));
+}
+
 async function listQcReports(): Promise<Array<{ path: string; updatedAt: string; title: string; summary?: unknown; report: unknown }>> {
   const reports = [];
   for (const artifact of await listArtifacts()) {
@@ -549,6 +591,12 @@ createServer((req, res) => {
   if (url.pathname === "/api/providers" && req.method === "GET") {
     void listProviderReports().then((reports) => {
       writeJson(res, 200, { artifactRoot, reports });
+    });
+    return;
+  }
+  if (url.pathname === "/api/provider-tabs" && req.method === "GET") {
+    void listProviderTabs().then((tabs) => {
+      writeJson(res, 200, { artifactRoot, tabs });
     });
     return;
   }

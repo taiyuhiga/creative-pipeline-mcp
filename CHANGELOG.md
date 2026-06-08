@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0-alpha.0
+
+### Added
+
+- Added bounded CapCut adapter resolution, draft package manifests, and delivery QC artifacts.
+- Added After Effects typed template replacement plans and file-bridge planning artifacts.
+- Added Roblox Studio MCP operation plans, playtest reports, and WEPPY optional-provider design artifacts.
+- Added asset license policy evaluation and asset package SBOM artifacts.
+- Added Dashboard provider tab aggregation for Blender, Premiere, CapCut, After Effects, Roblox, and Assets.
+
 ## 1.0.0
 
 ### Added

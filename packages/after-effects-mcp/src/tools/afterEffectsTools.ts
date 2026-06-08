@@ -376,6 +376,107 @@ export const afterEffectsTools: ToolDefinition[] = [
         data: { plan, status }
       };
     }
+  },
+  {
+    name: "ae.prepare_template_replacements",
+    description: "Write typed After Effects template text/media replacement operations without exposing raw JSX.",
+    category: "ae",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        templatePath: { type: "string" },
+        compName: { type: "string" },
+        outputPath: { type: "string" },
+        textReplacements: { type: "array" },
+        mediaReplacements: { type: "array" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const textReplacements = replacementList(input.textReplacements, ["layerName", "text"]);
+      const mediaReplacements = replacementList(input.mediaReplacements, ["layerName", "path"]);
+      const plan = {
+        schema: "creative.pipeline.ae_template_replacement_plan.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: commandId("ae-template"),
+        templatePath: optionalString(input.templatePath),
+        compName: optionalString(input.compName) ?? "Main",
+        outputPath: optionalString(input.outputPath) ?? "artifacts/after-effects/output.mov",
+        operations: [
+          ...textReplacements.map((replacement) => ({ type: "replace_text_layer", ...replacement })),
+          ...mediaReplacements.map((replacement) => ({ type: "replace_media_layer", ...replacement }))
+        ],
+        checks: [
+          check("typed_operations_only", true, true),
+          check("raw_jsx_disabled", true, true),
+          check("shell_string_absent", true, true),
+          check("operation_count_positive", textReplacements.length + mediaReplacements.length > 0, textReplacements.length + mediaReplacements.length)
+        ],
+        expectedSideEffects: ["write_artifacts_only", "no_template_overwrite"],
+        requiresApproval: true,
+        statusJsonPath: "after-effects/render_status.json",
+        rollbackHint: "Delete generated render artifacts; template AEP is not modified by this plan.",
+        policy: {
+          ...aePolicy(),
+          rawJsx: false,
+          templateOverwrite: false,
+          typedReplacementOnly: true
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("after-effects/template_replacement_plan.json", plan);
+      return { ok: true, message: "After Effects template replacement plan written", artifacts: [artifact], data: { plan } };
+    }
+  },
+  {
+    name: "ae.prepare_file_bridge",
+    description: "Write an After Effects file-bridge plan for approved render runners and status collection.",
+    category: "ae",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        bridgeDirectory: { type: "string" },
+        queueDirectory: { type: "string" },
+        statusDirectory: { type: "string" },
+        commandTypes: { type: "array", items: { type: "string" } }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const plan = {
+        schema: "creative.pipeline.ae_file_bridge_plan.v1",
+        generatedAt: new Date().toISOString(),
+        bridgeDirectory: optionalString(input.bridgeDirectory) ?? "artifacts/after-effects",
+        queueDirectory: optionalString(input.queueDirectory) ?? "artifacts/after-effects/render_queue",
+        statusDirectory: optionalString(input.statusDirectory) ?? "artifacts/after-effects/status",
+        commandTypes: stringArray(input.commandTypes).length > 0
+          ? stringArray(input.commandTypes)
+          : ["render_frame_preview", "render_comp", "template_replacement_render", "collect_render_evidence"],
+        protocol: {
+          queueSchema: "creative.pipeline.ae_render_queue.v1",
+          statusSchema: "creative.pipeline.ae_render_status.v1",
+          commandFiles: "json_only",
+          statusFiles: "json_only"
+        },
+        checks: [
+          check("raw_jsx_disabled_by_default", true, true),
+          check("shell_string_absent", true, true),
+          check("status_json_required", true, true),
+          check("approval_required_for_external_runner", true, true)
+        ],
+        expectedSideEffects: ["write_artifacts_only"],
+        requiresApproval: true,
+        policy: {
+          ...aePolicy(),
+          externalRunnerOnly: true,
+          rawJsx: false,
+          fileBridge: true
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("after-effects/file_bridge_plan.json", plan);
+      return { ok: true, message: "After Effects file bridge plan written", artifacts: [artifact], data: { plan } };
+    }
   }
 ];
 
@@ -442,6 +543,28 @@ function buildAerenderArgv(executable: string, input: {
   argv.push("-RStemplate", input.renderSettings);
   argv.push("-OMtemplate", input.outputModule);
   return argv;
+}
+
+function replacementList(value: unknown, requiredKeys: string[]): Array<Record<string, string>> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item) => {
+      const replacement: Record<string, string> = {};
+      for (const [key, nested] of Object.entries(item)) {
+        if (typeof nested === "string" && nested.trim()) {
+          replacement[key] = nested.trim();
+        }
+      }
+      return replacement;
+    })
+    .filter((item) => requiredKeys.every((key) => typeof item[key] === "string" && item[key].length > 0));
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
 }
 
 function commandId(prefix: string): string {

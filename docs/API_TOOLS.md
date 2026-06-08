@@ -1,6 +1,6 @@
 # API Tools
 
-The public alpha tool schemas are intentionally strict. Unknown top-level input properties are rejected before execution.
+The public tool schemas are intentionally strict. Unknown top-level input properties are rejected before execution. Post-v1 alpha tools remain experimental unless marked stable in `docs/V1_SCOPE.md`.
 
 ## Core
 
@@ -25,6 +25,8 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `asset.postprocess_generated_asset`
 - `asset.finalize_asset`
 - `asset.write_provenance`
+- `asset.evaluate_license_policy`
+- `asset.write_asset_sbom`
 - `asset.acquire_or_generate`
 
 ## Blender
@@ -97,6 +99,9 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `capcut.write_draft_manifest`
 - `capcut.run_draft_qc`
 - `capcut.create_social_draft`
+- `capcut.resolve_adapter`
+- `capcut.export_draft_package`
+- `capcut.run_delivery_qc`
 
 ## After Effects
 
@@ -108,6 +113,8 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `ae.run_motion_qc`
 - `ae.collect_render_evidence`
 - `ae.prepare_render_execution`
+- `ae.prepare_template_replacements`
+- `ae.prepare_file_bridge`
 
 ## Roblox
 
@@ -118,6 +125,9 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `roblox.validate_luau_project`
 - `roblox.collect_studio_evidence`
 - `roblox.prepare_studio_mcp_session`
+- `roblox.prepare_studio_operation`
+- `roblox.collect_playtest_report`
+- `roblox.prepare_weppy_provider`
 - `roblox.sync_rojo`
 - `roblox.run_wally_install`
 - `roblox.run_selene`

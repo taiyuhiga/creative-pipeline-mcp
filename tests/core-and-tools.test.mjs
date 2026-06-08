@@ -105,12 +105,21 @@ test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifact
     "capcut.create_draft_plan",
     "capcut.write_draft_manifest",
     "capcut.run_draft_qc",
-    "capcut.create_social_draft"
+    "capcut.create_social_draft",
+    "capcut.resolve_adapter",
+    "capcut.export_draft_package",
+    "capcut.run_delivery_qc"
   ]) {
     assert.ok(toolNames.includes(name), `${name} should be registered`);
   }
   const macro = capcutTools.find((tool) => tool.name === "capcut.create_social_draft");
+  const adapter = capcutTools.find((tool) => tool.name === "capcut.resolve_adapter");
+  const packageTool = capcutTools.find((tool) => tool.name === "capcut.export_draft_package");
+  const deliveryQc = capcutTools.find((tool) => tool.name === "capcut.run_delivery_qc");
   assert.ok(macro);
+  assert.ok(adapter);
+  assert.ok(packageTool);
+  assert.ok(deliveryQc);
   const result = await macro.execute(await context(), {
     title: "Vertical launch clip",
     deliveryProfile: "shorts_1080x1920_high_quality",
@@ -122,6 +131,21 @@ test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifact
   assert.equal(result.data.plan.policy.noEncryptedDraftBypass, true);
   assert.equal(result.data.qc.status, "pass");
   assert.ok(result.artifacts.some((artifact) => artifact.endsWith("capcut/draft_manifest.json")));
+  const adapterResult = await adapter.execute(await context(), { preferredBackend: "capcut_cli" });
+  assert.equal(adapterResult.ok, true);
+  assert.equal(adapterResult.data.report.policy.rawDraftProxy, false);
+  const packageResult = await packageTool.execute(await context(), { title: "Vertical launch clip", backend: "manual" });
+  assert.equal(packageResult.ok, true);
+  assert.equal(packageResult.data.manifest.copyOnWriteRequired ?? packageResult.data.manifest.policy.copyOnWriteRequired, true);
+  const qcResult = await deliveryQc.execute(await context(), {
+    title: "Vertical launch clip",
+    outputPath: "artifacts/capcut/export.mp4",
+    durationSeconds: 30,
+    aspectRatio: "9:16",
+    media: [{ path: "source.mp4" }]
+  });
+  assert.equal(qcResult.ok, true);
+  assert.equal(qcResult.data.report.status, "pass");
 });
 
 test("After Effects provider writes render, queue, preview, and motion QC artifacts", async () => {
@@ -134,7 +158,9 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
     "ae.render_frame_preview",
     "ae.run_motion_qc",
     "ae.collect_render_evidence",
-    "ae.prepare_render_execution"
+    "ae.prepare_render_execution",
+    "ae.prepare_template_replacements",
+    "ae.prepare_file_bridge"
   ]) {
     assert.ok(toolNames.includes(name), `${name} should be registered`);
   }
@@ -143,11 +169,15 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   const qcTool = afterEffectsTools.find((tool) => tool.name === "ae.run_motion_qc");
   const evidenceTool = afterEffectsTools.find((tool) => tool.name === "ae.collect_render_evidence");
   const executionTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_render_execution");
+  const replacementsTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_template_replacements");
+  const bridgeTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_file_bridge");
   assert.ok(planTool);
   assert.ok(queueTool);
   assert.ok(qcTool);
   assert.ok(evidenceTool);
   assert.ok(executionTool);
+  assert.ok(replacementsTool);
+  assert.ok(bridgeTool);
   const plan = await planTool.execute(await context(), { compName: "Main", outputFormat: "mov" });
   assert.equal(plan.ok, true);
   assert.equal(plan.data.plan.rawJsx, false);
@@ -195,6 +225,17 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   assert.equal(execution.data.plan.policy.shellString, false);
   assert.ok(Array.isArray(execution.data.plan.argv));
   assert.ok(execution.artifacts.some((artifact) => artifact.endsWith("after-effects/render_execution_plan.json")));
+  const replacements = await replacementsTool.execute(await context(), {
+    compName: "Main",
+    textReplacements: [{ layerName: "Title", text: "Launch" }],
+    mediaReplacements: [{ layerName: "Hero", path: "artifacts/assets/hero.png" }]
+  });
+  assert.equal(replacements.ok, true);
+  assert.equal(replacements.data.plan.policy.rawJsx, false);
+  assert.equal(replacements.data.plan.operations.length, 2);
+  const bridge = await bridgeTool.execute(await context(), {});
+  assert.equal(bridge.ok, true);
+  assert.equal(bridge.data.plan.policy.fileBridge, true);
 });
 
 test("Roblox provider inspects project, indexes scripts, and writes command manifests", async () => {
@@ -214,6 +255,9 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
     "roblox.validate_luau_project",
     "roblox.collect_studio_evidence",
     "roblox.prepare_studio_mcp_session",
+    "roblox.prepare_studio_operation",
+    "roblox.collect_playtest_report",
+    "roblox.prepare_weppy_provider",
     "roblox.sync_rojo",
     "roblox.run_wally_install",
     "roblox.run_selene",
@@ -226,12 +270,18 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   const index = robloxTools.find((tool) => tool.name === "roblox.index_scripts");
   const evidenceTool = robloxTools.find((tool) => tool.name === "roblox.collect_studio_evidence");
   const studioMcpTool = robloxTools.find((tool) => tool.name === "roblox.prepare_studio_mcp_session");
+  const operationTool = robloxTools.find((tool) => tool.name === "roblox.prepare_studio_operation");
+  const playtestTool = robloxTools.find((tool) => tool.name === "roblox.collect_playtest_report");
+  const weppyTool = robloxTools.find((tool) => tool.name === "roblox.prepare_weppy_provider");
   const sync = robloxTools.find((tool) => tool.name === "roblox.sync_rojo");
   const reportTool = robloxTools.find((tool) => tool.name === "roblox.generate_project_report");
   assert.ok(inspect);
   assert.ok(index);
   assert.ok(evidenceTool);
   assert.ok(studioMcpTool);
+  assert.ok(operationTool);
+  assert.ok(playtestTool);
+  assert.ok(weppyTool);
   assert.ok(sync);
   assert.ok(reportTool);
   const inspected = await inspect.execute(await context(projectRoot), { projectRoot });
@@ -284,6 +334,29 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   assert.equal(studioMcpPlan.data.plan.policy.rawStudioProxy, false);
   assert.ok(studioMcpPlan.artifacts.some((artifact) => artifact.endsWith("roblox/studio_mcp_session_plan.json")));
   assert.ok(studioMcpPlan.artifacts.some((artifact) => artifact.endsWith("roblox/studio_mcp_client_config.json")));
+  const operationPlan = await operationTool.execute(await context(projectRoot), {
+    projectRoot,
+    operation: "edit_script_safe",
+    targetPath: "src/ServerScriptService/Main.server.luau",
+    patchPath: "artifacts/roblox/script.patch"
+  });
+  assert.equal(operationPlan.ok, true);
+  assert.equal(operationPlan.data.plan.requiresApproval, true);
+  assert.equal(operationPlan.data.plan.policy.rawLuau, false);
+  const outputLogPath = join(projectRoot, "playtest.log");
+  await writeFile(outputLogPath, "Playtest passed\\n", "utf8");
+  const playtest = await playtestTool.execute(await context(projectRoot), {
+    projectRoot,
+    status: "success",
+    outputLogPath
+  });
+  assert.equal(playtest.ok, true);
+  assert.equal(playtest.data.report.reportStatus, "pass");
+  assert.equal(playtest.data.report.policy.livePlaytestClaim, true);
+  const weppy = await weppyTool.execute(await context(projectRoot), { license: "AGPL-3.0" });
+  assert.equal(weppy.ok, true);
+  assert.equal(weppy.data.plan.placement, "optional_external_provider_only");
+  assert.equal(weppy.data.plan.checks.some((check) => check.id === "license_review_required" && check.status === "pass"), true);
   const manifest = await sync.execute(await context(projectRoot), { projectRoot });
   assert.equal(manifest.ok, true);
   assert.equal(manifest.data.manifest.mode, "manifest_only");
@@ -352,26 +425,41 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   assert.equal(output.data.status, "pass");
   assert.equal(output.data.coverage.providerRegistry, true);
   assert.equal(output.data.coverage.capcut, true);
+  assert.equal(output.data.coverage.capcutAdapterResolution, true);
+  assert.equal(output.data.coverage.capcutDraftPackage, true);
+  assert.equal(output.data.coverage.capcutDeliveryQc, true);
   assert.equal(output.data.coverage.videoEditFallback, true);
   assert.equal(output.data.coverage.afterEffects, true);
   assert.equal(output.data.coverage.afterEffectsRenderEvidence, true);
   assert.equal(output.data.coverage.afterEffectsRenderExecutionPlan, true);
+  assert.equal(output.data.coverage.afterEffectsTemplateReplacements, true);
+  assert.equal(output.data.coverage.afterEffectsFileBridge, true);
   assert.equal(output.data.coverage.roblox, true);
   assert.equal(output.data.coverage.robloxStudioEvidence, true);
   assert.equal(output.data.coverage.robloxStudioMcpSessionPlan, true);
+  assert.equal(output.data.coverage.robloxStudioOperationPlan, true);
+  assert.equal(output.data.coverage.robloxPlaytestReport, true);
+  assert.equal(output.data.coverage.robloxWeppyProviderPlan, true);
+  assert.equal(output.data.coverage.assetLicensePolicy, true);
+  assert.equal(output.data.coverage.assetPackageSbom, true);
   assert.equal(output.data.coverage.director, true);
   assert.equal(output.data.coverage.projectWriteManifests, true);
   assert.equal(output.data.policy.rawAppProxy, false);
   assert.equal(output.data.policy.liveExecutionClaims, false);
-  assert.ok(output.verified.artifacts >= 25);
+  assert.ok(output.verified.artifacts >= 40);
   for (const artifact of [
     "providers/provider_workflow_simulation.json",
     "providers/provider_report.json",
     "video/edit_plan.json",
     "capcut/fallback_draft_manifest.json",
+    "capcut/adapter_resolution.json",
+    "capcut/draft_package_manifest.json",
+    "capcut/delivery_qc_report.json",
     "after-effects/render_evidence.json",
     "capcut/draft_qc_report.json",
     "after-effects/render_execution_plan.json",
+    "after-effects/template_replacement_plan.json",
+    "after-effects/file_bridge_plan.json",
     "after-effects/render_queue/aerender_command.json",
     "after-effects/render_queue/nexrender_job.json",
     "after-effects/motion_qc_report.json",
@@ -379,6 +467,11 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
     "roblox/studio_evidence.json",
     "roblox/studio_mcp_session_plan.json",
     "roblox/studio_mcp_client_config.json",
+    "roblox/studio_operation_plan.json",
+    "roblox/playtest_report.json",
+    "roblox/weppy_provider_plan.json",
+    "assets/license_policy_report.json",
+    "assets/asset_package_sbom.json",
     "director/full_production_report.json"
   ]) {
     assert.ok(existsSync(join(artifactRoot, artifact)), `${artifact} should be written`);
@@ -435,6 +528,8 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
     "asset.postprocess_generated_asset",
     "asset.finalize_asset",
     "asset.write_provenance",
+    "asset.evaluate_license_policy",
+    "asset.write_asset_sbom",
     "asset.acquire_or_generate"
   ]) {
     assert.ok(toolNames.includes(name), `${name} should be registered`);
@@ -443,9 +538,13 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
   const resolvePlan = assetTools.find((tool) => tool.name === "asset.resolve_source_plan");
   const search = assetTools.find((tool) => tool.name === "asset.search_candidates");
   const macro = assetTools.find((tool) => tool.name === "asset.acquire_or_generate");
+  const licensePolicy = assetTools.find((tool) => tool.name === "asset.evaluate_license_policy");
+  const sbomTool = assetTools.find((tool) => tool.name === "asset.write_asset_sbom");
   assert.ok(resolvePlan);
   assert.ok(search);
   assert.ok(macro);
+  assert.ok(licensePolicy);
+  assert.ok(sbomTool);
 
   const plan = await resolvePlan.execute(await context(), {
     prompt: "modern wooden dining chair",
@@ -473,6 +572,25 @@ test("Asset sourcing tools resolve source priority and write provenance-safe art
   assert.equal(generated.ok, true);
   assert.equal(generated.data.selected.generated, true);
   assert.ok(generated.artifacts.some((artifact) => artifact.endsWith("assets/generated/fal_request.json")));
+  const license = await licensePolicy.execute(await context(), {
+    title: "Attribution Chair",
+    provider: "sketchfab",
+    license: "CC-BY",
+    sourceUrl: "https://example.com/chair"
+  });
+  assert.equal(license.ok, true);
+  assert.equal(license.data.policy.commercialUseAllowed, true);
+  assert.equal(license.data.policy.attributionRequired, true);
+  const assetRoot = await mkdtemp(join(tmpdir(), "creative-mcp-sbom-"));
+  const assetPath = join(assetRoot, "model.glb");
+  await writeFile(assetPath, "glb bytes", "utf8");
+  const sbom = await sbomTool.execute(await context(assetRoot), {
+    packageName: "asset package",
+    entries: [{ title: "Model", provider: "user_supplied", license: "User-Supplied", path: assetPath }]
+  });
+  assert.equal(sbom.ok, true);
+  assert.equal(sbom.data.sbom.entries[0].sha256.length, 64);
+  assert.equal(sbom.data.sbom.requirements.finalBlenderQcRequired, true);
 });
 
 test("Asset sourcing tools ingest generated fal outputs and download only when explicitly enabled", async () => {
@@ -1871,6 +1989,13 @@ test("Dashboard exposes token-protected artifacts and job history APIs", async (
     assert.ok(providers.reports.some((report) => report.path === "capcut/draft_qc_report.json"));
     assert.ok(providers.reports.some((report) => report.path === "after-effects/motion_qc_report.json"));
     assert.ok(providers.reports.some((report) => report.path === "roblox/combined_project_report.json"));
+    const providerTabsResponse = await fetch(`http://127.0.0.1:${port}/api/provider-tabs`, { headers });
+    assert.equal(providerTabsResponse.status, 200);
+    const providerTabs = await providerTabsResponse.json();
+    assert.ok(providerTabs.tabs.some((tab) => tab.id === "capcut" && tab.reports.some((report) => report.path === "capcut/draft_qc_report.json")));
+    assert.ok(providerTabs.tabs.some((tab) => tab.id === "after-effects" && tab.reports.some((report) => report.path === "after-effects/motion_qc_report.json")));
+    assert.ok(providerTabs.tabs.some((tab) => tab.id === "roblox" && tab.reports.some((report) => report.path === "roblox/combined_project_report.json")));
+    assert.ok(providerTabs.tabs.some((tab) => tab.id === "assets"));
     const qcResponse = await fetch(`http://127.0.0.1:${port}/api/qc-reports`, { headers });
     assert.equal(qcResponse.status, 200);
     const qcReports = await qcResponse.json();

@@ -27,7 +27,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `1.0.0`
+Current version: `1.1.0-alpha.0`
 
 This is the first stable release for the QC-first pipeline surface. The stable v1 claim is intentionally limited to typed operations, artifacts, QC reports, approval policy, provider planning, and packaging. Live app execution surfaces remain experimental unless explicitly documented with runtime evidence.
 
@@ -220,7 +220,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.0.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.0-alpha.0.zip
 ```
 
 Release assets:

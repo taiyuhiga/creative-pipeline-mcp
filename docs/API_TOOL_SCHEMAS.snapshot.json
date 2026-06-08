@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "1.0.0",
+  "packageVersion": "1.1.0-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -114,6 +114,33 @@
       }
     },
     {
+      "name": "ae.prepare_file_bridge",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Write an After Effects file-bridge plan for approved render runners and status collection.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "bridgeDirectory": {
+            "type": "string"
+          },
+          "commandTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "queueDirectory": {
+            "type": "string"
+          },
+          "statusDirectory": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
       "name": "ae.prepare_render_execution",
       "category": "ae",
       "risk": "safe_write",
@@ -157,6 +184,33 @@
           },
           "templatePath": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.prepare_template_replacements",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Write typed After Effects template text/media replacement operations without exposing raw JSX.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "compName": {
+            "type": "string"
+          },
+          "mediaReplacements": {
+            "type": "array"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "templatePath": {
+            "type": "string"
+          },
+          "textReplacements": {
+            "type": "array"
           }
         },
         "type": "object"
@@ -364,6 +418,40 @@
         },
         "required": [
           "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.evaluate_license_policy",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Normalize asset license metadata and write commercial-use, attribution, review, and postprocess requirements.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "generated": {
+            "type": "boolean"
+          },
+          "license": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "provider",
+          "license"
         ],
         "type": "object"
       }
@@ -619,6 +707,37 @@
         },
         "required": [
           "prompt"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asset.write_asset_sbom",
+      "category": "asset",
+      "risk": "safe_write",
+      "description": "Write an asset package SBOM with checksums, license policy, provenance paths, and final QC requirements.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "type": "array"
+          },
+          "licenseManifestPath": {
+            "type": "string"
+          },
+          "packageName": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "provenancePath": {
+            "type": "string"
+          },
+          "qcReportPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "packageName"
         ],
         "type": "object"
       }
@@ -1332,6 +1451,102 @@
         "required": [
           "title"
         ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.export_draft_package",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Write a copy-on-write CapCut draft package manifest for a human or approved runner to import.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "backend": {
+            "enum": [
+              "capcut_mate",
+              "capcut_api",
+              "capcut_cli",
+              "py_jianying_draft",
+              "cut_cli",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "draftManifestPath": {
+            "type": "string"
+          },
+          "outputDirectory": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.resolve_adapter",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Resolve a bounded optional CapCut backend without exposing raw cloud, GUI, or draft APIs.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "preferredBackend": {
+            "enum": [
+              "capcut_mate",
+              "capcut_api",
+              "capcut_cli",
+              "py_jianying_draft",
+              "cut_cli"
+            ],
+            "type": "string"
+          },
+          "requireAvailable": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.run_delivery_qc",
+      "category": "capcut",
+      "risk": "safe_write",
+      "description": "Write CapCut delivery QC connected to the same FFmpeg-style delivery gates used for video exports.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:5"
+            ],
+            "type": "string"
+          },
+          "durationSeconds": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "media": {
+            "type": "array"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },
@@ -2658,6 +2873,42 @@
       }
     },
     {
+      "name": "roblox.collect_playtest_report",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a Roblox playtest report from official Studio MCP or self-hosted runner evidence.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "outputLogPath": {
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          },
+          "requireEvidence": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "success",
+              "failed",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "statusEvidencePath": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
       "name": "roblox.collect_studio_evidence",
       "category": "roblox",
       "risk": "safe_write",
@@ -2831,6 +3082,70 @@
             "type": "boolean"
           },
           "studioMcpCommand": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.prepare_studio_operation",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a bounded official Roblox Studio MCP operation plan for inspection, asset import, safe script edits, playtests, or log collection.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "assetPath": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "inspect_tree",
+              "import_blender_asset",
+              "edit_script_safe",
+              "run_playtest",
+              "collect_output_logs"
+            ],
+            "type": "string"
+          },
+          "patchPath": {
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          },
+          "requireApprovalForWrite": {
+            "type": "boolean"
+          },
+          "targetPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.prepare_weppy_provider",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write a WEPPY optional external provider design and license review note without adding it to core execution.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "enableExecution": {
+            "type": "boolean"
+          },
+          "endpointUrl": {
+            "type": "string"
+          },
+          "license": {
             "type": "string"
           }
         },

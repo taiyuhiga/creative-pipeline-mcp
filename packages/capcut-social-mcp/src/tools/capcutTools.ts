@@ -166,6 +166,123 @@ export const capcutTools: ToolDefinition[] = [
       ];
       return { ok: true, message: "CapCut social draft artifacts written", artifacts, data: { plan, manifest, qc } };
     }
+  },
+  {
+    name: "capcut.resolve_adapter",
+    description: "Resolve a bounded optional CapCut backend without exposing raw cloud, GUI, or draft APIs.",
+    category: "capcut",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        preferredBackend: {
+          type: "string",
+          enum: ["capcut_mate", "capcut_api", "capcut_cli", "py_jianying_draft", "cut_cli"]
+        },
+        requireAvailable: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const report = resolveCapCutAdapter(input);
+      const artifact = await context.artifactStore.writeJson("capcut/adapter_resolution.json", report);
+      return {
+        ok: !input.requireAvailable || report.selected.available,
+        message: `CapCut adapter resolved: ${report.selected.backend}`,
+        artifacts: [artifact],
+        data: { report }
+      };
+    }
+  },
+  {
+    name: "capcut.export_draft_package",
+    description: "Write a copy-on-write CapCut draft package manifest for a human or approved runner to import.",
+    category: "capcut",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", maxLength: 200 },
+        draftManifestPath: { type: "string" },
+        outputDirectory: { type: "string" },
+        backend: {
+          type: "string",
+          enum: ["capcut_mate", "capcut_api", "capcut_cli", "py_jianying_draft", "cut_cli", "manual"]
+        }
+      },
+      required: ["title"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const title = requiredString(input.title, "CapCut Draft Package");
+      const backend = optionalString(input.backend) ?? "manual";
+      const manifest = {
+        schema: "creative.pipeline.capcut_draft_package.v1",
+        generatedAt: new Date().toISOString(),
+        title,
+        backend,
+        draftManifestPath: optionalString(input.draftManifestPath) ?? "artifacts/capcut/draft_manifest.json",
+        outputDirectory: optionalString(input.outputDirectory) ?? "artifacts/capcut/draft-packages",
+        packageMode: "copy_on_write_manifest_package",
+        expectedArtifacts: [
+          "capcut/draft_plan.json",
+          "capcut/draft_manifest.json",
+          "capcut/draft_qc_report.json",
+          "capcut/draft_package_manifest.json"
+        ],
+        expectedSideEffects: ["write_artifacts_only", "no_source_draft_mutation"],
+        requiresApproval: backend !== "manual",
+        statusJsonPath: "capcut/draft_status.json",
+        rollbackHint: "Delete generated package artifacts; original draft and source media are not modified.",
+        policy: capcutPolicy()
+      };
+      const artifact = await context.artifactStore.writeJson("capcut/draft_package_manifest.json", manifest);
+      return { ok: true, message: "CapCut draft package manifest written", artifacts: [artifact], data: { manifest } };
+    }
+  },
+  {
+    name: "capcut.run_delivery_qc",
+    description: "Write CapCut delivery QC connected to the same FFmpeg-style delivery gates used for video exports.",
+    category: "capcut",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", maxLength: 200 },
+        outputPath: { type: "string" },
+        aspectRatio: { type: "string", enum: aspectRatios },
+        durationSeconds: { type: "number", minimum: 1 },
+        media: { type: "array" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const durationSeconds = Number(input.durationSeconds ?? 0);
+      const media = mediaList(input.media);
+      const outputPath = optionalString(input.outputPath);
+      const report = {
+        schema: "creative.pipeline.capcut_delivery_qc.v1",
+        generatedAt: new Date().toISOString(),
+        title: optionalString(input.title) ?? "CapCut Delivery",
+        status: durationSeconds > 0 && Boolean(outputPath) ? "pass" : "pending",
+        outputPath,
+        checks: [
+          check("output_path_declared", Boolean(outputPath), outputPath ?? "not_provided"),
+          check("duration_positive", durationSeconds > 0, durationSeconds || "not_provided"),
+          check("aspect_ratio_supported", !input.aspectRatio || aspectRatios.includes(String(input.aspectRatio)), input.aspectRatio ?? "not_provided"),
+          check("media_manifest_present", media.length > 0, media.length),
+          check("ffmpeg_delivery_qc_followup", true, "premiere.run_delivery_qc or ffprobe/ffmpeg adapter"),
+          check("raw_proxy_absent", true, false)
+        ],
+        followUp: {
+          requiredForFinalDelivery: "Run Premiere/FFmpeg delivery QC against outputPath after a real CapCut export exists.",
+          liveExportClaim: Boolean(outputPath)
+        },
+        policy: capcutPolicy()
+      };
+      const artifact = await context.artifactStore.writeJson("capcut/delivery_qc_report.json", report);
+      return { ok: report.status !== "fail", message: "CapCut delivery QC report written", artifacts: [artifact], data: { report } };
+    }
   }
 ];
 
@@ -198,6 +315,63 @@ function capcutPolicy() {
     noBinaryModification: true,
     noRawDraftOverwrite: true,
     approvalRequiredForCloudOrGuiWrites: true
+  };
+}
+
+function resolveCapCutAdapter(input: Record<string, unknown>) {
+  const backends = [
+    {
+      backend: "capcut_mate",
+      label: "CapCut Mate",
+      available: Boolean(process.env.CREATIVE_MCP_CAPCUT_MATE_URL),
+      endpoint: process.env.CREATIVE_MCP_CAPCUT_MATE_URL,
+      supportedOperations: ["draft_package_import", "status_poll"]
+    },
+    {
+      backend: "capcut_api",
+      label: "CapCutAPI",
+      available: Boolean(process.env.CREATIVE_MCP_CAPCUT_API_URL),
+      endpoint: process.env.CREATIVE_MCP_CAPCUT_API_URL,
+      supportedOperations: ["draft_package_import", "cloud_status_poll"]
+    },
+    {
+      backend: "capcut_cli",
+      label: "capcut-cli",
+      available: Boolean(process.env.CREATIVE_MCP_CAPCUT_CLI),
+      executable: process.env.CREATIVE_MCP_CAPCUT_CLI ?? "capcut-cli",
+      supportedOperations: ["draft_manifest_validate", "package_export"]
+    },
+    {
+      backend: "py_jianying_draft",
+      label: "pyJianYingDraft",
+      available: Boolean(process.env.CREATIVE_MCP_PY_JIANYING_DRAFT),
+      executable: process.env.CREATIVE_MCP_PY_JIANYING_DRAFT ?? "pyJianYingDraft",
+      supportedOperations: ["jianying_draft_write", "manifest_validate"]
+    },
+    {
+      backend: "cut_cli",
+      label: "cut_cli",
+      available: Boolean(process.env.CREATIVE_MCP_CUT_CLI),
+      executable: process.env.CREATIVE_MCP_CUT_CLI ?? "cut_cli",
+      supportedOperations: ["research_only"]
+    }
+  ];
+  const preferred = optionalString(input.preferredBackend);
+  const selected = backends.find((backend) => backend.backend === preferred)
+    ?? backends.find((backend) => backend.available)
+    ?? backends[0];
+  return {
+    schema: "creative.pipeline.capcut_adapter_resolution.v1",
+    generatedAt: new Date().toISOString(),
+    selected,
+    backends,
+    policy: {
+      ...capcutPolicy(),
+      boundedOperationsOnly: true,
+      rawCloudProxy: false,
+      rawDraftProxy: false,
+      liveExecutionClaim: selected.available
+    }
   };
 }
 

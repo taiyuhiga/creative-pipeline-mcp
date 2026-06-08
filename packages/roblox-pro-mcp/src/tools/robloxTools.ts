@@ -333,6 +333,163 @@ export const robloxTools: ToolDefinition[] = [
       };
     }
   },
+  {
+    name: "roblox.prepare_studio_operation",
+    description: "Write a bounded official Roblox Studio MCP operation plan for inspection, asset import, safe script edits, playtests, or log collection.",
+    category: "roblox",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        projectRoot: { type: "string" },
+        operation: {
+          type: "string",
+          enum: ["inspect_tree", "import_blender_asset", "edit_script_safe", "run_playtest", "collect_output_logs"]
+        },
+        assetPath: { type: "string" },
+        targetPath: { type: "string" },
+        patchPath: { type: "string" },
+        requireApprovalForWrite: { type: "boolean" }
+      },
+      required: ["operation"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const operation = requiredString(input.operation, "inspect_tree");
+      const root = optionalString(input.projectRoot) ? safeProjectRoot(context, input.projectRoot) : undefined;
+      const isWrite = operation === "import_blender_asset" || operation === "edit_script_safe";
+      const plan = {
+        schema: "creative.pipeline.roblox_studio_operation_plan.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? evidenceId("roblox-studio-op"),
+        provider: "official_roblox_studio_mcp",
+        operation,
+        projectRoot: root,
+        assetPath: optionalString(input.assetPath),
+        targetPath: optionalString(input.targetPath),
+        patchPath: optionalString(input.patchPath),
+        toolMapping: studioOperationToolMapping(operation),
+        allowedToolGroups: operation === "run_playtest"
+          ? ["session_management", "playtest", "data_model_read"]
+          : isWrite
+            ? ["session_management", "data_model_read", "limited_write"]
+            : ["session_management", "data_model_read", "script_read"],
+        checks: [
+          check("official_studio_mcp_only", true, true),
+          check("raw_luau_proxy_absent", true, true),
+          check("executor_tools_absent", true, true),
+          check("publish_absent", true, true),
+          check("write_requires_approval", !isWrite || input.requireApprovalForWrite !== false, input.requireApprovalForWrite !== false)
+        ],
+        expectedSideEffects: isWrite ? ["studio_project_write_after_approval"] : ["none_in_codex_run"],
+        requiresApproval: isWrite || operation === "run_playtest" || input.requireApprovalForWrite === true,
+        statusJsonPath: "roblox/studio_evidence.json",
+        rollbackHint: isWrite ? "Use Rojo/project backup or manual Studio undo; never publish by default." : "No rollback required for read-only operation.",
+        policy: {
+          ...robloxPolicy(),
+          officialStudioMcpOnly: true,
+          rawStudioProxy: false,
+          rawLuau: false,
+          executorTools: false,
+          publish: false,
+          studioWrites: isWrite
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("roblox/studio_operation_plan.json", plan);
+      return { ok: true, message: `Roblox Studio operation plan written: ${operation}`, artifacts: [artifact], data: { plan } };
+    }
+  },
+  {
+    name: "roblox.collect_playtest_report",
+    description: "Write a Roblox playtest report from official Studio MCP or self-hosted runner evidence.",
+    category: "roblox",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        projectRoot: { type: "string" },
+        status: { type: "string", enum: ["pending", "success", "failed", "unknown"] },
+        statusEvidencePath: { type: "string" },
+        outputLogPath: { type: "string" },
+        requireEvidence: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const root = optionalString(input.projectRoot) ? safeProjectRoot(context, input.projectRoot) : undefined;
+      const statusEvidence = await readOptionalArtifact(context, optionalString(input.statusEvidencePath));
+      const outputLog = await readOptionalTextArtifact(context, optionalString(input.outputLogPath));
+      const status = optionalString(input.status) ?? "unknown";
+      const evidencePresent = Boolean(statusEvidence.readable || outputLog.readable);
+      const requireEvidence = input.requireEvidence === true;
+      const reportStatus = status === "failed" ? "fail" : evidencePresent ? "pass" : requireEvidence ? "fail" : "pending";
+      const report = {
+        schema: "creative.pipeline.roblox_playtest_report.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? evidenceId("roblox-playtest"),
+        projectRoot: root,
+        status,
+        reportStatus,
+        statusEvidencePath: optionalString(input.statusEvidencePath),
+        outputLogPath: optionalString(input.outputLogPath),
+        statusEvidence: statusEvidence.value,
+        outputLogSample: outputLog.sample,
+        checks: [
+          check("evidence_present", evidencePresent, evidencePresent),
+          check("status_not_failed", status !== "failed", status),
+          check("executor_tools_absent", true, true),
+          check("publish_absent", true, true)
+        ],
+        policy: {
+          ...robloxPolicy(),
+          playtestEvidenceRequiredForClaim: true,
+          livePlaytestClaim: evidencePresent && status === "success"
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("roblox/playtest_report.json", report);
+      return { ok: reportStatus !== "fail", message: `Roblox playtest report written: ${reportStatus}`, artifacts: [artifact], data: { report } };
+    }
+  },
+  {
+    name: "roblox.prepare_weppy_provider",
+    description: "Write a WEPPY optional external provider design and license review note without adding it to core execution.",
+    category: "roblox",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        endpointUrl: { type: "string" },
+        license: { type: "string" },
+        enableExecution: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const plan = {
+        schema: "creative.pipeline.roblox_weppy_provider_plan.v1",
+        generatedAt: new Date().toISOString(),
+        provider: "weppy_optional_external",
+        endpointUrl: optionalString(input.endpointUrl),
+        license: optionalString(input.license) ?? "Unknown",
+        executionEnabled: input.enableExecution === true && process.env.CREATIVE_MCP_ENABLE_WEPPY === "true",
+        placement: "optional_external_provider_only",
+        checks: [
+          check("not_core_dependency", true, true),
+          check("license_review_required", true, true),
+          check("execution_disabled_by_default", process.env.CREATIVE_MCP_ENABLE_WEPPY !== "true", process.env.CREATIVE_MCP_ENABLE_WEPPY ?? "unset"),
+          check("executor_tools_absent", true, true),
+          check("publish_absent", true, true)
+        ],
+        allowedUses: ["research", "read_only_evidence", "bounded_external_provider_after_license_review"],
+        blockedUses: ["core_default_adapter", "executor_tools", "raw_unbounded_luau", "default_publish"],
+        policy: robloxPolicy()
+      };
+      const artifact = await context.artifactStore.writeJson("roblox/weppy_provider_plan.json", plan);
+      return { ok: true, message: "WEPPY optional provider plan written", artifacts: [artifact], data: { plan } };
+    }
+  },
   commandManifestTool("roblox.sync_rojo", "Write a safe Rojo sync command manifest without publishing or mutating Studio.", "rojo", ["sync"], "roblox/sync_rojo_manifest.json"),
   commandManifestTool("roblox.run_wally_install", "Write a Wally install command manifest; actual install requires explicit external execution.", "wally", ["install"], "roblox/run_wally_install_manifest.json"),
   commandManifestTool("roblox.run_selene", "Write a Selene lint command manifest for Luau QC.", "selene", ["."], "roblox/run_selene_manifest.json"),
@@ -549,12 +706,56 @@ function studioMcpClientConfig(command: string, os: string) {
   };
 }
 
+function studioOperationToolMapping(operation: string): string[] {
+  if (operation === "inspect_tree") {
+    return ["data_model_read", "explorer_tree_snapshot"];
+  }
+  if (operation === "import_blender_asset") {
+    return ["asset_import", "insert_instance_requires_approval"];
+  }
+  if (operation === "edit_script_safe") {
+    return ["script_read", "bounded_patch_requires_approval"];
+  }
+  if (operation === "run_playtest") {
+    return ["playtest_start", "playtest_stop", "output_log_read"];
+  }
+  return ["output_log_read"];
+}
+
+async function readOptionalArtifact(context: ToolExecutionContext, path: string | undefined): Promise<{ readable: boolean; value?: unknown }> {
+  if (!path) {
+    return { readable: false };
+  }
+  try {
+    const resolvedPath = await context.artifactStore.assertReadableFile(path);
+    return { readable: true, value: JSON.parse(await readFile(resolvedPath, "utf8")) };
+  } catch {
+    return { readable: false };
+  }
+}
+
+async function readOptionalTextArtifact(context: ToolExecutionContext, path: string | undefined): Promise<{ readable: boolean; sample?: string }> {
+  if (!path) {
+    return { readable: false };
+  }
+  try {
+    const resolvedPath = await context.artifactStore.assertReadableFile(path);
+    return { readable: true, sample: (await readFile(resolvedPath, "utf8")).slice(0, 2000) };
+  } catch {
+    return { readable: false };
+  }
+}
+
 function check(id: string, passed: boolean, value: unknown) {
   return { id, status: passed ? "pass" : "fail", value };
 }
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function requiredString(value: unknown, fallback: string): string {
+  return optionalString(value) ?? fallback;
 }
 
 function evidenceId(prefix: string): string {
