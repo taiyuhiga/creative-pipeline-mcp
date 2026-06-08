@@ -58,6 +58,12 @@
       "ok": true,
       "message": "Roblox Studio evidence written: pending",
       "artifacts": ["roblox/studio_evidence.json"]
+    },
+    {
+      "action": "roblox.prepare_studio_mcp_session",
+      "ok": true,
+      "message": "Roblox Studio MCP session plan written",
+      "artifacts": ["roblox/studio_mcp_session_plan.json", "roblox/studio_mcp_client_config.json"]
     }
   ],
   "coverage": {
@@ -69,6 +75,7 @@
     "afterEffectsRenderExecutionPlan": true,
     "roblox": true,
     "robloxStudioEvidence": true,
+    "robloxStudioMcpSessionPlan": true,
     "director": true,
     "projectWriteManifests": true
   },

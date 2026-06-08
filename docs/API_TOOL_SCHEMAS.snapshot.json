@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.6-alpha.0",
+  "packageVersion": "0.3.7-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -2767,6 +2767,70 @@
         "additionalProperties": false,
         "properties": {
           "projectRoot": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.prepare_studio_mcp_session",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write an official Roblox Studio MCP session plan and client config without connecting to Studio or proxying raw tools.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "allowedToolGroups": {
+            "items": {
+              "enum": [
+                "session_management",
+                "data_model_read",
+                "script_read",
+                "playtest",
+                "limited_write"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "client": {
+            "enum": [
+              "generic",
+              "codex",
+              "cursor",
+              "claude_desktop"
+            ],
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "experienceName": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "read_only_inspection",
+              "playtest_evidence",
+              "write_requires_approval"
+            ],
+            "type": "string"
+          },
+          "operatingSystem": {
+            "enum": [
+              "macos",
+              "windows"
+            ],
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          },
+          "requireStudioMcpBinary": {
+            "type": "boolean"
+          },
+          "studioMcpCommand": {
             "type": "string"
           }
         },

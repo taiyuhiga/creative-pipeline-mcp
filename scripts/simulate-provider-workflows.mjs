@@ -133,6 +133,16 @@ await run("roblox.collect_studio_evidence", {
   projectName: "ProviderSimulatorPlace",
   status: "pending"
 });
+await run("roblox.prepare_studio_mcp_session", {
+  commandId: "provider-simulator-roblox-studio-mcp",
+  client: "codex",
+  operatingSystem: "macos",
+  studioMcpCommand: "/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP",
+  projectRoot: robloxProjectRoot,
+  experienceName: "ProviderSimulatorPlace",
+  mode: "read_only_inspection",
+  allowedToolGroups: ["session_management", "data_model_read", "script_read"]
+});
 
 await run("director.create_social_video", {
   brief: "Create a captioned provider-simulator social cut with Premiere first and CapCut fallback.",
@@ -183,6 +193,7 @@ const summary = {
     afterEffectsRenderExecutionPlan: commands.some((command) => command.action === "ae.prepare_render_execution"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
     robloxStudioEvidence: commands.some((command) => command.action === "roblox.collect_studio_evidence"),
+    robloxStudioMcpSessionPlan: commands.some((command) => command.action === "roblox.prepare_studio_mcp_session"),
     director: commands.some((command) => command.action.startsWith("director.")),
     projectWriteManifests: commands.some((command) => command.action === "ae.queue_aerender") &&
       commands.some((command) => command.action === "ae.queue_nexrender")

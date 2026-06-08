@@ -213,6 +213,7 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
     "roblox.index_scripts",
     "roblox.validate_luau_project",
     "roblox.collect_studio_evidence",
+    "roblox.prepare_studio_mcp_session",
     "roblox.sync_rojo",
     "roblox.run_wally_install",
     "roblox.run_selene",
@@ -224,11 +225,13 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   const inspect = robloxTools.find((tool) => tool.name === "roblox.inspect_project");
   const index = robloxTools.find((tool) => tool.name === "roblox.index_scripts");
   const evidenceTool = robloxTools.find((tool) => tool.name === "roblox.collect_studio_evidence");
+  const studioMcpTool = robloxTools.find((tool) => tool.name === "roblox.prepare_studio_mcp_session");
   const sync = robloxTools.find((tool) => tool.name === "roblox.sync_rojo");
   const reportTool = robloxTools.find((tool) => tool.name === "roblox.generate_project_report");
   assert.ok(inspect);
   assert.ok(index);
   assert.ok(evidenceTool);
+  assert.ok(studioMcpTool);
   assert.ok(sync);
   assert.ok(reportTool);
   const inspected = await inspect.execute(await context(projectRoot), { projectRoot });
@@ -264,6 +267,23 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   assert.equal(studioEvidence.data.evidence.reportStatus, "pass");
   assert.equal(studioEvidence.data.evidence.policy.liveStudioClaim, true);
   assert.equal(studioEvidence.data.evidence.policy.studioWrites, false);
+  const studioMcpPlan = await studioMcpTool.execute(await context(projectRoot), {
+    commandId: "roblox-test-studio-mcp",
+    client: "codex",
+    operatingSystem: "macos",
+    studioMcpCommand: "/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP",
+    projectRoot,
+    experienceName: "TestPlace",
+    mode: "read_only_inspection",
+    allowedToolGroups: ["session_management", "data_model_read", "script_read"]
+  });
+  assert.equal(studioMcpPlan.ok, true);
+  assert.equal(studioMcpPlan.data.plan.transport, "stdio");
+  assert.equal(studioMcpPlan.data.plan.policy.officialStudioMcpOnly, true);
+  assert.equal(studioMcpPlan.data.plan.policy.liveStudioClaim, false);
+  assert.equal(studioMcpPlan.data.plan.policy.rawStudioProxy, false);
+  assert.ok(studioMcpPlan.artifacts.some((artifact) => artifact.endsWith("roblox/studio_mcp_session_plan.json")));
+  assert.ok(studioMcpPlan.artifacts.some((artifact) => artifact.endsWith("roblox/studio_mcp_client_config.json")));
   const manifest = await sync.execute(await context(projectRoot), { projectRoot });
   assert.equal(manifest.ok, true);
   assert.equal(manifest.data.manifest.mode, "manifest_only");
@@ -338,6 +358,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   assert.equal(output.data.coverage.afterEffectsRenderExecutionPlan, true);
   assert.equal(output.data.coverage.roblox, true);
   assert.equal(output.data.coverage.robloxStudioEvidence, true);
+  assert.equal(output.data.coverage.robloxStudioMcpSessionPlan, true);
   assert.equal(output.data.coverage.director, true);
   assert.equal(output.data.coverage.projectWriteManifests, true);
   assert.equal(output.data.policy.rawAppProxy, false);
@@ -356,6 +377,8 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
     "after-effects/motion_qc_report.json",
     "roblox/combined_project_report.json",
     "roblox/studio_evidence.json",
+    "roblox/studio_mcp_session_plan.json",
+    "roblox/studio_mcp_client_config.json",
     "director/full_production_report.json"
   ]) {
     assert.ok(existsSync(join(artifactRoot, artifact)), `${artifact} should be written`);

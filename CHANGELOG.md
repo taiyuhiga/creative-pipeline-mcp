@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.7-alpha.0
+
+### Added
+
+- Added `roblox.prepare_studio_mcp_session` for official Roblox Studio MCP stdio session plans without connecting to Studio.
+- Added Roblox Studio MCP client config artifacts with raw Studio proxy, executor, and default publish guardrails.
+- Added simulator and test coverage for `roblox/studio_mcp_session_plan.json` and `roblox/studio_mcp_client_config.json`.
+
 ## 0.3.6-alpha.0
 
 ### Added

@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { constants, existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, extname, join, relative, resolve } from "node:path";
 import type { ToolDefinition, ToolExecutionContext } from "../../../core/dist/index.js";
@@ -240,6 +241,98 @@ export const robloxTools: ToolDefinition[] = [
       };
     }
   },
+  {
+    name: "roblox.prepare_studio_mcp_session",
+    description: "Write an official Roblox Studio MCP session plan and client config without connecting to Studio or proxying raw tools.",
+    category: "roblox",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        client: { type: "string", enum: ["generic", "codex", "cursor", "claude_desktop"] },
+        operatingSystem: { type: "string", enum: ["macos", "windows"] },
+        studioMcpCommand: { type: "string" },
+        projectRoot: { type: "string" },
+        experienceName: { type: "string" },
+        mode: { type: "string", enum: ["read_only_inspection", "playtest_evidence", "write_requires_approval"] },
+        allowedToolGroups: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["session_management", "data_model_read", "script_read", "playtest", "limited_write"]
+          }
+        },
+        requireStudioMcpBinary: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const os = optionalString(input.operatingSystem) ?? defaultStudioMcpOs();
+      const command = optionalString(input.studioMcpCommand) ?? defaultStudioMcpCommand(os);
+      const root = optionalString(input.projectRoot) ? safeProjectRoot(context, input.projectRoot) : undefined;
+      const mode = optionalString(input.mode) ?? "read_only_inspection";
+      const allowedToolGroups = normalizeStudioMcpToolGroups(input.allowedToolGroups, mode);
+      const requireStudioMcpBinary = input.requireStudioMcpBinary === true;
+      const binaryReadable = await canReadStudioMcpBinary(command, os);
+      const readyToConnect = requireStudioMcpBinary ? binaryReadable : true;
+      const plan = {
+        schema: "creative.pipeline.roblox_studio_mcp_session_plan.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? evidenceId("roblox-studio-mcp"),
+        client: optionalString(input.client) ?? "generic",
+        operatingSystem: os,
+        command,
+        transport: "stdio",
+        projectRoot: root,
+        experienceName: optionalString(input.experienceName),
+        mode,
+        readyToConnect,
+        checks: [
+          check("official_studio_mcp_command_declared", Boolean(command), command),
+          check("stdio_transport", true, "stdio"),
+          check("studio_mcp_binary_readable", binaryReadable || os === "windows", binaryReadable),
+          check("required_binary_readable", requireStudioMcpBinary ? binaryReadable : true, requireStudioMcpBinary ? binaryReadable : "not_required"),
+          check("executor_tools_absent", true, true),
+          check("raw_studio_proxy_absent", true, true),
+          check("default_publish_absent", true, true),
+          check("limited_write_requires_approval", !allowedToolGroups.includes("limited_write") || mode === "write_requires_approval", allowedToolGroups)
+        ],
+        allowedToolGroups,
+        blockedToolGroups: ["executor_tools", "client_exploit_tools", "raw_studio_proxy", "default_publish"],
+        expectedSideEffects: ["none_in_codex_run"],
+        requiresApproval: mode !== "read_only_inspection" || allowedToolGroups.includes("limited_write"),
+        clientConfig: studioMcpClientConfig(command, os),
+        evidenceFollowUp: {
+          requiredForLiveStudioClaim: [
+            "Roblox Studio open with Studio MCP enabled",
+            "client connection indicator visible in Studio",
+            "readable status JSON captured by roblox.collect_studio_evidence",
+            "status: success declared only after manual or self-hosted evidence exists"
+          ],
+          liveStudioClaim: false
+        },
+        policy: {
+          ...robloxPolicy(),
+          officialStudioMcpOnly: true,
+          stdioTransport: true,
+          liveStudioClaim: false,
+          rawStudioProxy: false,
+          executorTools: false,
+          studioWrites: mode === "write_requires_approval",
+          publish: false
+        }
+      };
+      const planArtifact = await context.artifactStore.writeJson("roblox/studio_mcp_session_plan.json", plan);
+      const configArtifact = await context.artifactStore.writeJson("roblox/studio_mcp_client_config.json", plan.clientConfig);
+      return {
+        ok: readyToConnect,
+        message: readyToConnect ? "Roblox Studio MCP session plan written" : "Roblox Studio MCP session plan written with pending binary preflight",
+        artifacts: [planArtifact, configArtifact],
+        data: { plan }
+      };
+    }
+  },
   commandManifestTool("roblox.sync_rojo", "Write a safe Rojo sync command manifest without publishing or mutating Studio.", "rojo", ["sync"], "roblox/sync_rojo_manifest.json"),
   commandManifestTool("roblox.run_wally_install", "Write a Wally install command manifest; actual install requires explicit external execution.", "wally", ["install"], "roblox/run_wally_install_manifest.json"),
   commandManifestTool("roblox.run_selene", "Write a Selene lint command manifest for Luau QC.", "selene", ["."], "roblox/run_selene_manifest.json"),
@@ -395,6 +488,64 @@ function robloxPolicy() {
     noClientExploitTools: true,
     noRawStudioProxy: true,
     noDefaultPublishing: true
+  };
+}
+
+function defaultStudioMcpOs(): string {
+  return process.platform === "win32" ? "windows" : "macos";
+}
+
+function defaultStudioMcpCommand(os: string): string {
+  if (os === "windows") {
+    return "cmd.exe /c %LOCALAPPDATA%\\Roblox\\mcp.bat";
+  }
+  return "/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP";
+}
+
+async function canReadStudioMcpBinary(command: string, os: string): Promise<boolean> {
+  if (os === "windows") {
+    return false;
+  }
+  try {
+    await access(command, constants.R_OK | constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeStudioMcpToolGroups(value: unknown, mode: string): string[] {
+  const defaultGroups = mode === "playtest_evidence"
+    ? ["session_management", "data_model_read", "script_read", "playtest"]
+    : mode === "write_requires_approval"
+      ? ["session_management", "data_model_read", "script_read", "limited_write"]
+      : ["session_management", "data_model_read", "script_read"];
+  if (!Array.isArray(value)) {
+    return defaultGroups;
+  }
+  const allowed = new Set(["session_management", "data_model_read", "script_read", "playtest", "limited_write"]);
+  const groups = value.filter((item): item is string => typeof item === "string" && allowed.has(item));
+  return groups.length > 0 ? [...new Set(groups)] : defaultGroups;
+}
+
+function studioMcpClientConfig(command: string, os: string) {
+  if (os === "windows") {
+    return {
+      mcpServers: {
+        roblox_studio: {
+          command: "cmd.exe",
+          args: ["/c", "%LOCALAPPDATA%\\Roblox\\mcp.bat"]
+        }
+      }
+    };
+  }
+  return {
+    mcpServers: {
+      roblox_studio: {
+        command,
+        args: []
+      }
+    }
   };
 }
 

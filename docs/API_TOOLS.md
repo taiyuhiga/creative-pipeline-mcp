@@ -117,6 +117,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `roblox.index_scripts`
 - `roblox.validate_luau_project`
 - `roblox.collect_studio_evidence`
+- `roblox.prepare_studio_mcp_session`
 - `roblox.sync_rojo`
 - `roblox.run_wally_install`
 - `roblox.run_selene`
