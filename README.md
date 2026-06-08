@@ -29,7 +29,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `1.1.1-alpha.0`
+Current version: `1.1.2-alpha.0`
 
 This is the first stable release for the QC-first pipeline surface. The stable v1 claim is intentionally limited to typed operations, artifacts, QC reports, approval policy, provider planning, and packaging. Live app execution surfaces remain experimental unless explicitly documented with runtime evidence.
 
@@ -53,7 +53,7 @@ The QC-first path runs without Blender or Premiere installed:
 - Dashboard approval queue UI, artifact previews, and job history
 - Dashboard provider status view and provider failed-job retry for Provider Registry, CapCut, After Effects, and Roblox artifacts
 - Premiere CEP bridge for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, typed edit command queueing, export command queueing, brand package command queueing, and standardized status JSON
-- bounded Premiere typed edit commands: `trim_clip`, `split_clip`, `move_clip`, `add_marker`, and `set_clip_speed`
+- bounded Premiere typed edit commands for trim/split/move/markers/speed plus sequence creation, duplicate-safe import, insert/overwrite/replace/delete, transitions, video/audio presets, captions, preview render, and preset export
 - Premiere project-specific delivery builder for timeline, brand package, export plan, and CEP queue generation
 - Premiere CEP host simulator for queue/status validation without a live Premiere runtime
 - Premiere CEP unsigned package generation, optional ZXP signing hook, and signed ZXP release asset support
@@ -232,7 +232,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.1-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.2-alpha.0.zip
 ```
 
 Release assets:

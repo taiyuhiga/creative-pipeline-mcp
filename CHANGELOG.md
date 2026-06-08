@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.2-alpha.0
+
+### Added
+
+- Added 14 bounded Premiere typed CEP queue tools: `premiere.create_sequence`, `premiere.import_media_once`, `premiere.insert_clip_at_time`, `premiere.overwrite_clip_at_time`, `premiere.replace_clip_media`, `premiere.ripple_delete_with_approval`, `premiere.add_transition`, `premiere.apply_effect_preset`, `premiere.apply_lumetri_preset`, `premiere.set_audio_gain`, `premiere.apply_audio_preset`, `premiere.create_caption_track`, `premiere.render_preview_range`, and `premiere.export_with_preset`.
+- Added CEP host dispatch and simulator coverage for the expanded typed command surface without exposing raw ExtendScript or QE DOM proxy tools.
+- Expanded the public tool schema snapshot from 117 to 131 tools.
+
 ## 1.1.1-alpha.0
 
 ### Added

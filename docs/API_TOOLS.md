@@ -83,6 +83,20 @@ The public tool schemas are intentionally strict. Unknown top-level input proper
 - `premiere.move_clip`
 - `premiere.add_marker`
 - `premiere.set_clip_speed`
+- `premiere.create_sequence`
+- `premiere.import_media_once`
+- `premiere.insert_clip_at_time`
+- `premiere.overwrite_clip_at_time`
+- `premiere.replace_clip_media`
+- `premiere.ripple_delete_with_approval`
+- `premiere.add_transition`
+- `premiere.apply_effect_preset`
+- `premiere.apply_lumetri_preset`
+- `premiere.set_audio_gain`
+- `premiere.apply_audio_preset`
+- `premiere.create_caption_track`
+- `premiere.render_preview_range`
+- `premiere.export_with_preset`
 - `premiere.validate_subtitles`
 - `premiere.cleanup_subtitles`
 - `premiere.watch_export_output`
@@ -91,6 +105,12 @@ The public tool schemas are intentionally strict. Unknown top-level input proper
 - `premiere.generate_thumbnail_plan`
 - `premiere.repurpose_podcast`
 - `premiere.fix_qc_issues`
+
+Premiere live edit tools are bounded typed CEP queue commands. They write
+`creative.pipeline.premiere.typed_edit.v1` artifacts under
+`premiere/typed_edits/`, include idempotency/status/rollback metadata in the
+queued command, require approval by default, and do not expose raw ExtendScript
+or QE DOM proxy tools.
 
 ## CapCut
 

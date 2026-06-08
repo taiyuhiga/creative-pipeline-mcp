@@ -17,7 +17,10 @@ const state = {
   trims: [],
   moves: [],
   markers: [],
-  speeds: []
+  speeds: [],
+  overwritten: [],
+  replaced: [],
+  removed: []
 };
 const context = createCepContext(state);
 vm.createContext(context);
@@ -98,7 +101,7 @@ function createCepContext(state) {
       for (let index = 0; index < paths.length; index += 1) {
         const mediaPath = paths[index];
         if (!this.rootItem.children.find((item) => item.getMediaPath() === mediaPath)) {
-          this.rootItem.children.push(makeProjectItem(mediaPath));
+          this.rootItem.children.push(makeProjectItem(mediaPath, state));
           this.rootItem.children.numItems = this.rootItem.children.length;
           state.imported.push(mediaPath);
         }
@@ -135,23 +138,32 @@ function createCepContext(state) {
 }
 
 function commandPriority(command) {
-  if (command.type === "build_timeline_from_otio") {
+  if (command.type === "build_timeline_from_otio" || command.type === "create_sequence") {
     return 0;
   }
-  if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+  if (command.type === "import_media_once") {
+    return 1;
+  }
+  if (command.type === "insert_clip_at_time" || command.type === "overwrite_clip_at_time") {
     return 2;
   }
-  if (command.type === "add_marker") {
+  if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+    return 3;
+  }
+  if (command.type === "replace_clip_media" || command.type === "ripple_delete_with_approval") {
     return 4;
   }
-  if (command.type === "apply_timeline_markers") {
+  if (command.type === "add_marker") {
     return 5;
   }
-  if (command.type === "apply_brand_package") {
+  if (command.type === "apply_timeline_markers") {
     return 6;
   }
-  if (command.type === "export_sequence") {
+  if (command.type === "apply_brand_package") {
     return 7;
+  }
+  if (command.type === "export_sequence" || command.type === "export_with_preset") {
+    return 8;
   }
   return 99;
 }
@@ -162,10 +174,19 @@ function makeSequence(name, state) {
   const track = {
     clips,
     insertClip(item, startSeconds) {
-      const clip = makeClip(item.getMediaPath(), startSeconds, state);
+      const clip = makeClip(item, startSeconds, state);
       clips.push(clip);
       clips.numItems = clips.length;
       state.inserted.push({
+        mediaPath: item.getMediaPath(),
+        startSeconds
+      });
+    },
+    overwriteClip(item, startSeconds) {
+      const clip = makeClip(item, startSeconds, state);
+      clips.push(clip);
+      clips.numItems = clips.length;
+      state.overwritten.push({
         mediaPath: item.getMediaPath(),
         startSeconds
       });
@@ -189,9 +210,11 @@ function makeSequence(name, state) {
   };
 }
 
-function makeClip(mediaPath, startSeconds, state) {
+function makeClip(projectItem, startSeconds, state) {
+  const mediaPath = projectItem.getMediaPath();
   const clip = {
     mediaPath,
+    projectItem,
     start: { seconds: startSeconds },
     end: { seconds: startSeconds + 1 },
     inPoint: { seconds: 0 },
@@ -200,6 +223,9 @@ function makeClip(mediaPath, startSeconds, state) {
       state.speeds.push({ mediaPath, speedPercent, maintainPitch });
       this.speedPercent = speedPercent;
       this.maintainPitch = maintainPitch;
+    },
+    remove() {
+      state.removed.push({ mediaPath });
     }
   };
   const recordChange = (kind) => {
@@ -232,11 +258,18 @@ function makeRootItem(items) {
   return { children };
 }
 
-function makeProjectItem(mediaPath) {
+function makeProjectItem(mediaPath, state) {
+  let currentMediaPath = mediaPath;
   return {
     children: makeRootItem([]).children,
     getMediaPath() {
-      return mediaPath;
+      return currentMediaPath;
+    },
+    changeMediaPath(nextPath) {
+      if (state && state.replaced) {
+        state.replaced.push({ from: currentMediaPath, to: nextPath });
+      }
+      currentMediaPath = nextPath;
     }
   };
 }

@@ -34,6 +34,38 @@ CreativePipelineMCP.dispatch = function (json) {
     if (command.type === "set_clip_speed") {
       return CreativePipelineMCP.setClipSpeed(command);
     }
+    if (command.type === "create_sequence") {
+      return CreativePipelineMCP.createSequence(command);
+    }
+    if (command.type === "import_media_once") {
+      return CreativePipelineMCP.importMediaOnce(command);
+    }
+    if (command.type === "insert_clip_at_time") {
+      return CreativePipelineMCP.insertOrOverwriteClip(command, false);
+    }
+    if (command.type === "overwrite_clip_at_time") {
+      return CreativePipelineMCP.insertOrOverwriteClip(command, true);
+    }
+    if (command.type === "replace_clip_media") {
+      return CreativePipelineMCP.replaceClipMedia(command);
+    }
+    if (command.type === "ripple_delete_with_approval") {
+      return CreativePipelineMCP.rippleDeleteWithApproval(command);
+    }
+    if (command.type === "export_with_preset") {
+      return CreativePipelineMCP.exportWithPreset(command);
+    }
+    if (
+      command.type === "add_transition"
+      || command.type === "apply_effect_preset"
+      || command.type === "apply_lumetri_preset"
+      || command.type === "set_audio_gain"
+      || command.type === "apply_audio_preset"
+      || command.type === "create_caption_track"
+      || command.type === "render_preview_range"
+    ) {
+      return CreativePipelineMCP.recordBoundedTypedCommand(command);
+    }
     return CreativePipelineMCP.status(command, "error", "unsupported command: " + command.type, {});
   } catch (err) {
     return CreativePipelineMCP.status(command || { id: null, type: "unknown" }, "error", "dispatch failed", {
@@ -296,6 +328,208 @@ CreativePipelineMCP.setClipSpeed = function (command) {
     });
   } catch (err) {
     return CreativePipelineMCP.status(command, "error", "clip speed failed", { error: String(err), target: payload.target || {} });
+  }
+};
+
+CreativePipelineMCP.createSequence = function (command) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var sequenceSpec = operation.sequence || {};
+  if (!app.project) {
+    return CreativePipelineMCP.status(command, "error", "no active project", {});
+  }
+  var name = sequenceSpec.name || payload.sequenceName || "Creative Pipeline Sequence";
+  try {
+    if (app.project.createNewSequence) {
+      app.project.createNewSequence(name, sequenceSpec.presetPath || name);
+      return CreativePipelineMCP.status(command, "success", "sequence created", {
+        sequenceName: name,
+        presetPath: sequenceSpec.presetPath || null
+      });
+    }
+    return CreativePipelineMCP.status(command, "accepted", "sequence command recorded; createNewSequence API unavailable", {
+      sequenceName: name,
+      presetPath: sequenceSpec.presetPath || null
+    });
+  } catch (err) {
+    return CreativePipelineMCP.status(command, "error", "sequence creation failed", { error: String(err), sequenceName: name });
+  }
+};
+
+CreativePipelineMCP.importMediaOnce = function (command) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var media = operation.media || {};
+  if (!app.project) {
+    return CreativePipelineMCP.status(command, "error", "no active project", {});
+  }
+  if (!media.path) {
+    return CreativePipelineMCP.status(command, "error", "missing media path", {});
+  }
+  try {
+    var existing = CreativePipelineMCP.findProjectItemByMediaPath(app.project.rootItem, media.path);
+    if (existing) {
+      return CreativePipelineMCP.status(command, "success", "media already imported", { mediaPath: media.path, imported: false });
+    }
+    if (app.project.importFiles) {
+      app.project.importFiles([media.path], true, app.project.rootItem, false);
+      return CreativePipelineMCP.status(command, "success", "media imported", { mediaPath: media.path, imported: true });
+    }
+    return CreativePipelineMCP.status(command, "accepted", "import command recorded; importFiles API unavailable", { mediaPath: media.path });
+  } catch (err) {
+    return CreativePipelineMCP.status(command, "error", "media import failed", { error: String(err), mediaPath: media.path });
+  }
+};
+
+CreativePipelineMCP.insertOrOverwriteClip = function (command, overwrite) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var clipSpec = operation.clip || {};
+  if (!app.project || !app.project.activeSequence) {
+    return CreativePipelineMCP.status(command, "error", "no active sequence", {});
+  }
+  if (!clipSpec.mediaPath || typeof clipSpec.startSeconds !== "number") {
+    return CreativePipelineMCP.status(command, "error", "missing mediaPath or startSeconds", {});
+  }
+  try {
+    var item = CreativePipelineMCP.findProjectItemByMediaPath(app.project.rootItem, clipSpec.mediaPath);
+    if (!item && app.project.importFiles) {
+      app.project.importFiles([clipSpec.mediaPath], true, app.project.rootItem, false);
+      item = CreativePipelineMCP.findProjectItemByMediaPath(app.project.rootItem, clipSpec.mediaPath);
+    }
+    if (!item) {
+      return CreativePipelineMCP.status(command, "accepted", "clip command recorded; media project item unavailable", {
+        mediaPath: clipSpec.mediaPath,
+        mode: overwrite ? "overwrite" : "insert"
+      });
+    }
+    var target = payload.target || {};
+    var sequence = app.project.activeSequence;
+    var tracks = target.trackType === "audio" ? sequence.audioTracks : sequence.videoTracks;
+    if (!tracks || tracks.numTracks <= (target.trackIndex || 0)) {
+      return CreativePipelineMCP.status(command, "error", "target track not found", { target: target });
+    }
+    var track = tracks[target.trackIndex || 0];
+    if (overwrite && track.overwriteClip) {
+      track.overwriteClip(item, clipSpec.startSeconds);
+    } else if (track.insertClip) {
+      track.insertClip(item, clipSpec.startSeconds);
+    } else {
+      return CreativePipelineMCP.status(command, "accepted", "clip command recorded; track insert API unavailable", {
+        mediaPath: clipSpec.mediaPath,
+        target: target,
+        mode: overwrite ? "overwrite" : "insert"
+      });
+    }
+    return CreativePipelineMCP.status(command, "success", overwrite ? "clip overwritten" : "clip inserted", {
+      mediaPath: clipSpec.mediaPath,
+      startSeconds: clipSpec.startSeconds,
+      target: target,
+      mode: overwrite ? "overwrite" : "insert"
+    });
+  } catch (err) {
+    return CreativePipelineMCP.status(command, "error", "clip insert/overwrite failed", { error: String(err), mediaPath: clipSpec.mediaPath });
+  }
+};
+
+CreativePipelineMCP.replaceClipMedia = function (command) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var replacement = operation.replacement || {};
+  var clip = CreativePipelineMCP.resolveClip(payload);
+  if (!clip) {
+    return CreativePipelineMCP.status(command, "error", "clip not found", { target: payload.target || {} });
+  }
+  if (!replacement.newMediaPath) {
+    return CreativePipelineMCP.status(command, "error", "missing newMediaPath", {});
+  }
+  try {
+    if (clip.projectItem && clip.projectItem.changeMediaPath) {
+      clip.projectItem.changeMediaPath(replacement.newMediaPath, 1);
+      return CreativePipelineMCP.status(command, "success", "clip media replaced", {
+        target: payload.target || {},
+        newMediaPath: replacement.newMediaPath
+      });
+    }
+    if (app.project && app.project.importFiles && !CreativePipelineMCP.findProjectItemByMediaPath(app.project.rootItem, replacement.newMediaPath)) {
+      app.project.importFiles([replacement.newMediaPath], true, app.project.rootItem, false);
+    }
+    return CreativePipelineMCP.status(command, "accepted", "replace command recorded; clip media replacement API unavailable", {
+      target: payload.target || {},
+      newMediaPath: replacement.newMediaPath
+    });
+  } catch (err) {
+    return CreativePipelineMCP.status(command, "error", "clip media replacement failed", { error: String(err), target: payload.target || {} });
+  }
+};
+
+CreativePipelineMCP.rippleDeleteWithApproval = function (command) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var deleteSpec = operation.delete || {};
+  var approval = deleteSpec.approval || {};
+  if (approval.confirmed !== true) {
+    return CreativePipelineMCP.status(command, "error", "ripple delete requires explicit approval confirmation", {
+      target: payload.target || {},
+      reason: approval.reason || ""
+    });
+  }
+  var clip = CreativePipelineMCP.resolveClip(payload);
+  if (!clip) {
+    return CreativePipelineMCP.status(command, "error", "clip not found", { target: payload.target || {} });
+  }
+  try {
+    if (clip.remove) {
+      clip.remove(1, 1);
+      return CreativePipelineMCP.status(command, "success", "clip ripple deleted", { target: payload.target || {} });
+    }
+    return CreativePipelineMCP.status(command, "accepted", "ripple delete recorded; clip remove API unavailable", {
+      target: payload.target || {},
+      reason: approval.reason || ""
+    });
+  } catch (err) {
+    return CreativePipelineMCP.status(command, "error", "ripple delete failed", { error: String(err), target: payload.target || {} });
+  }
+};
+
+CreativePipelineMCP.recordBoundedTypedCommand = function (command) {
+  var payload = command.payload || {};
+  if (!app.project) {
+    return CreativePipelineMCP.status(command, "error", "no active project", {});
+  }
+  return CreativePipelineMCP.status(command, "accepted", "bounded typed command recorded", {
+    commandType: command.type,
+    target: payload.target || {},
+    operation: payload.operation || {},
+    rawScriptProxy: false
+  });
+};
+
+CreativePipelineMCP.exportWithPreset = function (command) {
+  var payload = command.payload || {};
+  var operation = payload.operation || {};
+  var exportSpec = operation.export || {};
+  var bridged = {
+    id: command.id,
+    commandId: command.commandId,
+    type: "export_sequence",
+    payload: {
+      outputPath: exportSpec.outputPath,
+      presetPath: exportSpec.presetPath || "",
+      presetName: exportSpec.presetName || "",
+      deliveryProfile: exportSpec.deliveryProfile || ""
+    }
+  };
+  var raw = CreativePipelineMCP.exportSequence(bridged);
+  try {
+    var parsed = JSON.parse(raw);
+    parsed.commandType = "export_with_preset";
+    parsed.details = parsed.details || {};
+    parsed.details.presetName = exportSpec.presetName || "";
+    parsed.details.deliveryProfile = exportSpec.deliveryProfile || "";
+    return JSON.stringify(parsed);
+  } catch (ignored) {
+    return raw;
   }
 };
 

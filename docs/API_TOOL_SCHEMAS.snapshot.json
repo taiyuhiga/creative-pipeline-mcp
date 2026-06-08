@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "1.1.1-alpha.0",
+  "packageVersion": "1.1.2-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -1854,6 +1854,103 @@
       }
     },
     {
+      "name": "premiere.add_transition",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to add a transition to a targeted edit point.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "alignment": {
+            "enum": [
+              "start",
+              "center",
+              "end"
+            ],
+            "type": "string"
+          },
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          },
+          "transitionName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "transitionName"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.apply_audio_preset",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to apply an audio preset to a targeted clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "presetName": {
+            "type": "string"
+          },
+          "presetPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "presetName"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.apply_brand_package",
       "category": "premiere",
       "risk": "project_write",
@@ -1870,6 +1967,98 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.apply_effect_preset",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to apply a bounded effect preset to a targeted clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "presetName": {
+            "type": "string"
+          },
+          "presetPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "presetName"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.apply_lumetri_preset",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to apply a Lumetri preset or look to a targeted clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "intensity": {
+            "type": "number"
+          },
+          "lutPath": {
+            "type": "string"
+          },
+          "presetName": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "presetName"
         ],
         "type": "object"
       }
@@ -1950,7 +2139,21 @@
               "split_clip",
               "move_clip",
               "add_marker",
-              "set_clip_speed"
+              "set_clip_speed",
+              "create_sequence",
+              "import_media_once",
+              "insert_clip_at_time",
+              "overwrite_clip_at_time",
+              "replace_clip_media",
+              "ripple_delete_with_approval",
+              "add_transition",
+              "apply_effect_preset",
+              "apply_lumetri_preset",
+              "set_audio_gain",
+              "apply_audio_preset",
+              "create_caption_track",
+              "render_preview_range",
+              "export_with_preset"
             ],
             "type": "string"
           },
@@ -2073,6 +2276,46 @@
       }
     },
     {
+      "name": "premiere.create_caption_track",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to create or attach a caption track from a subtitle file.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "captionPath": {
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "srt",
+              "vtt"
+            ],
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          },
+          "styleName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "captionPath"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.create_multilanguage_subtitles",
       "category": "premiere",
       "risk": "safe_write",
@@ -2089,6 +2332,42 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.create_sequence",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to create a sequence without exposing raw ExtendScript.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "fps": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "presetPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sequenceName"
         ],
         "type": "object"
       }
@@ -2189,6 +2468,43 @@
       }
     },
     {
+      "name": "premiere.export_with_preset",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to export the active sequence with a named preset.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "deliveryProfile": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "presetName": {
+            "type": "string"
+          },
+          "presetPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "outputPath",
+          "presetName"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.finalize_export_qc",
       "category": "premiere",
       "risk": "safe_write",
@@ -2267,6 +2583,33 @@
       }
     },
     {
+      "name": "premiere.import_media_once",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to import media only when it is not already in the project.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "binName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "mediaPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mediaPath"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.index_media",
       "category": "premiere",
       "risk": "safe_write",
@@ -2298,6 +2641,53 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.insert_clip_at_time",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to insert media at a timeline time.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "inPointSeconds": {
+            "type": "number"
+          },
+          "mediaPath": {
+            "type": "string"
+          },
+          "outPointSeconds": {
+            "type": "number"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mediaPath",
+          "startSeconds"
         ],
         "type": "object"
       }
@@ -2446,6 +2836,53 @@
       }
     },
     {
+      "name": "premiere.overwrite_clip_at_time",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to overwrite media at a timeline time.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "inPointSeconds": {
+            "type": "number"
+          },
+          "mediaPath": {
+            "type": "string"
+          },
+          "outPointSeconds": {
+            "type": "number"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mediaPath",
+          "startSeconds"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "name": "premiere.read_cep_status",
       "category": "premiere",
       "risk": "read",
@@ -2453,6 +2890,82 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.render_preview_range",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to render timeline previews for a bounded range.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "endSeconds": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "startSeconds",
+          "endSeconds"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.replace_clip_media",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to replace the source media for a targeted clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "newMediaPath": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "newMediaPath",
+          "trackIndex",
+          "clipIndex"
+        ],
         "type": "object"
       }
     },
@@ -2473,6 +2986,55 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.ripple_delete_with_approval",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue an approval-gated Premiere CEP command to ripple delete a targeted timeline clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalReason": {
+            "type": "string"
+          },
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          },
+          "trackType": {
+            "enum": [
+              "video",
+              "audio"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "approvalReason",
+          "confirmed"
         ],
         "type": "object"
       }
@@ -2512,6 +3074,44 @@
         },
         "required": [
           "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "premiere.set_audio_gain",
+      "category": "premiere",
+      "risk": "project_write",
+      "description": "Queue a typed Premiere CEP command to set audio gain on a targeted clip.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "clipIndex": {
+            "type": "number"
+          },
+          "clipName": {
+            "type": "string"
+          },
+          "gainDb": {
+            "type": "number"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "rollbackHint": {
+            "type": "string"
+          },
+          "sequenceName": {
+            "type": "string"
+          },
+          "trackIndex": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "trackIndex",
+          "clipIndex",
+          "gainDb"
         ],
         "type": "object"
       }

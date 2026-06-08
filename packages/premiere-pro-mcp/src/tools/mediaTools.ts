@@ -24,7 +24,21 @@ const cepCommandTypes: PremiereCepCommandType[] = [
   "split_clip",
   "move_clip",
   "add_marker",
-  "set_clip_speed"
+  "set_clip_speed",
+  "create_sequence",
+  "import_media_once",
+  "insert_clip_at_time",
+  "overwrite_clip_at_time",
+  "replace_clip_media",
+  "ripple_delete_with_approval",
+  "add_transition",
+  "apply_effect_preset",
+  "apply_lumetri_preset",
+  "set_audio_gain",
+  "apply_audio_preset",
+  "create_caption_track",
+  "render_preview_range",
+  "export_with_preset"
 ];
 
 export const premiereTools: ToolDefinition[] = [
@@ -1027,6 +1041,510 @@ export const premiereTools: ToolDefinition[] = [
     }
   },
   {
+    name: "premiere.create_sequence",
+    description: "Queue a typed Premiere CEP command to create a sequence without exposing raw ExtendScript.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        presetPath: { type: "string" },
+        width: { type: "number" },
+        height: { type: "number" },
+        fps: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["sequenceName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "create_sequence", {
+        sequence: {
+          name: stringOrUndefined(input.sequenceName) ?? "Creative Pipeline Sequence",
+          presetPath: stringOrUndefined(input.presetPath),
+          settings: {
+            width: numberOrUndefined(input.width),
+            height: numberOrUndefined(input.height),
+            fps: numberOrUndefined(input.fps)
+          }
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/create_sequence.json", payload);
+      const queued = await enqueuePremiereCommand("create_sequence", payload, editCommandOptions(input, [
+        "new sequence may be created",
+        "active sequence may change"
+      ]));
+      return typedEditResult("Create sequence command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.import_media_once",
+    description: "Queue a typed Premiere CEP command to import media only when it is not already in the project.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mediaPath: { type: "string" },
+        binName: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["mediaPath"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const mediaPath = await assertReadableInputPath(context, input.mediaPath, "mediaPath");
+      const payload = typedEditPayload(input, "import_media_once", {
+        media: {
+          path: mediaPath,
+          binName: stringOrUndefined(input.binName)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/import_media_once.json", payload);
+      const queued = await enqueuePremiereCommand("import_media_once", payload, editCommandOptions(input, [
+        "media may be imported into the project"
+      ]));
+      return typedEditResult("Import media once command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.insert_clip_at_time",
+    description: "Queue a typed Premiere CEP command to insert media at a timeline time.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mediaPath: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        startSeconds: { type: "number" },
+        inPointSeconds: { type: "number" },
+        outPointSeconds: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["mediaPath", "startSeconds"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const mediaPath = await assertReadableInputPath(context, input.mediaPath, "mediaPath");
+      const payload = typedEditPayload(input, "insert_clip_at_time", {
+        clip: {
+          mediaPath,
+          startSeconds: numberOrUndefined(input.startSeconds),
+          inPointSeconds: numberOrUndefined(input.inPointSeconds),
+          outPointSeconds: numberOrUndefined(input.outPointSeconds),
+          mode: "insert"
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/insert_clip_at_time.json", payload);
+      const queued = await enqueuePremiereCommand("insert_clip_at_time", payload, editCommandOptions(input, [
+        "media may be imported",
+        "clip may be inserted on the timeline",
+        "downstream clips may shift"
+      ]));
+      return typedEditResult("Insert clip at time command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.overwrite_clip_at_time",
+    description: "Queue a typed Premiere CEP command to overwrite media at a timeline time.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mediaPath: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        startSeconds: { type: "number" },
+        inPointSeconds: { type: "number" },
+        outPointSeconds: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["mediaPath", "startSeconds"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const mediaPath = await assertReadableInputPath(context, input.mediaPath, "mediaPath");
+      const payload = typedEditPayload(input, "overwrite_clip_at_time", {
+        clip: {
+          mediaPath,
+          startSeconds: numberOrUndefined(input.startSeconds),
+          inPointSeconds: numberOrUndefined(input.inPointSeconds),
+          outPointSeconds: numberOrUndefined(input.outPointSeconds),
+          mode: "overwrite"
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/overwrite_clip_at_time.json", payload);
+      const queued = await enqueuePremiereCommand("overwrite_clip_at_time", payload, editCommandOptions(input, [
+        "media may be imported",
+        "timeline content may be overwritten"
+      ]));
+      return typedEditResult("Overwrite clip at time command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.replace_clip_media",
+    description: "Queue a typed Premiere CEP command to replace the source media for a targeted clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        newMediaPath: { type: "string" },
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["newMediaPath", "trackIndex", "clipIndex"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const newMediaPath = await assertReadableInputPath(context, input.newMediaPath, "newMediaPath");
+      const payload = typedEditPayload(input, "replace_clip_media", {
+        replacement: {
+          newMediaPath
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/replace_clip_media.json", payload);
+      const queued = await enqueuePremiereCommand("replace_clip_media", payload, editCommandOptions(input, [
+        "clip source media may change",
+        "media may be imported"
+      ]));
+      return typedEditResult("Replace clip media command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.ripple_delete_with_approval",
+    description: "Queue an approval-gated Premiere CEP command to ripple delete a targeted timeline clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        approvalReason: { type: "string" },
+        confirmed: { type: "boolean" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "approvalReason", "confirmed"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "ripple_delete_with_approval", {
+        delete: {
+          mode: "ripple",
+          approval: {
+            required: true,
+            reason: stringOrUndefined(input.approvalReason),
+            confirmed: input.confirmed === true
+          }
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/ripple_delete_with_approval.json", payload);
+      const queued = await enqueuePremiereCommand("ripple_delete_with_approval", payload, editCommandOptions(input, [
+        "clip may be removed",
+        "downstream clips may shift"
+      ]));
+      return typedEditResult("Ripple delete command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.add_transition",
+    description: "Queue a typed Premiere CEP command to add a transition to a targeted edit point.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        transitionName: { type: "string" },
+        durationSeconds: { type: "number" },
+        alignment: { type: "string", enum: ["start", "center", "end"] },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "transitionName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "add_transition", {
+        transition: {
+          name: stringOrUndefined(input.transitionName),
+          durationSeconds: numberOrUndefined(input.durationSeconds),
+          alignment: stringOrUndefined(input.alignment) ?? "center"
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/add_transition.json", payload);
+      const queued = await enqueuePremiereCommand("add_transition", payload, editCommandOptions(input, [
+        "transition may be added to the timeline"
+      ]));
+      return typedEditResult("Add transition command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.apply_effect_preset",
+    description: "Queue a typed Premiere CEP command to apply a bounded effect preset to a targeted clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackType: { type: "string", enum: ["video", "audio"] },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        presetName: { type: "string" },
+        presetPath: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "presetName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "apply_effect_preset", {
+        effectPreset: {
+          name: stringOrUndefined(input.presetName),
+          path: stringOrUndefined(input.presetPath)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/apply_effect_preset.json", payload);
+      const queued = await enqueuePremiereCommand("apply_effect_preset", payload, editCommandOptions(input, [
+        "clip effects may change"
+      ]));
+      return typedEditResult("Apply effect preset command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.apply_lumetri_preset",
+    description: "Queue a typed Premiere CEP command to apply a Lumetri preset or look to a targeted clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        presetName: { type: "string" },
+        lutPath: { type: "string" },
+        intensity: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "presetName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload({ ...input, trackType: "video" }, "apply_lumetri_preset", {
+        lumetriPreset: {
+          name: stringOrUndefined(input.presetName),
+          lutPath: stringOrUndefined(input.lutPath),
+          intensity: numberOrUndefined(input.intensity)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/apply_lumetri_preset.json", payload);
+      const queued = await enqueuePremiereCommand("apply_lumetri_preset", payload, editCommandOptions(input, [
+        "clip color settings may change"
+      ]));
+      return typedEditResult("Apply Lumetri preset command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.set_audio_gain",
+    description: "Queue a typed Premiere CEP command to set audio gain on a targeted clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        gainDb: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "gainDb"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload({ ...input, trackType: "audio" }, "set_audio_gain", {
+        audioGain: {
+          gainDb: numberOrUndefined(input.gainDb)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/set_audio_gain.json", payload);
+      const queued = await enqueuePremiereCommand("set_audio_gain", payload, editCommandOptions(input, [
+        "clip audio gain may change"
+      ]));
+      return typedEditResult("Set audio gain command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.apply_audio_preset",
+    description: "Queue a typed Premiere CEP command to apply an audio preset to a targeted clip.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        trackIndex: { type: "number" },
+        clipIndex: { type: "number" },
+        clipName: { type: "string" },
+        presetName: { type: "string" },
+        presetPath: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["trackIndex", "clipIndex", "presetName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload({ ...input, trackType: "audio" }, "apply_audio_preset", {
+        audioPreset: {
+          name: stringOrUndefined(input.presetName),
+          path: stringOrUndefined(input.presetPath)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/apply_audio_preset.json", payload);
+      const queued = await enqueuePremiereCommand("apply_audio_preset", payload, editCommandOptions(input, [
+        "clip audio effects may change"
+      ]));
+      return typedEditResult("Apply audio preset command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.create_caption_track",
+    description: "Queue a typed Premiere CEP command to create or attach a caption track from a subtitle file.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        captionPath: { type: "string" },
+        sequenceName: { type: "string" },
+        format: { type: "string", enum: ["srt", "vtt"] },
+        startSeconds: { type: "number" },
+        styleName: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["captionPath"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const captionPath = await assertReadableInputPath(context, input.captionPath, "captionPath");
+      const payload = typedEditPayload(input, "create_caption_track", {
+        captions: {
+          path: captionPath,
+          format: subtitleFormat(captionPath, input.format),
+          startSeconds: numberOrUndefined(input.startSeconds) ?? 0,
+          styleName: stringOrUndefined(input.styleName)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/create_caption_track.json", payload);
+      const queued = await enqueuePremiereCommand("create_caption_track", payload, editCommandOptions(input, [
+        "caption media may be imported",
+        "caption track may be added"
+      ]));
+      return typedEditResult("Create caption track command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.render_preview_range",
+    description: "Queue a typed Premiere CEP command to render timeline previews for a bounded range.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        startSeconds: { type: "number" },
+        endSeconds: { type: "number" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["startSeconds", "endSeconds"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "render_preview_range", {
+        previewRange: {
+          startSeconds: numberOrUndefined(input.startSeconds),
+          endSeconds: numberOrUndefined(input.endSeconds)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/render_preview_range.json", payload);
+      const queued = await enqueuePremiereCommand("render_preview_range", payload, editCommandOptions(input, [
+        "preview files may be rendered"
+      ]));
+      return typedEditResult("Render preview range command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
+    name: "premiere.export_with_preset",
+    description: "Queue a typed Premiere CEP command to export the active sequence with a named preset.",
+    category: "premiere",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sequenceName: { type: "string" },
+        outputPath: { type: "string" },
+        presetName: { type: "string" },
+        presetPath: { type: "string" },
+        deliveryProfile: { type: "string" },
+        idempotencyKey: { type: "string" },
+        rollbackHint: { type: "string" }
+      },
+      required: ["outputPath", "presetName"],
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const payload = typedEditPayload(input, "export_with_preset", {
+        export: {
+          outputPath: stringOrUndefined(input.outputPath),
+          presetName: stringOrUndefined(input.presetName),
+          presetPath: stringOrUndefined(input.presetPath),
+          deliveryProfile: stringOrUndefined(input.deliveryProfile)
+        }
+      });
+      const artifact = await context.artifactStore.writeJson("premiere/typed_edits/export_with_preset.json", payload);
+      const queued = await enqueuePremiereCommand("export_with_preset", payload, editCommandOptions(input, [
+        "export job may be queued",
+        "output file may be written"
+      ]));
+      return typedEditResult("Export with preset command queued", artifact, queued.path, payload, queued.command);
+    }
+  },
+  {
     name: "premiere.validate_subtitles",
     description: "Validate SRT/VTT cues for timing, overlap, empty text, and reading speed.",
     category: "premiere",
@@ -1316,9 +1834,19 @@ async function assertOptionalAnchorPath(context: ToolExecutionContext, input: Re
   await context.artifactStore.assertReadableFile(path);
 }
 
+async function assertReadableInputPath(context: ToolExecutionContext, value: unknown, field: string): Promise<string> {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${field} is required`);
+  }
+  const path = value.trim();
+  await context.artifactStore.assertReadableFile(path);
+  return path;
+}
+
 function typedEditPayload(input: Record<string, unknown>, commandType: PremiereCepCommandType, operation: Record<string, unknown>) {
   return {
     schema: "creative.pipeline.premiere.typed_edit.v1",
+    schemaVersion: 1,
     commandType,
     sequenceName: typeof input.sequenceName === "string" ? input.sequenceName : undefined,
     target: {
@@ -1328,6 +1856,11 @@ function typedEditPayload(input: Record<string, unknown>, commandType: PremiereC
       clipName: typeof input.clipName === "string" ? input.clipName : undefined
     },
     operation,
+    hostCapability: {
+      bridge: "premiere_cep",
+      minSchema: "creative.pipeline.premiere.status.v1",
+      rawScriptProxy: false
+    },
     bridge: "external_premiere_cep_required"
   };
 }
@@ -1360,6 +1893,10 @@ function typedEditResult(
 
 function numberOrUndefined(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function adapterMissingError(adapter: string, message: string) {

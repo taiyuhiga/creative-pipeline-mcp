@@ -2,6 +2,20 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.2-alpha.0
+
+Changed:
+- Added 14 experimental Premiere typed CEP queue tools for sequence creation, media import, clip insert/overwrite/replace/delete, transitions, video/audio presets, captions, preview render, and preset export.
+- Public tool schema snapshot now covers 131 tools.
+
+Migration:
+- Use the new `premiere.*` typed edit tools only through the CEP queue/status bridge; do not replace them with raw ExtendScript or external Premiere MCP proxy calls.
+- Treat these live timeline mutation tools as experimental until additional macOS and Windows Premiere evidence is collected.
+
+Compatibility:
+- Existing Premiere media QC, delivery QC, status, and five original typed edit tools remain additive-compatible.
+- Stable v1 structured result, approval artifact, and CEP status schema expectations are unchanged.
+
 ## 1.1.0-alpha.0
 
 Changed:

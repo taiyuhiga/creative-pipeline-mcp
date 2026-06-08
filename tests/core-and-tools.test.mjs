@@ -1256,7 +1256,10 @@ test("Premiere timeline marker tool queues safe margin and intro/outro markers",
 test("Premiere typed edit tools queue bounded CEP commands with safety metadata", async () => {
   const mediaRoot = await mkdtemp(join(tmpdir(), "creative-mcp-edit-media-"));
   const mediaPath = join(mediaRoot, "placeholder.mp4");
+  const captionPath = join(mediaRoot, "captions.srt");
+  const outputPath = join(mediaRoot, "export.mp4");
   await writeFile(mediaPath, new Uint8Array([0]));
+  await writeFile(captionPath, "1\n00:00:00,000 --> 00:00:01,000\nHello\n\n", "utf8");
   const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-edit-queue-"));
   const previousQueue = process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
   const previousStatus = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR;
@@ -1268,7 +1271,21 @@ test("Premiere typed edit tools queue bounded CEP commands with safety metadata"
       ["premiere.split_clip", { path: mediaPath, trackIndex: 0, clipIndex: 0, splitSeconds: 0.5 }],
       ["premiere.move_clip", { path: mediaPath, trackIndex: 0, clipIndex: 0, startSeconds: 2 }],
       ["premiere.add_marker", { path: mediaPath, timeSeconds: 0.25, name: "Hook" }],
-      ["premiere.set_clip_speed", { path: mediaPath, trackIndex: 0, clipIndex: 0, speedPercent: 125 }]
+      ["premiere.set_clip_speed", { path: mediaPath, trackIndex: 0, clipIndex: 0, speedPercent: 125 }],
+      ["premiere.create_sequence", { sequenceName: "Typed Sequence", width: 3840, height: 2160, fps: 29.97 }],
+      ["premiere.import_media_once", { mediaPath }],
+      ["premiere.insert_clip_at_time", { mediaPath, trackIndex: 0, startSeconds: 1 }],
+      ["premiere.overwrite_clip_at_time", { mediaPath, trackIndex: 0, startSeconds: 2 }],
+      ["premiere.replace_clip_media", { newMediaPath: mediaPath, trackIndex: 0, clipIndex: 0 }],
+      ["premiere.ripple_delete_with_approval", { trackIndex: 0, clipIndex: 0, approvalReason: "Remove failed take", confirmed: true }],
+      ["premiere.add_transition", { trackIndex: 0, clipIndex: 0, transitionName: "Cross Dissolve", durationSeconds: 0.5 }],
+      ["premiere.apply_effect_preset", { trackIndex: 0, clipIndex: 0, presetName: "Sharpen Safe" }],
+      ["premiere.apply_lumetri_preset", { trackIndex: 0, clipIndex: 0, presetName: "Rec709 Clean", intensity: 0.8 }],
+      ["premiere.set_audio_gain", { trackIndex: 0, clipIndex: 0, gainDb: -3 }],
+      ["premiere.apply_audio_preset", { trackIndex: 0, clipIndex: 0, presetName: "Dialogue Cleanup" }],
+      ["premiere.create_caption_track", { captionPath, format: "srt", startSeconds: 0 }],
+      ["premiere.render_preview_range", { startSeconds: 0, endSeconds: 5 }],
+      ["premiere.export_with_preset", { outputPath, presetName: "YouTube 4K High Quality" }]
     ];
     for (const [name, input] of calls) {
       const tool = premiereTools.find((candidate) => candidate.name === name);
@@ -1284,11 +1301,32 @@ test("Premiere typed edit tools queue bounded CEP commands with safety metadata"
       assert.ok(result.data.command.statusJsonPath.endsWith(`${result.data.command.commandId}.json`));
       assert.ok(result.data.command.rollbackHint);
       assert.equal(result.data.manifest.schema, "creative.pipeline.premiere.typed_edit.v1");
+      assert.equal(result.data.manifest.hostCapability.rawScriptProxy, false);
     }
     const queueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
-    assert.equal(queueFiles.length, 5);
+    assert.equal(queueFiles.length, 19);
     const queuedTypes = await Promise.all(queueFiles.map(async (file) => JSON.parse(await readFile(join(queueRoot, file), "utf8")).type));
-    assert.deepEqual(queuedTypes.sort(), ["add_marker", "move_clip", "set_clip_speed", "split_clip", "trim_clip"]);
+    assert.deepEqual(queuedTypes.sort(), [
+      "add_marker",
+      "add_transition",
+      "apply_audio_preset",
+      "apply_effect_preset",
+      "apply_lumetri_preset",
+      "create_caption_track",
+      "create_sequence",
+      "export_with_preset",
+      "import_media_once",
+      "insert_clip_at_time",
+      "move_clip",
+      "overwrite_clip_at_time",
+      "render_preview_range",
+      "replace_clip_media",
+      "ripple_delete_with_approval",
+      "set_audio_gain",
+      "set_clip_speed",
+      "split_clip",
+      "trim_clip"
+    ]);
   } finally {
     if (previousQueue === undefined) {
       delete process.env.CREATIVE_MCP_PREMIERE_IPC_DIR;
@@ -1337,9 +1375,13 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
   const queueRoot = await mkdtemp(join(tmpdir(), "creative-mcp-cep-sim-queue-"));
   const statusRoot = await mkdtemp(join(tmpdir(), "creative-mcp-cep-sim-status-"));
   const mediaPath = join(mediaRoot, "clip.mp4");
+  const replacementPath = join(mediaRoot, "replacement.mp4");
+  const captionPath = join(mediaRoot, "captions.srt");
   const otioPath = join(mediaRoot, "timeline.otio");
   const outputPath = join(mediaRoot, "final.mp4");
   await writeFile(mediaPath, new Uint8Array([0]));
+  await writeFile(replacementPath, new Uint8Array([0]));
+  await writeFile(captionPath, "1\n00:00:00,000 --> 00:00:01,000\nHello\n\n", "utf8");
   await writeFile(otioPath, JSON.stringify({
     OTIO_SCHEMA: "Timeline.1",
     name: "Simulated Timeline",
@@ -1358,6 +1400,14 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
     }]
   }), "utf8");
   const commands = [
+    {
+      id: "cmd-0",
+      type: "create_sequence",
+      payload: {
+        operation: { sequence: { name: "Precreated Sequence" } }
+      },
+      createdAt: new Date().toISOString()
+    },
     {
       id: "cmd-1",
       type: "build_timeline_from_otio",
@@ -1410,14 +1460,127 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
     },
     {
       id: "cmd-7",
+      type: "import_media_once",
+      payload: {
+        operation: { media: { path: mediaPath } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-8",
+      type: "insert_clip_at_time",
+      payload: {
+        target: { trackType: "video", trackIndex: 0 },
+        operation: { clip: { mediaPath, startSeconds: 1.5, mode: "insert" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-9",
+      type: "overwrite_clip_at_time",
+      payload: {
+        target: { trackType: "video", trackIndex: 0 },
+        operation: { clip: { mediaPath, startSeconds: 2.5, mode: "overwrite" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-10",
+      type: "replace_clip_media",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { replacement: { newMediaPath: replacementPath } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-11",
+      type: "ripple_delete_with_approval",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { delete: { approval: { confirmed: true, reason: "simulated delete" } } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-12",
+      type: "add_transition",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { transition: { name: "Cross Dissolve", durationSeconds: 0.5 } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-13",
+      type: "apply_effect_preset",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { effectPreset: { name: "Sharpen Safe" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-14",
+      type: "apply_lumetri_preset",
+      payload: {
+        target: { trackType: "video", trackIndex: 0, clipIndex: 0 },
+        operation: { lumetriPreset: { name: "Rec709 Clean" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-15",
+      type: "set_audio_gain",
+      payload: {
+        target: { trackType: "audio", trackIndex: 0, clipIndex: 0 },
+        operation: { audioGain: { gainDb: -3 } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-16",
+      type: "apply_audio_preset",
+      payload: {
+        target: { trackType: "audio", trackIndex: 0, clipIndex: 0 },
+        operation: { audioPreset: { name: "Dialogue Cleanup" } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-17",
+      type: "create_caption_track",
+      payload: {
+        operation: { captions: { path: captionPath, format: "srt", startSeconds: 0 } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-18",
+      type: "render_preview_range",
+      payload: {
+        operation: { previewRange: { startSeconds: 0, endSeconds: 1 } }
+      },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-19",
       type: "apply_brand_package",
       payload: { brand: { primaryColor: "#111111" }, appliesTo: ["captions"] },
       createdAt: new Date().toISOString()
     },
     {
-      id: "cmd-8",
+      id: "cmd-20",
       type: "export_sequence",
       payload: { outputPath, presetPath: "" },
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cmd-21",
+      type: "export_with_preset",
+      payload: {
+        operation: { export: { outputPath, presetName: "YouTube 4K", presetPath: "" } }
+      },
       createdAt: new Date().toISOString()
     }
   ];
@@ -1436,30 +1599,70 @@ test("Premiere CEP simulator dispatches host.jsx queue commands", async () => {
   });
   assert.equal(result.status, 0, result.stderr);
   const summary = JSON.parse(result.stdout);
-  assert.equal(summary.processed, 8);
-  assert.equal(summary.state.imported.length, 1);
-  assert.equal(summary.state.inserted.length, 1);
+  assert.equal(summary.processed, 22);
+  assert.ok(summary.state.imported.length >= 1);
+  assert.ok(summary.state.inserted.length >= 2);
+  assert.equal(summary.state.overwritten.length, 1);
+  assert.equal(summary.state.replaced.length, 1);
+  assert.equal(summary.state.removed.length, 1);
   assert.ok(summary.state.trims.length >= 1);
   assert.ok(summary.state.moves.length >= 1);
   assert.equal(summary.state.markers.length, 1);
   assert.equal(summary.state.speeds.length, 1);
-  assert.equal(summary.state.exports.length, 1);
+  assert.equal(summary.state.exports.length, 2);
   const statuses = await Promise.all(commands.map(async (command) => JSON.parse(await readFile(join(statusRoot, `${command.id}.json`), "utf8"))));
-  assert.deepEqual(statuses.map((status) => status.status), ["success", "success", "accepted", "success", "success", "success", "success", "success"]);
+  assert.deepEqual(statuses.map((status) => status.status), [
+    "success",
+    "success",
+    "success",
+    "accepted",
+    "success",
+    "success",
+    "success",
+    "success",
+    "success",
+    "success",
+    "success",
+    "success",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "success",
+    "success",
+    "success"
+  ]);
   assert.deepEqual(statuses.map((status) => status.commandType), [
+    "create_sequence",
     "build_timeline_from_otio",
     "trim_clip",
     "split_clip",
     "move_clip",
     "add_marker",
     "set_clip_speed",
+    "import_media_once",
+    "insert_clip_at_time",
+    "overwrite_clip_at_time",
+    "replace_clip_media",
+    "ripple_delete_with_approval",
+    "add_transition",
+    "apply_effect_preset",
+    "apply_lumetri_preset",
+    "set_audio_gain",
+    "apply_audio_preset",
+    "create_caption_track",
+    "render_preview_range",
     "apply_brand_package",
-    "export_sequence"
+    "export_sequence",
+    "export_with_preset"
   ]);
   const remainingQueueFiles = (await readdir(queueRoot)).filter((file) => file.endsWith(".json"));
   assert.equal(remainingQueueFiles.length, 0);
   const archived = (await readdir(join(queueRoot, "processed"))).filter((file) => file.endsWith(".json"));
-  assert.equal(archived.length, 8);
+  assert.equal(archived.length, 22);
 });
 
 test("Premiere CEP simulator rejects unsupported command types", async () => {

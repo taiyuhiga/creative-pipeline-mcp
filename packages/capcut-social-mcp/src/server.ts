@@ -1,4 +1,4 @@
 import { coreTools, McpServer, providerTools } from "../../core/dist/index.js";
 import { capcutTools } from "./tools/capcutTools.js";
 
-new McpServer("capcut-social-mcp", "1.1.1-alpha.0", [...coreTools, ...providerTools, ...capcutTools]).runStdio();
+new McpServer("capcut-social-mcp", "1.1.2-alpha.0", [...coreTools, ...providerTools, ...capcutTools]).runStdio();
