@@ -10,6 +10,7 @@ After Effects support is an experimental motion/render provider. Phase 1 is rend
 - `ae.queue_nexrender`
 - `ae.render_frame_preview`
 - `ae.run_motion_qc`
+- `ae.collect_render_evidence`
 
 ## Backends
 
@@ -26,10 +27,11 @@ artifacts/after-effects/
   render_plan.json
   frame_preview_plan.json
   render_status.json
+  render_evidence.json
   motion_qc_report.json
   render_queue/
     aerender_command.json
     nexrender_job.json
 ```
 
-Future render execution should write `output.mov` or image-sequence artifacts and run `ae.run_motion_qc` after completion.
+Render execution evidence should write `render_evidence.json` and then run `ae.run_motion_qc` after completion. `ae.collect_render_evidence` only marks `liveExecutionClaim: true` when the declared output path is readable inside the configured workspace roots.

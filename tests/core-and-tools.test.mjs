@@ -132,16 +132,19 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
     "ae.queue_aerender",
     "ae.queue_nexrender",
     "ae.render_frame_preview",
-    "ae.run_motion_qc"
+    "ae.run_motion_qc",
+    "ae.collect_render_evidence"
   ]) {
     assert.ok(toolNames.includes(name), `${name} should be registered`);
   }
   const planTool = afterEffectsTools.find((tool) => tool.name === "ae.create_render_plan");
   const queueTool = afterEffectsTools.find((tool) => tool.name === "ae.queue_aerender");
   const qcTool = afterEffectsTools.find((tool) => tool.name === "ae.run_motion_qc");
+  const evidenceTool = afterEffectsTools.find((tool) => tool.name === "ae.collect_render_evidence");
   assert.ok(planTool);
   assert.ok(queueTool);
   assert.ok(qcTool);
+  assert.ok(evidenceTool);
   const plan = await planTool.execute(await context(), { compName: "Main", outputFormat: "mov" });
   assert.equal(plan.ok, true);
   assert.equal(plan.data.plan.rawJsx, false);
@@ -152,6 +155,30 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   const qc = await qcTool.execute(await context(), { compName: "Main", width: 1920, height: 1080, outputFormat: "mov" });
   assert.equal(qc.ok, true);
   assert.equal(qc.data.report.status, "pass");
+  const pendingEvidence = await evidenceTool.execute(await context(), {
+    commandId: "ae-test-pending",
+    engine: "aerender",
+    compName: "Main",
+    outputPath: "artifacts/tests/ae-missing-output.mov",
+    status: "queued"
+  });
+  assert.equal(pendingEvidence.ok, true);
+  assert.equal(pendingEvidence.data.evidence.reportStatus, "pending");
+  assert.equal(pendingEvidence.data.evidence.policy.liveExecutionClaim, false);
+  const outputPath = resolve("artifacts", "tests", "ae-render-output.mov");
+  await mkdir(resolve("artifacts", "tests"), { recursive: true });
+  await writeFile(outputPath, "render bytes", "utf8");
+  const evidence = await evidenceTool.execute(await context(process.cwd()), {
+    commandId: "ae-test-success",
+    engine: "aerender",
+    compName: "Main",
+    outputPath,
+    status: "success",
+    requireOutputExists: true
+  });
+  assert.equal(evidence.ok, true);
+  assert.equal(evidence.data.evidence.reportStatus, "pass");
+  assert.equal(evidence.data.evidence.policy.liveExecutionClaim, true);
 });
 
 test("Roblox provider inspects project, indexes scripts, and writes command manifests", async () => {
@@ -261,6 +288,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   assert.equal(output.data.coverage.capcut, true);
   assert.equal(output.data.coverage.videoEditFallback, true);
   assert.equal(output.data.coverage.afterEffects, true);
+  assert.equal(output.data.coverage.afterEffectsRenderEvidence, true);
   assert.equal(output.data.coverage.roblox, true);
   assert.equal(output.data.coverage.director, true);
   assert.equal(output.data.coverage.projectWriteManifests, true);
@@ -272,6 +300,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
     "providers/provider_report.json",
     "video/edit_plan.json",
     "capcut/fallback_draft_manifest.json",
+    "after-effects/render_evidence.json",
     "capcut/draft_qc_report.json",
     "after-effects/render_queue/aerender_command.json",
     "after-effects/render_queue/nexrender_job.json",

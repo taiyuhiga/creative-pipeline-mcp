@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.3-alpha.0",
+  "packageVersion": "0.3.4-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -20,6 +20,48 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.collect_render_evidence",
+      "category": "ae",
+      "risk": "safe_write",
+      "description": "Write render status and output evidence for an After Effects render without claiming live execution unless output is readable.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "compName": {
+            "type": "string"
+          },
+          "engine": {
+            "enum": [
+              "aerender",
+              "nexrender",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "requireOutputExists": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "success",
+              "failed",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },

@@ -36,6 +36,12 @@
       "artifacts": ["after-effects/render_queue/aerender_command.json", "after-effects/render_status.json"]
     },
     {
+      "action": "ae.collect_render_evidence",
+      "ok": true,
+      "message": "After Effects render evidence written: pending",
+      "artifacts": ["after-effects/render_evidence.json"]
+    },
+    {
       "action": "roblox.generate_project_report",
       "ok": true,
       "message": "Roblox combined project report written",
@@ -47,6 +53,7 @@
     "capcut": true,
     "videoEditFallback": true,
     "afterEffects": true,
+    "afterEffectsRenderEvidence": true,
     "roblox": true,
     "director": true,
     "projectWriteManifests": true

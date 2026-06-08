@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.4-alpha.0
+
+### Added
+
+- Added `ae.collect_render_evidence` for After Effects render status/output evidence without raw JSX or license-bypass behavior.
+- Added simulator and test coverage for After Effects render evidence artifacts.
+- Added artifact/docs coverage for `after-effects/render_evidence.json`.
+
 ## 0.3.3-alpha.0
 
 ### Added

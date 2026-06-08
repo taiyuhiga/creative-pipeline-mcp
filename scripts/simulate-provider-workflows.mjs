@@ -103,6 +103,13 @@ await run("ae.queue_nexrender", {
   assets: [{ type: "data", layerName: "Title", value: "Provider Simulator" }]
 });
 await run("ae.run_motion_qc", { compName: "Main", outputFormat: "mov", width: 1920, height: 1080, durationSeconds: 8 });
+await run("ae.collect_render_evidence", {
+  commandId: "provider-simulator-ae",
+  engine: "aerender",
+  compName: "Main",
+  outputPath: "artifacts/after-effects/provider-output.mov",
+  status: "queued"
+});
 
 await run("roblox.check_availability", {});
 await run("roblox.inspect_project", { projectRoot: robloxProjectRoot });
@@ -158,6 +165,7 @@ const summary = {
     capcut: commands.some((command) => command.action.startsWith("capcut.")),
     videoEditFallback: commands.some((command) => command.action === "video.create_edit"),
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
+    afterEffectsRenderEvidence: commands.some((command) => command.action === "ae.collect_render_evidence"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
     director: commands.some((command) => command.action.startsWith("director.")),
     projectWriteManifests: commands.some((command) => command.action === "ae.queue_aerender") &&

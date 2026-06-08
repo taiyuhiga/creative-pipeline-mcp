@@ -203,6 +203,77 @@ export const afterEffectsTools: ToolDefinition[] = [
       const artifact = await context.artifactStore.writeJson("after-effects/motion_qc_report.json", report);
       return { ok: report.status === "pass", message: "After Effects motion QC report written", artifacts: [artifact], data: { report } };
     }
+  },
+  {
+    name: "ae.collect_render_evidence",
+    description: "Write render status and output evidence for an After Effects render without claiming live execution unless output is readable.",
+    category: "ae",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        engine: { type: "string", enum: ["aerender", "nexrender", "manual"] },
+        compName: { type: "string" },
+        outputPath: { type: "string" },
+        status: { type: "string", enum: ["queued", "running", "success", "failed", "unknown"] },
+        requireOutputExists: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const outputPath = optionalString(input.outputPath);
+      let outputReadable = false;
+      let resolvedOutputPath: string | undefined;
+      if (outputPath) {
+        try {
+          resolvedOutputPath = await context.artifactStore.assertReadableFile(outputPath);
+          outputReadable = true;
+        } catch {
+          outputReadable = false;
+        }
+      }
+      const requireOutputExists = input.requireOutputExists === true;
+      const status = optionalString(input.status) ?? "unknown";
+      const reportStatus = outputReadable
+        ? status === "failed"
+          ? "fail"
+          : "pass"
+        : requireOutputExists
+          ? "fail"
+          : "pending";
+      const evidence = {
+        schema: "creative.pipeline.ae_render_evidence.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? commandId("ae-evidence"),
+        engine: optionalString(input.engine) ?? "manual",
+        compName: optionalString(input.compName) ?? "Main",
+        status,
+        reportStatus,
+        outputPath,
+        resolvedOutputPath,
+        checks: [
+          check("output_path_declared", Boolean(outputPath), outputPath ?? "not_provided"),
+          check("output_readable", outputReadable, outputReadable),
+          check("status_not_failed", status !== "failed", status),
+          check("raw_jsx_disabled", true, true),
+          check("license_bypass_absent", true, true),
+          check("live_execution_claim_guarded", outputReadable, outputReadable)
+        ],
+        policy: {
+          ...aePolicy(),
+          liveExecutionClaim: outputReadable,
+          rawJsx: false
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("after-effects/render_evidence.json", evidence);
+      return {
+        ok: reportStatus !== "fail",
+        message: `After Effects render evidence written: ${reportStatus}`,
+        artifacts: [artifact],
+        data: { evidence }
+      };
+    }
   }
 ];
 

@@ -106,6 +106,7 @@ The public alpha tool schemas are intentionally strict. Unknown top-level input 
 - `ae.queue_nexrender`
 - `ae.render_frame_preview`
 - `ae.run_motion_qc`
+- `ae.collect_render_evidence`
 
 ## Roblox
 
