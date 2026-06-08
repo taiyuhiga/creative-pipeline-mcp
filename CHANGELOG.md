@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.23-alpha.0
+
+### Changed
+
+- Rechecked `dcc-mcp-blender` release metadata and updated `docs/EXTERNAL_MCP_ADAPTERS.md` from `v0.1.11` to `v0.1.13`, published on 2026-06-08.
+- Kept the external Blender MCP adapter policy unchanged: optional, disabled by default, bounded by typed macro operations, and never exposed as a raw external proxy.
+
 ## 0.2.22-alpha.0
 
 ### Added

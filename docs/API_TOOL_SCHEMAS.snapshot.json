@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.2.22-alpha.0",
+  "packageVersion": "0.2.23-alpha.0",
   "generatedFrom": [
     "packages/core/dist/coreTools.js",
     "packages/blender-pro-mcp/dist/index.js",

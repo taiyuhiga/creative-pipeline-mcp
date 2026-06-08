@@ -14,7 +14,7 @@ Creative Pipeline MCP should remain the QC, approval, artifact, and orchestratio
 
 ## Candidate: dcc-mcp-blender
 
-Status: evaluated on 2026-06-07.
+Status: evaluated on 2026-06-07; latest release rechecked on 2026-06-08.
 
 Repository: <https://github.com/dcc-mcp/dcc-mcp-blender>
 
@@ -22,7 +22,7 @@ Snapshot:
 
 - License: MIT.
 - Default branch: `main`.
-- Latest release observed: `v0.1.11`.
+- Latest release observed: `v0.1.13` published on 2026-06-08.
 - Transport: embedded Blender add-on exposing an MCP HTTP endpoint inside Blender.
 - Tooling scope: broad DCC/Blender operations, including scene, object, mesh, UV, materials, render, validation, pipeline, and export tools.
 
