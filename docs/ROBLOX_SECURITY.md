@@ -17,7 +17,8 @@ Roblox integration is read-only/QC-first in this alpha.
 - command manifests before external tool execution
 - human approval for package install, sync, Studio writes, or publish
 - project report artifacts before feature/trailer handoff
+- readable Studio status evidence before any live Studio integration claim
 
 ## v1 Status
 
-Roblox is outside stable v1. The current tools are experimental provider scaffolds for inspection, indexing, and QC evidence.
+Roblox is outside stable v1. The current tools are experimental provider scaffolds for inspection, indexing, Studio evidence capture, and QC evidence.

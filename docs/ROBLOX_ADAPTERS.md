@@ -9,6 +9,7 @@ Roblox support is an experimental game-engine provider for read-only project ins
 - `roblox.inspect_place_tree`
 - `roblox.index_scripts`
 - `roblox.validate_luau_project`
+- `roblox.collect_studio_evidence`
 - `roblox.sync_rojo`
 - `roblox.run_wally_install`
 - `roblox.run_selene`
@@ -18,6 +19,8 @@ Roblox support is an experimental game-engine provider for read-only project ins
 ## Phase 1 Behavior
 
 Inspection tools read project files under allowed workspace roots. Rojo, Wally, Selene, and StyLua tools write command manifests rather than mutating the project or publishing to Studio.
+
+`roblox.collect_studio_evidence` records Studio status evidence from a manual run, self-hosted runner, or future official Studio MCP status artifact. It sets `liveStudioClaim: true` only when a readable status evidence JSON exists under the allowed workspace roots and the declared status is `success`.
 
 ## Preferred Future Provider
 

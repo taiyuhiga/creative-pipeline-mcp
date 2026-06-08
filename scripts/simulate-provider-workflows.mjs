@@ -119,6 +119,13 @@ await run("roblox.validate_luau_project", { projectRoot: robloxProjectRoot });
 await run("roblox.run_selene", { projectRoot: robloxProjectRoot });
 await run("roblox.run_stylua_check", { projectRoot: robloxProjectRoot });
 await run("roblox.generate_project_report", { projectRoot: robloxProjectRoot });
+await run("roblox.collect_studio_evidence", {
+  commandId: "provider-simulator-roblox",
+  source: "manual",
+  projectRoot: robloxProjectRoot,
+  projectName: "ProviderSimulatorPlace",
+  status: "pending"
+});
 
 await run("director.create_social_video", {
   brief: "Create a captioned provider-simulator social cut with Premiere first and CapCut fallback.",
@@ -167,6 +174,7 @@ const summary = {
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
     afterEffectsRenderEvidence: commands.some((command) => command.action === "ae.collect_render_evidence"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),
+    robloxStudioEvidence: commands.some((command) => command.action === "roblox.collect_studio_evidence"),
     director: commands.some((command) => command.action.startsWith("director.")),
     projectWriteManifests: commands.some((command) => command.action === "ae.queue_aerender") &&
       commands.some((command) => command.action === "ae.queue_nexrender")

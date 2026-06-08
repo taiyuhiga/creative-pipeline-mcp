@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5-alpha.0
+
+### Added
+
+- Added `roblox.collect_studio_evidence` for Roblox Studio status/place evidence without raw Studio proxying or publish behavior.
+- Added simulator and test coverage for Roblox Studio evidence artifacts.
+- Added artifact/docs coverage for `roblox/studio_evidence.json`.
+
 ## 0.3.4-alpha.0
 
 ### Added

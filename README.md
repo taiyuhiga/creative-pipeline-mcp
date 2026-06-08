@@ -27,7 +27,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.3.4-alpha.0`
+Current version: `0.3.5-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -64,7 +64,7 @@ This is an alpha. The QC-first path runs without Blender or Premiere installed:
 - provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts
 - experimental CapCut provider tools for social draft plan, manifest, and QC artifacts
 - experimental After Effects provider tools for render plan, frame preview plan, aerender/nexrender queue manifests, render status, output evidence, and motion QC
-- experimental Roblox provider tools for read-only project inspection, place-tree reports, script indexing, Luau QC, Rojo/Wally/Selene/Stylua command manifests, and combined project reports
+- experimental Roblox provider tools for read-only project inspection, place-tree reports, script indexing, Luau QC, Studio evidence, Rojo/Wally/Selene/Stylua command manifests, and combined project reports
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
 - CI runs unit tests on Node.js 20, 22, and 24, with separate package, adapter, Blender e2e, and Premiere QC e2e jobs
 - guarded npm trusted-publishing workflow for release tags when npmjs.com trusted publisher settings are configured
@@ -201,7 +201,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.4-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.3.5-alpha.0.zip
 ```
 
 Release assets:

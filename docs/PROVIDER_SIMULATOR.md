@@ -8,7 +8,7 @@ It covers:
 - CapCut social draft plan, copy-on-write manifest, and draft QC
 - `video.create_edit` Premiere-first provider package with CapCut fallback draft artifacts
 - After Effects render plan, frame preview plan, aerender queue manifest, nexrender job manifest, render evidence, and motion QC
-- Roblox read-only project inspection, place tree, script index, Luau QC, command manifests, and combined project report
+- Roblox read-only project inspection, place tree, script index, Luau QC, Studio evidence, command manifests, and combined project report
 - Director social video, motion package, Roblox feature, Roblox trailer, and full production reports
 
 Run it after building:

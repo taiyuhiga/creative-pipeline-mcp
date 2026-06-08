@@ -46,6 +46,12 @@
       "ok": true,
       "message": "Roblox combined project report written",
       "artifacts": ["roblox/combined_project_report.json"]
+    },
+    {
+      "action": "roblox.collect_studio_evidence",
+      "ok": true,
+      "message": "Roblox Studio evidence written: pending",
+      "artifacts": ["roblox/studio_evidence.json"]
     }
   ],
   "coverage": {
@@ -55,6 +61,7 @@
     "afterEffects": true,
     "afterEffectsRenderEvidence": true,
     "roblox": true,
+    "robloxStudioEvidence": true,
     "director": true,
     "projectWriteManifests": true
   },

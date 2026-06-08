@@ -140,6 +140,106 @@ export const robloxTools: ToolDefinition[] = [
       return { ok: true, message: "Roblox Luau QC report written", artifacts: [artifact], data: { report } };
     }
   },
+  {
+    name: "roblox.collect_studio_evidence",
+    description: "Write Roblox Studio read-only status evidence without claiming live Studio integration unless status evidence is readable.",
+    category: "roblox",
+    risk: "safe_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        source: { type: "string", enum: ["manual", "self_hosted_runner", "official_studio_mcp"] },
+        projectRoot: { type: "string" },
+        projectName: { type: "string" },
+        studioVersion: { type: "string" },
+        status: { type: "string", enum: ["pending", "success", "failed", "unknown"] },
+        statusEvidencePath: { type: "string" },
+        placeFilePath: { type: "string" },
+        requireStatusEvidence: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      const root = optionalString(input.projectRoot) ? safeProjectRoot(context, input.projectRoot) : undefined;
+      const statusEvidencePath = optionalString(input.statusEvidencePath);
+      const placeFilePath = optionalString(input.placeFilePath);
+      let statusEvidenceReadable = false;
+      let resolvedStatusEvidencePath: string | undefined;
+      let statusEvidence: unknown;
+      if (statusEvidencePath) {
+        try {
+          resolvedStatusEvidencePath = await context.artifactStore.assertReadableFile(statusEvidencePath);
+          statusEvidenceReadable = true;
+          statusEvidence = JSON.parse(await readFile(resolvedStatusEvidencePath, "utf8"));
+        } catch {
+          statusEvidenceReadable = false;
+        }
+      }
+      let placeFileReadable = false;
+      let resolvedPlaceFilePath: string | undefined;
+      if (placeFilePath) {
+        try {
+          resolvedPlaceFilePath = await context.artifactStore.assertReadableFile(placeFilePath);
+          placeFileReadable = true;
+        } catch {
+          placeFileReadable = false;
+        }
+      }
+      const requireStatusEvidence = input.requireStatusEvidence === true;
+      const status = optionalString(input.status) ?? "unknown";
+      const liveStudioClaim = statusEvidenceReadable && status === "success";
+      const reportStatus = statusEvidenceReadable
+        ? status === "failed"
+          ? "fail"
+          : status === "success"
+            ? "pass"
+            : "pending"
+        : requireStatusEvidence
+          ? "fail"
+          : "pending";
+      const evidence = {
+        schema: "creative.pipeline.roblox_studio_evidence.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: optionalString(input.commandId) ?? evidenceId("roblox-studio"),
+        source: optionalString(input.source) ?? "manual",
+        projectRoot: root,
+        projectName: optionalString(input.projectName),
+        studioVersion: optionalString(input.studioVersion),
+        status,
+        reportStatus,
+        statusEvidencePath,
+        resolvedStatusEvidencePath,
+        placeFilePath,
+        resolvedPlaceFilePath,
+        statusEvidence,
+        checks: [
+          check("status_evidence_declared", Boolean(statusEvidencePath), statusEvidencePath ?? "not_provided"),
+          check("status_evidence_readable", statusEvidenceReadable, statusEvidenceReadable),
+          check("place_file_declared", Boolean(placeFilePath), placeFilePath ?? "not_provided"),
+          check("place_file_readable", placeFilePath ? placeFileReadable : true, placeFilePath ? placeFileReadable : "not_required"),
+          check("live_studio_claim_guarded", liveStudioClaim === (statusEvidenceReadable && status === "success"), liveStudioClaim),
+          check("raw_studio_proxy_absent", true, true),
+          check("studio_write_absent", true, true),
+          check("publish_absent", true, true)
+        ],
+        policy: {
+          ...robloxPolicy(),
+          liveStudioClaim,
+          rawStudioProxy: false,
+          studioWrites: false,
+          publish: false
+        }
+      };
+      const artifact = await context.artifactStore.writeJson("roblox/studio_evidence.json", evidence);
+      return {
+        ok: reportStatus !== "fail",
+        message: `Roblox Studio evidence written: ${reportStatus}`,
+        artifacts: [artifact],
+        data: { evidence }
+      };
+    }
+  },
   commandManifestTool("roblox.sync_rojo", "Write a safe Rojo sync command manifest without publishing or mutating Studio.", "rojo", ["sync"], "roblox/sync_rojo_manifest.json"),
   commandManifestTool("roblox.run_wally_install", "Write a Wally install command manifest; actual install requires explicit external execution.", "wally", ["install"], "roblox/run_wally_install_manifest.json"),
   commandManifestTool("roblox.run_selene", "Write a Selene lint command manifest for Luau QC.", "selene", ["."], "roblox/run_selene_manifest.json"),
@@ -304,4 +404,8 @@ function check(id: string, passed: boolean, value: unknown) {
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function evidenceId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}`;
 }

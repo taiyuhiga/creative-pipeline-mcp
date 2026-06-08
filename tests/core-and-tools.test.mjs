@@ -196,6 +196,7 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
     "roblox.inspect_place_tree",
     "roblox.index_scripts",
     "roblox.validate_luau_project",
+    "roblox.collect_studio_evidence",
     "roblox.sync_rojo",
     "roblox.run_wally_install",
     "roblox.run_selene",
@@ -206,10 +207,12 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   }
   const inspect = robloxTools.find((tool) => tool.name === "roblox.inspect_project");
   const index = robloxTools.find((tool) => tool.name === "roblox.index_scripts");
+  const evidenceTool = robloxTools.find((tool) => tool.name === "roblox.collect_studio_evidence");
   const sync = robloxTools.find((tool) => tool.name === "roblox.sync_rojo");
   const reportTool = robloxTools.find((tool) => tool.name === "roblox.generate_project_report");
   assert.ok(inspect);
   assert.ok(index);
+  assert.ok(evidenceTool);
   assert.ok(sync);
   assert.ok(reportTool);
   const inspected = await inspect.execute(await context(projectRoot), { projectRoot });
@@ -218,6 +221,33 @@ test("Roblox provider inspects project, indexes scripts, and writes command mani
   const indexed = await index.execute(await context(projectRoot), { projectRoot });
   assert.equal(indexed.ok, true);
   assert.equal(indexed.data.index.scripts[0].kind, "server");
+  const pendingEvidence = await evidenceTool.execute(await context(projectRoot), {
+    commandId: "roblox-test-pending",
+    projectRoot,
+    status: "pending"
+  });
+  assert.equal(pendingEvidence.ok, true);
+  assert.equal(pendingEvidence.data.evidence.reportStatus, "pending");
+  assert.equal(pendingEvidence.data.evidence.policy.liveStudioClaim, false);
+  const statusEvidencePath = join(projectRoot, "studio-status.json");
+  const placeFilePath = join(projectRoot, "TestPlace.rbxlx");
+  await writeFile(statusEvidencePath, JSON.stringify({ ok: true, command: "open_place", studioVersion: "0.640.0" }), "utf8");
+  await writeFile(placeFilePath, "<roblox version=\"4\"></roblox>\n", "utf8");
+  const studioEvidence = await evidenceTool.execute(await context(projectRoot), {
+    commandId: "roblox-test-success",
+    source: "self_hosted_runner",
+    projectRoot,
+    projectName: "TestPlace",
+    studioVersion: "0.640.0",
+    status: "success",
+    statusEvidencePath,
+    placeFilePath,
+    requireStatusEvidence: true
+  });
+  assert.equal(studioEvidence.ok, true);
+  assert.equal(studioEvidence.data.evidence.reportStatus, "pass");
+  assert.equal(studioEvidence.data.evidence.policy.liveStudioClaim, true);
+  assert.equal(studioEvidence.data.evidence.policy.studioWrites, false);
   const manifest = await sync.execute(await context(projectRoot), { projectRoot });
   assert.equal(manifest.ok, true);
   assert.equal(manifest.data.manifest.mode, "manifest_only");
@@ -290,6 +320,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
   assert.equal(output.data.coverage.afterEffects, true);
   assert.equal(output.data.coverage.afterEffectsRenderEvidence, true);
   assert.equal(output.data.coverage.roblox, true);
+  assert.equal(output.data.coverage.robloxStudioEvidence, true);
   assert.equal(output.data.coverage.director, true);
   assert.equal(output.data.coverage.projectWriteManifests, true);
   assert.equal(output.data.policy.rawAppProxy, false);
@@ -306,6 +337,7 @@ test("Provider workflow simulator writes provider, CapCut, After Effects, Roblox
     "after-effects/render_queue/nexrender_job.json",
     "after-effects/motion_qc_report.json",
     "roblox/combined_project_report.json",
+    "roblox/studio_evidence.json",
     "director/full_production_report.json"
   ]) {
     assert.ok(existsSync(join(artifactRoot, artifact)), `${artifact} should be written`);

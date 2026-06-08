@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "0.3.4-alpha.0",
+  "packageVersion": "0.3.5-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -2605,6 +2605,56 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "name": "roblox.collect_studio_evidence",
+      "category": "roblox",
+      "risk": "safe_write",
+      "description": "Write Roblox Studio read-only status evidence without claiming live Studio integration unless status evidence is readable.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "placeFilePath": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "projectRoot": {
+            "type": "string"
+          },
+          "requireStatusEvidence": {
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "self_hosted_runner",
+              "official_studio_mcp"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "success",
+              "failed",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "statusEvidencePath": {
+            "type": "string"
+          },
+          "studioVersion": {
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },

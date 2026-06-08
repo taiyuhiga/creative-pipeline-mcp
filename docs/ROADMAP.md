@@ -41,6 +41,7 @@
 - Provider workflow simulator for Provider Registry, CapCut, After Effects, Roblox, and Director artifact coverage
 - Provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts
 - After Effects render evidence collection for status/output proof without live execution overclaiming
+- Roblox Studio evidence collection for read-only status/place proof without live Studio overclaiming
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON
 - Dashboard approval-to-rerun flow for approved elevated tool requests
 - Premiere CEP status reader
@@ -69,8 +70,8 @@
 
 ## Next Release
 
-- `v0.3.4-alpha.0` is the After Effects render-evidence alpha. It adds `ae.collect_render_evidence` without changing the v1 stable boundary.
-- The next alpha should deepen Roblox Studio read-only integration evidence or After Effects render execution adapters while keeping CapCut, After Effects, Roblox, and external app execution claims experimental until live evidence exists.
+- `v0.3.5-alpha.0` is the Roblox Studio evidence alpha. It adds `roblox.collect_studio_evidence` without changing the v1 stable boundary.
+- The next alpha should deepen After Effects render execution adapters or Roblox official Studio MCP evidence while keeping CapCut, After Effects, Roblox, and external app execution claims experimental until live evidence exists.
 - Keep future npm pre-releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.

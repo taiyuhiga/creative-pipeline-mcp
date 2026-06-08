@@ -64,6 +64,7 @@ artifacts/
     place_tree.json
     script_index.json
     luau_qc_report.json
+    studio_evidence.json
     combined_project_report.json
   dashboard/
     reruns/
@@ -153,4 +154,4 @@ Provider tools write planning and safety evidence rather than raw app side effec
 - `capcut/*` records copy-on-write draft plans, manifests, and draft QC.
 - `video/edit_plan.json` records the selected video editor provider, fallback decision, and expected side effects for provider-aware edits.
 - `after-effects/*` records render plans, queue manifests, render status, output evidence, and motion QC.
-- `roblox/*` records read-only project inspection, script indexes, Luau QC, and command manifests.
+- `roblox/*` records read-only project inspection, script indexes, Luau QC, Studio status evidence, and command manifests.
