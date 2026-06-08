@@ -59,7 +59,7 @@
 
 ## Next Release
 
-- Publish `v0.2.19-alpha.0` as a pre-release so `main` and the latest release include bounded Premiere typed edit commands and CEP command safety metadata.
+- Publish `v0.2.20-alpha.0` as a pre-release so `main` and the latest release include npm `@alpha` install guidance and dist-tag maintenance docs.
 - Keep npm releases on the `alpha` dist-tag while package versions include pre-release suffixes.
 - Keep alpha and beta GitHub releases marked as pre-releases. Reserve the Latest stable release marker for `1.0.0`.
 - Do not close Windows + Premiere verification issues until the self-hosted workflow produces live CEP status artifacts.

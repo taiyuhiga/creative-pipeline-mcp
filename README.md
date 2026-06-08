@@ -22,7 +22,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `0.2.19-alpha.0`
+Current version: `0.2.20-alpha.0`
 
 This is an alpha. The QC-first path runs without Blender or Premiere installed:
 
@@ -73,6 +73,17 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Full professional editing | Not v1 complete |
 
 ## Install
+
+Published alpha package:
+
+```bash
+npm install creative-pipeline-mcp@alpha
+npx -p creative-pipeline-mcp@alpha creative-mcp-core
+```
+
+Do not install the unqualified `creative-pipeline-mcp` package for alpha work. The npm `latest` dist-tag is reserved for the first stable v1 release and may not point to the newest alpha. Use `@alpha` until `1.0.0` is intentionally published.
+
+Local repository development:
 
 ```bash
 npm install
@@ -153,7 +164,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.19-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-0.2.20-alpha.0.zip
 ```
 
 Release assets:
@@ -165,7 +176,8 @@ npm run release:assets
 npm publishing:
 
 ```bash
-npm publish --dry-run --provenance
+npm view creative-pipeline-mcp dist-tags --json
+npm publish --dry-run
 ```
 
 For GitHub Actions publishing, configure npm trusted publishing for `.github/workflows/npm-publish.yml`, then set `NPM_TRUSTED_PUBLISHING_ENABLED=true` in repository variables.

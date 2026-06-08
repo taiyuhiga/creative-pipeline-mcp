@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.20-alpha.0
+
+### Changed
+
+- Documented `npm install creative-pipeline-mcp@alpha` as the supported pre-v1 package install path.
+- Added npm dist-tag maintenance guidance for keeping `latest` reserved for the intentional v1 stable release.
+- Added troubleshooting notes for cases where unqualified `npm install creative-pipeline-mcp` resolves to an older alpha package.
+
+### Verified
+
+- Local release readiness, schema, and v1 freeze checks passed after the documentation update.
+
 ## 0.2.19-alpha.0
 
 ### Added

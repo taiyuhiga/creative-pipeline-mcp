@@ -10,6 +10,17 @@ Missing adapters are allowed unless the workflow explicitly depends on them.
 
 If `ffmpeg-libvmaf` is missing, install an FFmpeg build that includes the `libvmaf` filter. `premiere.measure_vmaf` still writes an adapter report when the filter is unavailable.
 
+## npm Install
+
+If `npm install creative-pipeline-mcp` installs an older alpha, use the alpha dist-tag explicitly:
+
+```bash
+npm install creative-pipeline-mcp@alpha
+npm view creative-pipeline-mcp dist-tags --json
+```
+
+Before v1 stable, the unqualified npm package name must not be treated as the newest build. The current supported pre-release install path is `creative-pipeline-mcp@alpha`.
+
 ## Dashboard
 
 If the dashboard refuses API requests, confirm the token:
