@@ -2,6 +2,21 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.6-alpha.0
+
+Changed:
+- Added `ae.run_approved_render` for experimental env-gated `aerender`/`nexrender` execution.
+- Added `after-effects/render_run_report.json`.
+- Public tool schema snapshot now covers 132 tools.
+
+Migration:
+- No action is required for existing callers.
+- To execute real After Effects renders, set `CREATIVE_MCP_ENABLE_AE_APPROVED_RUNNER=true`, provide readable project/job inputs, keep output paths inside artifact/workspace roots, and retain project-write approval.
+
+Compatibility:
+- Existing After Effects render plan, queue, evidence, and motion QC artifacts remain compatible.
+- Live execution claims remain guarded by readable output evidence and are still outside the stable v1 surface.
+
 ## 1.1.5-alpha.0
 
 Changed:

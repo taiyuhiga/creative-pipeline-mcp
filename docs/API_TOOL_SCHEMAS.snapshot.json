@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "1.1.5-alpha.0",
+  "packageVersion": "1.1.6-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -297,6 +297,58 @@
         "required": [
           "compName"
         ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ae.run_approved_render",
+      "category": "ae",
+      "risk": "project_write",
+      "description": "Run an approved aerender or nexrender render with argv-only execution when explicitly enabled by environment.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "compName": {
+            "type": "string"
+          },
+          "engine": {
+            "enum": [
+              "aerender",
+              "nexrender"
+            ],
+            "type": "string"
+          },
+          "executablePath": {
+            "type": "string"
+          },
+          "jobManifestPath": {
+            "type": "string"
+          },
+          "outputModule": {
+            "type": "string"
+          },
+          "outputPath": {
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          },
+          "renderSettings": {
+            "type": "string"
+          },
+          "requireEnabled": {
+            "type": "boolean"
+          },
+          "requireOutputExists": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": "number"
+          }
+        },
         "type": "object"
       }
     },

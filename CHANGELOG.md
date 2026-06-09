@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.6-alpha.0
+
+### Added
+
+- Added `ae.run_approved_render`, an experimental env-gated After Effects approved-runner tool for bounded `aerender`/`nexrender` execution without raw JSX or shell-string execution.
+- Added After Effects render run reports to provider simulator coverage and expanded the public tool schema snapshot from 131 to 132 tools.
+
 ## 1.1.5-alpha.0
 
 ### Fixed

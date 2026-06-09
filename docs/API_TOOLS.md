@@ -133,6 +133,7 @@ or QE DOM proxy tools.
 - `ae.run_motion_qc`
 - `ae.collect_render_evidence`
 - `ae.prepare_render_execution`
+- `ae.run_approved_render`
 - `ae.prepare_template_replacements`
 - `ae.prepare_file_bridge`
 

@@ -23,7 +23,7 @@
 - Asset Sourcing Layer for source priority planning, candidate scoring, provenance, license manifests, and fal fallback generation guardrails
 - Provider Registry for video editor, motion engine, and game engine availability/resolution/reporting
 - experimental CapCut social draft plan/manifest/QC provider
-- experimental After Effects render plan/queue-manifest/motion-QC provider
+- experimental After Effects render plan/queue-manifest/env-gated approved-runner/motion-QC provider
 - experimental Roblox read-only inspection/Luau-QC/command-manifest provider
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
 - Blender bridge queue/status adapter surface
@@ -41,7 +41,7 @@
 - Provider workflow simulator for Provider Registry, CapCut, After Effects, Roblox, and Director artifact coverage
 - Provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts
 - After Effects render evidence collection for status/output proof without live execution overclaiming
-- After Effects approved-runner render execution plan artifacts without command execution overclaiming
+- After Effects approved-runner render execution with env-gated command execution and evidence-based live claims
 - Roblox Studio evidence collection for read-only status/place proof without live Studio overclaiming
 - Roblox official Studio MCP stdio session plan and client config artifacts without raw Studio proxying
 - Premiere CEP panel MVP for OTIO media import, duplicate import avoidance, sequence creation attempts, timeline-positioned clip insertion attempts, export command handling, brand package command handling, and standardized status JSON

@@ -48,6 +48,12 @@
       "artifacts": ["after-effects/render_execution_plan.json", "after-effects/render_status.json"]
     },
     {
+      "action": "ae.run_approved_render",
+      "ok": true,
+      "message": "Set CREATIVE_MCP_ENABLE_AE_APPROVED_RUNNER=true to execute aerender/nexrender",
+      "artifacts": ["after-effects/render_run_report.json", "after-effects/render_status.json"]
+    },
+    {
       "action": "roblox.generate_project_report",
       "ok": true,
       "message": "Roblox combined project report written",
@@ -73,6 +79,7 @@
     "afterEffects": true,
     "afterEffectsRenderEvidence": true,
     "afterEffectsRenderExecutionPlan": true,
+    "afterEffectsApprovedRunner": true,
     "roblox": true,
     "robloxStudioEvidence": true,
     "robloxStudioMcpSessionPlan": true,

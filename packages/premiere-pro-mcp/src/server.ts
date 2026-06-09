@@ -1,4 +1,4 @@
 import { coreTools, McpServer } from "../../core/dist/index.js";
 import { premiereTools } from "./tools/mediaTools.js";
 
-new McpServer("premiere-pro-mcp", "1.1.5-alpha.0", [...coreTools, ...premiereTools]).runStdio();
+new McpServer("premiere-pro-mcp", "1.1.6-alpha.0", [...coreTools, ...premiereTools]).runStdio();

@@ -130,6 +130,13 @@ await run("ae.prepare_render_execution", {
   compName: "Main",
   outputPath: "artifacts/after-effects/provider-output.mov"
 });
+await run("ae.run_approved_render", {
+  commandId: "provider-simulator-ae-run",
+  engine: "aerender",
+  projectPath: "templates/provider-simulator.aep",
+  compName: "Main",
+  outputPath: "after-effects/provider-output.mov"
+});
 await run("ae.prepare_template_replacements", {
   compName: "Main",
   textReplacements: [{ layerName: "Title", text: "Provider Simulator" }],
@@ -239,6 +246,7 @@ const summary = {
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),
     afterEffectsRenderEvidence: commands.some((command) => command.action === "ae.collect_render_evidence"),
     afterEffectsRenderExecutionPlan: commands.some((command) => command.action === "ae.prepare_render_execution"),
+    afterEffectsApprovedRunner: commands.some((command) => command.action === "ae.run_approved_render"),
     afterEffectsTemplateReplacements: commands.some((command) => command.action === "ae.prepare_template_replacements"),
     afterEffectsFileBridge: commands.some((command) => command.action === "ae.prepare_file_bridge"),
     roblox: commands.some((command) => command.action.startsWith("roblox.")),

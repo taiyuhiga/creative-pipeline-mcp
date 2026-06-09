@@ -1,6 +1,7 @@
+import { spawn } from "node:child_process";
 import { constants } from "node:fs";
-import { access } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { access, mkdir, stat } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import type { ToolDefinition } from "../../../core/dist/index.js";
 import { checkProviderAvailability, getProviderCapability } from "../../../core/dist/index.js";
 
@@ -378,6 +379,144 @@ export const afterEffectsTools: ToolDefinition[] = [
     }
   },
   {
+    name: "ae.run_approved_render",
+    description: "Run an approved aerender or nexrender render with argv-only execution when explicitly enabled by environment.",
+    category: "ae",
+    risk: "project_write",
+    inputSchema: {
+      type: "object",
+      properties: {
+        commandId: { type: "string" },
+        engine: { type: "string", enum: ["aerender", "nexrender"] },
+        executablePath: { type: "string" },
+        projectPath: { type: "string" },
+        compName: { type: "string" },
+        outputPath: { type: "string" },
+        renderSettings: { type: "string" },
+        outputModule: { type: "string" },
+        jobManifestPath: { type: "string" },
+        timeoutSeconds: { type: "number" },
+        requireEnabled: { type: "boolean" },
+        requireOutputExists: { type: "boolean" }
+      },
+      additionalProperties: false
+    },
+    async execute(context, input) {
+      await context.approvalPolicy.assertAllowed("ae.run_approved_render", "project_write");
+      const commandIdValue = optionalString(input.commandId) ?? commandId("ae-run");
+      const engine = optionalString(input.engine) === "nexrender" ? "nexrender" : "aerender";
+      const enabled = process.env.CREATIVE_MCP_ENABLE_AE_APPROVED_RUNNER === "true";
+      const requireEnabled = input.requireEnabled === true;
+      const outputPath = safeFutureOutputPath(context, optionalString(input.outputPath) ?? "after-effects/output.mov");
+      const executable = executableFor(engine, optionalString(input.executablePath));
+      const jobManifestPath = optionalString(input.jobManifestPath) ?? "artifacts/after-effects/render_queue/nexrender_job.json";
+      const projectPath = optionalString(input.projectPath);
+      const projectReadable = engine === "aerender" ? await readableIfProvided(context, projectPath) : { ok: true };
+      const jobReadable = engine === "nexrender" ? await readableIfProvided(context, jobManifestPath) : { ok: true };
+      const argv = engine === "aerender"
+        ? buildAerenderArgv(executable, {
+          projectPath,
+          compName: optionalString(input.compName) ?? "Main",
+          outputPath,
+          renderSettings: optionalString(input.renderSettings) ?? "Best Settings",
+          outputModule: optionalString(input.outputModule) ?? "High Quality"
+        })
+        : [executable, "--file", jobReadable.resolvedPath ?? jobManifestPath];
+      const timeoutMs = clampTimeout(input.timeoutSeconds);
+      const preflight = {
+        enabled,
+        projectReadable: projectReadable.ok,
+        projectPath: projectReadable.resolvedPath ?? projectPath,
+        jobManifestReadable: jobReadable.ok,
+        jobManifestPath: jobReadable.resolvedPath ?? jobManifestPath,
+        outputPath,
+        timeoutMs
+      };
+      const canRun = enabled && (engine === "aerender" ? projectReadable.ok : jobReadable.ok);
+      if (!canRun) {
+        const statusValue = renderStatus(
+          commandIdValue,
+          enabled ? "blocked_preflight" : "blocked_env_disabled",
+          enabled
+            ? "After Effects approved runner preflight failed"
+            : "Set CREATIVE_MCP_ENABLE_AE_APPROVED_RUNNER=true to execute aerender/nexrender"
+        );
+        const report = renderRunReport(commandIdValue, engine, "preflight", argv, preflight, {
+          exitCode: null,
+          signal: null,
+          stdout: "",
+          stderr: "",
+          outputReadable: false,
+          outputSizeBytes: null
+        });
+        const artifacts = [
+          await context.artifactStore.writeJson("after-effects/render_run_report.json", report),
+          await context.artifactStore.writeJson("after-effects/render_status.json", statusValue)
+        ];
+        return {
+          ok: !requireEnabled,
+          message: statusValue.message,
+          artifacts,
+          data: { report, status: statusValue }
+        };
+      }
+      await mkdir(dirname(outputPath), { recursive: true });
+      const processResult = await spawnWithCapture(argv[0], argv.slice(1), timeoutMs);
+      const output = await outputState(outputPath);
+      const statusName = processResult.exitCode === 0 && output.readable
+        ? "success"
+        : processResult.timedOut
+          ? "failed_timeout"
+          : "failed";
+      const statusValue = renderStatus(commandIdValue, statusName, `After Effects ${engine} finished with ${statusName}`);
+      const report = renderRunReport(commandIdValue, engine, "executed", argv, preflight, {
+        exitCode: processResult.exitCode,
+        signal: processResult.signal,
+        stdout: processResult.stdout,
+        stderr: processResult.stderr,
+        outputReadable: output.readable,
+        outputSizeBytes: output.sizeBytes
+      });
+      const evidence = {
+        schema: "creative.pipeline.ae_render_evidence.v1",
+        generatedAt: new Date().toISOString(),
+        commandId: commandIdValue,
+        engine,
+        compName: optionalString(input.compName) ?? "Main",
+        status: statusName === "success" ? "success" : "failed",
+        reportStatus: statusName === "success" ? "pass" : input.requireOutputExists === false ? "pending" : "fail",
+        outputPath,
+        resolvedOutputPath: output.readable ? outputPath : undefined,
+        checks: [
+          check("argv_array_only", true, argv),
+          check("shell_string_absent", true, true),
+          check("raw_jsx_disabled", true, true),
+          check("runner_env_enabled", enabled, enabled),
+          check("process_exit_zero", processResult.exitCode === 0, processResult.exitCode),
+          check("output_readable", output.readable, output.readable)
+        ],
+        policy: {
+          ...aePolicy(),
+          approvedRunnerOnly: true,
+          liveExecutionClaim: statusName === "success" && output.readable,
+          rawJsx: false,
+          shellString: false
+        }
+      };
+      const artifacts = [
+        await context.artifactStore.writeJson("after-effects/render_run_report.json", report),
+        await context.artifactStore.writeJson("after-effects/render_status.json", statusValue),
+        await context.artifactStore.writeJson("after-effects/render_evidence.json", evidence)
+      ];
+      return {
+        ok: statusName === "success",
+        message: statusValue.message,
+        artifacts,
+        data: { report, status: statusValue, evidence }
+      };
+    }
+  },
+  {
     name: "ae.prepare_template_replacements",
     description: "Write typed After Effects template text/media replacement operations without exposing raw JSX.",
     category: "ae",
@@ -543,6 +682,139 @@ function buildAerenderArgv(executable: string, input: {
   argv.push("-RStemplate", input.renderSettings);
   argv.push("-OMtemplate", input.outputModule);
   return argv;
+}
+
+function executableFor(engine: string, inputExecutable?: string): string {
+  if (inputExecutable) {
+    return inputExecutable;
+  }
+  if (engine === "aerender") {
+    return process.env.AERENDER_BIN ?? "aerender";
+  }
+  return process.env.NEXRENDER_BIN ?? "nexrender";
+}
+
+async function readableIfProvided(
+  context: Parameters<ToolDefinition["execute"]>[0],
+  path: string | undefined
+): Promise<{ ok: boolean; resolvedPath?: string }> {
+  if (!path) {
+    return { ok: false };
+  }
+  try {
+    return { ok: true, resolvedPath: await context.artifactStore.assertReadableFile(path) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function safeFutureOutputPath(context: Parameters<ToolDefinition["execute"]>[0], path: string): string {
+  const target = isAbsolute(path) ? resolve(path) : resolve(context.artifactStore.root, path);
+  const roots = [context.artifactStore.root, ...(context.artifactStore.workspaceRoots ?? [])].map((root) => resolve(root));
+  const inside = roots.some((root) => {
+    const delta = relative(root, target);
+    return delta === "" || (!delta.startsWith("..") && !isAbsolute(delta));
+  });
+  if (!inside) {
+    throw new Error(`After Effects output path is outside allowed artifact/workspace roots: ${path}`);
+  }
+  return target;
+}
+
+function clampTimeout(value: unknown): number {
+  const seconds = Number(value ?? 600);
+  if (!Number.isFinite(seconds)) {
+    return 600_000;
+  }
+  return Math.max(5, Math.min(seconds, 7200)) * 1000;
+}
+
+async function spawnWithCapture(command: string, args: string[], timeoutMs: number) {
+  return new Promise<{
+    exitCode: number | null;
+    signal: NodeJS.Signals | null;
+    stdout: string;
+    stderr: string;
+    timedOut: boolean;
+  }>((resolveProcess) => {
+    const child = spawn(command, args, { shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+    }, timeoutMs);
+    child.stdout.on("data", (chunk) => {
+      stdout = truncate(`${stdout}${chunk.toString()}`);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = truncate(`${stderr}${chunk.toString()}`);
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolveProcess({ exitCode: null, signal: null, stdout, stderr: truncate(`${stderr}\n${error.message}`), timedOut });
+    });
+    child.on("close", (exitCode, signal) => {
+      clearTimeout(timer);
+      resolveProcess({ exitCode, signal, stdout, stderr, timedOut });
+    });
+  });
+}
+
+function truncate(value: string): string {
+  return value.length > 20_000 ? value.slice(-20_000) : value;
+}
+
+async function outputState(path: string): Promise<{ readable: boolean; sizeBytes: number | null }> {
+  try {
+    await access(path, constants.R_OK);
+    const details = await stat(path);
+    return { readable: true, sizeBytes: details.size };
+  } catch {
+    return { readable: false, sizeBytes: null };
+  }
+}
+
+function renderRunReport(
+  commandIdValue: string,
+  engine: string,
+  mode: string,
+  argv: string[],
+  preflight: Record<string, unknown>,
+  result: {
+    exitCode: number | null;
+    signal: NodeJS.Signals | null;
+    stdout: string;
+    stderr: string;
+    outputReadable: boolean;
+    outputSizeBytes: number | null;
+  }
+) {
+  return {
+    schema: "creative.pipeline.ae_render_run_report.v1",
+    generatedAt: new Date().toISOString(),
+    commandId: commandIdValue,
+    engine,
+    mode,
+    argv,
+    preflight,
+    result,
+    checks: [
+      check("argv_array_only", true, argv),
+      check("shell_string_absent", true, true),
+      check("raw_jsx_disabled", true, true),
+      check("license_bypass_absent", true, true),
+      check("output_readable", result.outputReadable, result.outputReadable)
+    ],
+    policy: {
+      ...aePolicy(),
+      approvedRunnerOnly: true,
+      rawJsx: false,
+      shellString: false,
+      liveExecutionClaim: mode === "executed" && result.exitCode === 0 && result.outputReadable
+    }
+  };
 }
 
 function replacementList(value: unknown, requiredKeys: string[]): Array<Record<string, string>> {

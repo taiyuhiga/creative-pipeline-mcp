@@ -20,7 +20,7 @@ CapCut, After Effects, Roblox, external Blender MCP, live Premiere CEP execution
 | --- | --- | --- |
 | Provider Registry | availability/resolution/report tools | enabled |
 | CapCut | social draft plan/manifest/QC | manifest-only |
-| After Effects | render plan/queue manifest/motion QC | manifest-only |
+| After Effects | render plan/queue manifest/motion QC | env-gated approved-runner |
 | Roblox | read-only inspection/QC/command manifests | read-only |
 
 ## Prohibited Integration Patterns

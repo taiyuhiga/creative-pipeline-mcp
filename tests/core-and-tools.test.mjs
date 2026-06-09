@@ -159,6 +159,7 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
     "ae.run_motion_qc",
     "ae.collect_render_evidence",
     "ae.prepare_render_execution",
+    "ae.run_approved_render",
     "ae.prepare_template_replacements",
     "ae.prepare_file_bridge"
   ]) {
@@ -169,6 +170,7 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   const qcTool = afterEffectsTools.find((tool) => tool.name === "ae.run_motion_qc");
   const evidenceTool = afterEffectsTools.find((tool) => tool.name === "ae.collect_render_evidence");
   const executionTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_render_execution");
+  const runTool = afterEffectsTools.find((tool) => tool.name === "ae.run_approved_render");
   const replacementsTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_template_replacements");
   const bridgeTool = afterEffectsTools.find((tool) => tool.name === "ae.prepare_file_bridge");
   assert.ok(planTool);
@@ -176,6 +178,7 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   assert.ok(qcTool);
   assert.ok(evidenceTool);
   assert.ok(executionTool);
+  assert.ok(runTool);
   assert.ok(replacementsTool);
   assert.ok(bridgeTool);
   const plan = await planTool.execute(await context(), { compName: "Main", outputFormat: "mov" });
@@ -225,6 +228,18 @@ test("After Effects provider writes render, queue, preview, and motion QC artifa
   assert.equal(execution.data.plan.policy.shellString, false);
   assert.ok(Array.isArray(execution.data.plan.argv));
   assert.ok(execution.artifacts.some((artifact) => artifact.endsWith("after-effects/render_execution_plan.json")));
+  const disabledRun = await runTool.execute(await context(process.cwd()), {
+    commandId: "ae-test-disabled-run",
+    engine: "aerender",
+    projectPath: outputPath,
+    compName: "Main",
+    outputPath: "after-effects/disabled-output.mov"
+  });
+  assert.equal(disabledRun.ok, true);
+  assert.equal(disabledRun.data.status.status, "blocked_env_disabled");
+  assert.equal(disabledRun.data.report.policy.shellString, false);
+  assert.equal(disabledRun.data.report.policy.liveExecutionClaim, false);
+  assert.ok(disabledRun.artifacts.some((artifact) => artifact.endsWith("after-effects/render_run_report.json")));
   const replacements = await replacementsTool.execute(await context(), {
     compName: "Main",
     textReplacements: [{ layerName: "Title", text: "Launch" }],
