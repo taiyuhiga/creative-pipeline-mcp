@@ -6,7 +6,7 @@ Use this checklist to close the remaining Windows compatibility issues.
 
 Hosted CI coverage:
 
-- `.github/workflows/ci.yml` job `windows-blender-e2e` installs Blender on `windows-latest` and runs `node examples/blender-e2e.mjs`.
+- `.github/workflows/ci.yml` job `windows-blender-e2e` installs Blender on `windows-2025-vs2026` and runs `node examples/blender-e2e.mjs`.
 
 Prerequisites:
 

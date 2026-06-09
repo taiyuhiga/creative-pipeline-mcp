@@ -68,13 +68,13 @@ Notes: headless Blender preview rendered; glTF optimizer wrote optimized artifac
 ## Hosted Result: Windows + Blender
 
 ```text
-OS: GitHub Actions windows-latest
+OS: GitHub Actions windows-2025-vs2026
 Node: 24
 Blender: Chocolatey-installed Blender resolved through BLENDER_BIN
 Command: node examples/blender-e2e.mjs
 Result: pass
 Artifacts: artifacts/examples/blender-e2e/cube.glb, artifacts/blender/cube_preview.png, artifacts/blender/cube_optimized.glb, artifacts/blender/cube_asset_qc_report.json
-Notes: CI run 27082352428 job windows-blender-e2e installed Blender, verified CLI, and completed GLB preview/optimize/validate flow.
+Notes: CI run 27177179847 job windows-blender-e2e installed Blender, verified CLI, and completed GLB preview/optimize/validate flow.
 ```
 
 ## Manual Result: Local Adapter Check
