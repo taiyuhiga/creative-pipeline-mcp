@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.9-alpha.0
+
+### Fixed
+
+- Fixed the remaining `package-lock.json` dependency drift introduced during version bumps, restoring `@so-ric/colorspace@1.1.6` alongside `is-buffer@1.1.6`.
+- Supersedes `1.1.8-alpha.0`, whose CI and npm publish jobs failed before publication because npm attempted to install a non-existent `@so-ric/colorspace@1.1.7` tarball.
+
 ## 1.1.8-alpha.0
 
 ### Fixed

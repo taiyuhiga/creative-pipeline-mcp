@@ -1,4 +1,4 @@
 import { coreTools, McpServer, providerTools } from "../../core/dist/index.js";
 import { robloxTools } from "./tools/robloxTools.js";
 
-new McpServer("roblox-pro-mcp", "1.1.8-alpha.0", [...coreTools, ...providerTools, ...robloxTools]).runStdio();
+new McpServer("roblox-pro-mcp", "1.1.9-alpha.0", [...coreTools, ...providerTools, ...robloxTools]).runStdio();

@@ -75,7 +75,7 @@ Keep `.p12` signing certificates under `certs/` or another ignored local path. T
 ## Install Fallback
 
 ```bash
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.8-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.9-alpha.0.zip
 npm run install:premiere-cep -- --zxp dist/zxp/creative-pipeline-mcp-premiere-cep.zxp
 ```
 

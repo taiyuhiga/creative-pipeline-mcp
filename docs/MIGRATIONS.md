@@ -2,6 +2,19 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.9-alpha.0
+
+Changed:
+- Fixed the package lockfile so clean CI installs resolve both `is-buffer@1.1.6` and `@so-ric/colorspace@1.1.6` correctly.
+
+Migration:
+- No caller action is required.
+- Use `1.1.9-alpha.0` instead of `1.1.7-alpha.0` or `1.1.8-alpha.0`; both previous prereleases were superseded because CI/npm publish failed before the alpha package was published.
+
+Compatibility:
+- Public tool schemas and artifact layouts are unchanged from `1.1.7-alpha.0`.
+- The CapCut approved adapter surface added in `1.1.7-alpha.0` remains experimental and disabled by default.
+
 ## 1.1.8-alpha.0
 
 Changed:
