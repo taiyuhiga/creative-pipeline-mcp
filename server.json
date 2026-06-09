@@ -3,12 +3,12 @@
   "name": "io.github.taiyuhiga/creative-pipeline-mcp",
   "title": "Creative Pipeline MCP",
   "description": "QC-first MCP pipeline for Blender assets, Premiere media workflows, provider planning, artifact review, and gated creative production operations.",
-  "version": "1.1.7-alpha.0",
+  "version": "1.1.8-alpha.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "creative-pipeline-mcp",
-      "version": "1.1.7-alpha.0",
+      "version": "1.1.8-alpha.0",
       "transport": {
         "type": "stdio"
       }

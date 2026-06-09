@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.8-alpha.0
+
+### Fixed
+
+- Fixed the `package-lock.json` dependency drift introduced during the `1.1.7-alpha.0` version bump, restoring the third-party `is-buffer@1.1.6` tarball reference.
+- Supersedes `1.1.7-alpha.0`, whose CI and npm publish jobs failed before publication because npm attempted to install a non-existent `is-buffer@1.1.7` package.
+
 ## 1.1.7-alpha.0
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "@creative-pipeline-mcp/after-effects-mcp",
-  "version": "1.1.7-alpha.0",
+  "version": "1.1.8-alpha.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -16,6 +16,6 @@
     "after-effects-mcp": "dist/server.js"
   },
   "dependencies": {
-    "@creative-pipeline-mcp/core": "1.1.7-alpha.0"
+    "@creative-pipeline-mcp/core": "1.1.8-alpha.0"
   }
 }
