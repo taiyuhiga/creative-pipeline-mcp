@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.4-alpha.0
+
+### Fixed
+
+- Updated the CEP status schema docs to list the full expanded Premiere typed command surface.
+- Updated the v1 freeze checker to derive supported Premiere CEP command types from `PremiereCepCommandType`, preventing schema docs from drifting behind implementation.
+
 ## 1.1.3-alpha.0
 
 ### Fixed

@@ -31,6 +31,20 @@ Supported `commandType` values:
 - `move_clip`
 - `add_marker`
 - `set_clip_speed`
+- `create_sequence`
+- `import_media_once`
+- `insert_clip_at_time`
+- `overwrite_clip_at_time`
+- `replace_clip_media`
+- `ripple_delete_with_approval`
+- `add_transition`
+- `apply_effect_preset`
+- `apply_lumetri_preset`
+- `set_audio_gain`
+- `apply_audio_preset`
+- `create_caption_track`
+- `render_preview_range`
+- `export_with_preset`
 
 Supported `status` values:
 

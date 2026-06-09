@@ -9,6 +9,7 @@ const apiStability = readText("docs/API_STABILITY.md");
 const schemaStability = readText("docs/SCHEMA_STABILITY.md");
 const artifactSchema = readText("docs/ARTIFACT_SCHEMA.md");
 const cepStatusSchema = readText("docs/CEP_STATUS_SCHEMA.md");
+const premiereCepAdapter = readText("packages/premiere-pro-mcp/src/adapters/premiereCep.ts");
 
 assert(snapshot.schema === "creative.pipeline.api_tool_schemas.snapshot.v1", "tool snapshot schema must be v1");
 assert(snapshot.packageVersion === pkg.version, "tool snapshot packageVersion must match package.json");
@@ -62,7 +63,7 @@ for (const check of qc.checks) {
   assert(typeof check.id === "string" && typeof check.message === "string", "delivery QC checks must include id and message");
 }
 
-const allowedCommandTypes = ["build_timeline_from_otio", "export_sequence", "apply_brand_package"];
+const allowedCommandTypes = extractPremiereCepCommandTypes(premiereCepAdapter);
 const allowedStatuses = ["success", "accepted", "error"];
 for (const path of [
   "docs/examples/cep_status_timeline_success.sample.json",
@@ -91,6 +92,14 @@ function readText(path) {
 
 function readJson(path) {
   return JSON.parse(readText(path));
+}
+
+function extractPremiereCepCommandTypes(text) {
+  const match = text.match(/export type PremiereCepCommandType =([\s\S]*?);/);
+  assert(match, "PremiereCepCommandType must be declared");
+  const values = [...match[1].matchAll(/\| "([^"]+)"/g)].map((entry) => entry[1]);
+  assert(values.length > 0, "PremiereCepCommandType must include command values");
+  return values;
 }
 
 function assert(condition, message) {

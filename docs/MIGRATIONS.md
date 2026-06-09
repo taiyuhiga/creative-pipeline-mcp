@@ -2,6 +2,19 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.4-alpha.0
+
+Changed:
+- CEP status schema documentation now lists every currently supported Premiere CEP command type.
+- The v1 freeze checker now derives command types from the implementation instead of a stale hardcoded subset.
+
+Migration:
+- No user action is required. Queue/status JSON compatibility is unchanged.
+
+Compatibility:
+- Public tool schemas are unchanged from `1.1.3-alpha.0`.
+- Existing CEP command and status files remain compatible.
+
 ## 1.1.3-alpha.0
 
 Changed:
