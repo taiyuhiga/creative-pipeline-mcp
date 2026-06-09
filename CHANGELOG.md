@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.10-alpha.0
+
+### Added
+
+- Added `npm run check:lockfile`, a clean-cache lockfile installability gate that runs `npm ci` in a temporary workspace containing only package manifests.
+- Added the lockfile installability gate to `npm run check:release` so broad version-replacement drift is caught before release assets or npm publish.
+
 ## 1.1.9-alpha.0
 
 ### Fixed

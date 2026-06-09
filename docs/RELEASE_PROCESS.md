@@ -4,6 +4,7 @@
 
 ```bash
 npm test
+npm run check:lockfile
 npm run check:schemas
 npm run check:v1-freeze
 npm run check:release
@@ -17,6 +18,12 @@ npm run wait:premiere-e2e -- --status=artifacts/examples/premiere-project-delive
 npm run package:premiere-cep -- --verify
 npm pack --dry-run
 ```
+
+`npm run check:lockfile` creates a temporary workspace containing the root
+package files and workspace package manifests, then runs `npm ci` with an empty
+npm cache. This catches package-lock drift where a broad version replacement
+accidentally points third-party dependencies at non-existent registry tarballs.
+`npm run check:release` includes this lockfile installability gate.
 
 ## Assets
 

@@ -2,6 +2,19 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.10-alpha.0
+
+Changed:
+- Added `npm run check:lockfile`.
+- `npm run check:release` now runs the clean-cache lockfile installability gate before the release readiness checks.
+
+Migration:
+- No caller action is required.
+- Release maintainers should keep `npm run check:release` in the local release checklist; it now covers package-lock registry installability.
+
+Compatibility:
+- Public tool schemas and artifact layouts are unchanged from `1.1.9-alpha.0`.
+
 ## 1.1.9-alpha.0
 
 Changed:

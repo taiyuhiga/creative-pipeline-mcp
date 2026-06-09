@@ -47,6 +47,7 @@ const requiredFiles = [
   "examples/mcp/cursor_mcp_config.json",
   "examples/mcp/vscode_mcp_config.json",
   "server.json",
+  "scripts/check-lockfile-installability.mjs",
   "scripts/wait-premiere-e2e-status.mjs",
   "scripts/simulate-provider-workflows.mjs",
   "scripts/check-v1-freeze.mjs",
@@ -65,6 +66,7 @@ assert(pkg.files.includes("examples"), "package files must include examples");
 assert(pkg.files.includes("server.json"), "package files must include server.json");
 assert(pkg.mcpName, "package must define mcpName for MCP Registry ownership verification");
 assert(pkg.scripts["check:schemas"], "package must expose check:schemas");
+assert(pkg.scripts["check:lockfile"], "package must expose check:lockfile");
 assert(pkg.scripts["check:v1-freeze"], "package must expose check:v1-freeze");
 assert(pkg.scripts["check:release"], "package must expose check:release");
 assert(pkg.scripts["simulate:providers"], "package must expose simulate:providers");
