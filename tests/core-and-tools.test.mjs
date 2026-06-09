@@ -1734,6 +1734,10 @@ test("Premiere CEP install script installs from packaged zip", async () => {
   assert.equal(existsSync(join(target, "CSXS", "manifest.xml")), true);
   assert.equal(existsSync(join(target, "jsx", "host.jsx")), true);
   assert.equal(existsSync(join(target, "js", "main.js")), true);
+  assert.equal(existsSync(join(target, "premiere-cep.json")), true);
+  const installedConfig = JSON.parse(await readFile(join(target, "premiere-cep.json"), "utf8"));
+  assert.equal(installedConfig.queueDir, resolve("artifacts/premiere/cep_queue"));
+  assert.equal(installedConfig.statusDir, resolve("artifacts/premiere/cep_status"));
   const uninstallResult = spawnSync("node", [
     "scripts/install-premiere-cep.mjs",
     "--uninstall",
@@ -1760,7 +1764,14 @@ test("Premiere CEP panel can preload a configured queue directory", async () => 
   assert.match(panelScript, /runFilesSequentially/);
   assert.match(panelScript, /commandPriority/);
   assert.match(panelScript, /build_timeline_from_otio/);
+  assert.match(panelScript, /create_sequence/);
+  assert.match(panelScript, /import_media_once/);
+  assert.match(panelScript, /insert_clip_at_time/);
+  assert.match(panelScript, /overwrite_clip_at_time/);
+  assert.match(panelScript, /replace_clip_media/);
+  assert.match(panelScript, /ripple_delete_with_approval/);
   assert.match(panelScript, /export_sequence/);
+  assert.match(panelScript, /export_with_preset/);
   assert.match(panelScript, /left in queue because CEP returned an unreadable status/);
   assert.match(manifest, /--mixed-context/);
   assert.match(manifest, /--allow-file-access/);

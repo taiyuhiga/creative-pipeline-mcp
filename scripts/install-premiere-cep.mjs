@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -21,6 +21,7 @@ const extracted = packageArg ? extractPackage(resolve(packageArg)) : null;
 const cleanupPaths = extracted ? [extracted.cleanupPath] : [];
 const source = extracted?.source ?? panelSource;
 validateCepSource(source);
+const existingConfig = readExistingConfig(target);
 
 rmSync(target, { recursive: true, force: true });
 mkdirSync(dirname(target), { recursive: true });
@@ -33,6 +34,7 @@ cpSync(source, target, {
 for (const cleanupPath of cleanupPaths) {
   rmSync(cleanupPath, { recursive: true, force: true });
 }
+writeCepConfig(target, source, existingConfig);
 
 console.log(`Installed Premiere CEP panel to ${target}`);
 console.log("Enable CEP debug mode for unsigned extensions before launching Premiere.");
@@ -77,6 +79,36 @@ function validateCepSource(source) {
       throw new Error(`CEP source missing required file: ${join(source, required)}`);
     }
   }
+}
+
+function readExistingConfig(target) {
+  const configPath = join(target, "premiere-cep.json");
+  if (!existsSync(configPath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(configPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeCepConfig(target, source, existingConfig) {
+  const targetConfig = join(target, "premiere-cep.json");
+  if (existsSync(join(source, "premiere-cep.json")) || existsSync(targetConfig)) {
+    return;
+  }
+  const queueDir = process.env.CREATIVE_MCP_PREMIERE_IPC_DIR
+    ? resolve(process.env.CREATIVE_MCP_PREMIERE_IPC_DIR)
+    : resolve(root, "artifacts", "premiere", "cep_queue");
+  const statusDir = process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR
+    ? resolve(process.env.CREATIVE_MCP_PREMIERE_STATUS_DIR)
+    : resolve(root, "artifacts", "premiere", "cep_status");
+  const config = {
+    queueDir: existingConfig?.queueDir ?? queueDir,
+    statusDir: existingConfig?.statusDir ?? statusDir
+  };
+  writeFileSync(targetConfig, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
 function defaultCepTarget() {

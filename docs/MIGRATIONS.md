@@ -2,6 +2,20 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.3-alpha.0
+
+Changed:
+- Premiere CEP fallback installs now write or preserve `premiere-cep.json` with queue/status paths.
+- Premiere CEP panel queue ordering now includes the expanded typed edit command surface.
+
+Migration:
+- Reinstall the CEP package after upgrading so Premiere loads the updated `js/main.js`, `jsx/host.jsx`, and `premiere-cep.json`.
+- Remove older duplicate CEP extension folders if Premiere shows an old `Creative Pipeline MCP` panel.
+
+Compatibility:
+- Public tool schemas are unchanged from `1.1.2-alpha.0`.
+- Existing queue/status JSON files remain compatible.
+
 ## 1.1.2-alpha.0
 
 Changed:

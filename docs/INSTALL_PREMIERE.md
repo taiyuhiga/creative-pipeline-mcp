@@ -75,7 +75,7 @@ Keep `.p12` signing certificates under `certs/` or another ignored local path. T
 ## Install Fallback
 
 ```bash
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.2-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.3-alpha.0.zip
 npm run install:premiere-cep -- --zxp dist/zxp/creative-pipeline-mcp-premiere-cep.zxp
 ```
 
@@ -84,11 +84,12 @@ The fallback installer extracts the package, validates `CSXS/manifest.xml`, `ind
 CEP queue defaults:
 
 ```bash
-cat > "$HOME/Library/Application Support/Adobe/CEP/extensions/creative.pipeline.mcp/premiere-cep.json" <<'JSON'
+cat > "$HOME/Library/Application Support/Adobe/CEP/extensions/com.creative-pipeline.mcp.panel/premiere-cep.json" <<'JSON'
 {
-  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue"
+  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue",
+  "statusDir": "/absolute/path/to/artifacts/premiere/cep_status"
 }
 JSON
 ```
 
-When this file exists in the installed CEP extension folder, the panel preloads the queue directory on launch and refreshes pending commands. This avoids manual path entry in Premiere.
+The fallback installer writes this file automatically when no existing config is present. When this file exists in the installed CEP extension folder, the panel preloads the queue directory on launch and refreshes pending commands. This avoids manual path entry in Premiere.

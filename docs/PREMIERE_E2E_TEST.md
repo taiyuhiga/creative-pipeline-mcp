@@ -67,7 +67,8 @@ The installed panel can preload a queue path from `premiere-cep.json` in the ins
 
 ```json
 {
-  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue"
+  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue",
+  "statusDir": "/absolute/path/to/artifacts/premiere/cep_status"
 }
 ```
 
@@ -75,10 +76,24 @@ The panel sorts pending commands into timeline, typed edits, markers/brand, then
 
 Typed edit commands are bounded and do not expose raw ExtendScript:
 
+- `create_sequence`
+- `import_media_once`
+- `insert_clip_at_time`
+- `overwrite_clip_at_time`
 - `trim_clip`
 - `split_clip`
 - `move_clip`
+- `replace_clip_media`
+- `ripple_delete_with_approval`
 - `add_marker`
 - `set_clip_speed`
+- `add_transition`
+- `apply_effect_preset`
+- `apply_lumetri_preset`
+- `set_audio_gain`
+- `apply_audio_preset`
+- `create_caption_track`
+- `render_preview_range`
+- `export_with_preset`
 
 Each queued command includes `commandId`, `idempotencyKey`, `expectedSideEffects`, `requiresApproval`, `statusJsonPath`, and `rollbackHint`. Live Premiere execution is best-effort per available Premiere/CEP APIs; unsupported edit APIs return an `accepted` status instead of claiming a completed edit.

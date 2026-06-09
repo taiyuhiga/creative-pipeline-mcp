@@ -86,23 +86,32 @@
   function commandPriority(fullPath) {
     try {
       var command = JSON.parse(fs.readFileSync(fullPath, "utf8"));
-      if (command.type === "build_timeline_from_otio") {
+      if (command.type === "build_timeline_from_otio" || command.type === "create_sequence") {
         return 0;
       }
-      if (command.type === "apply_brand_package") {
-        return 6;
+      if (command.type === "import_media_once") {
+        return 1;
       }
-      if (command.type === "export_sequence") {
-        return 7;
-      }
-      if (command.type === "apply_timeline_markers") {
-        return 5;
-      }
-      if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+      if (command.type === "insert_clip_at_time" || command.type === "overwrite_clip_at_time") {
         return 2;
       }
-      if (command.type === "add_marker") {
+      if (command.type === "trim_clip" || command.type === "split_clip" || command.type === "move_clip" || command.type === "set_clip_speed") {
+        return 3;
+      }
+      if (command.type === "replace_clip_media" || command.type === "ripple_delete_with_approval") {
         return 4;
+      }
+      if (command.type === "add_marker") {
+        return 5;
+      }
+      if (command.type === "apply_timeline_markers") {
+        return 6;
+      }
+      if (command.type === "apply_brand_package") {
+        return 7;
+      }
+      if (command.type === "export_sequence" || command.type === "export_with_preset") {
+        return 8;
       }
     } catch (ignored) {}
     return 99;

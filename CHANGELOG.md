@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-alpha.0
+
+### Fixed
+
+- Updated the Premiere CEP panel queue priority ordering to include the expanded typed command surface before brand/export commands.
+- Updated the Premiere CEP fallback installer to write or preserve `premiere-cep.json`, so installed panels preload queue/status paths instead of returning to a blank queue field.
+- Updated Premiere CEP install and E2E docs to use the installer target extension folder and include `statusDir`.
+
 ## 1.1.2-alpha.0
 
 ### Added

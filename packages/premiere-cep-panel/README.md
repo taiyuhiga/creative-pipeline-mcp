@@ -8,11 +8,14 @@ To preload the queue directory, create `premiere-cep.json` in the installed exte
 
 ```json
 {
-  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue"
+  "queueDir": "/absolute/path/to/artifacts/premiere/cep_queue",
+  "statusDir": "/absolute/path/to/artifacts/premiere/cep_status"
 }
 ```
 
-The host script is intentionally conservative: it validates command types and creates/logs sequence/export/brand requests without allowing arbitrary ExtendScript.
+The fallback installer writes this config automatically when no existing config is present.
+
+The host script is intentionally conservative: it validates command types and creates/logs sequence/export/brand/typed edit requests without allowing arbitrary ExtendScript.
 
 Create a distributable unsigned package from the repository root:
 
