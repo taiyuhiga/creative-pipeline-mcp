@@ -122,6 +122,7 @@ or QE DOM proxy tools.
 - `capcut.resolve_adapter`
 - `capcut.export_draft_package`
 - `capcut.run_delivery_qc`
+- `capcut.run_approved_adapter`
 
 ## After Effects
 

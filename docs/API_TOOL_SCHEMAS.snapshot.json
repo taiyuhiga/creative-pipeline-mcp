@@ -1,6 +1,6 @@
 {
   "schema": "creative.pipeline.api_tool_schemas.snapshot.v1",
-  "packageVersion": "1.1.6-alpha.0",
+  "packageVersion": "1.1.7-alpha.0",
   "generatedFrom": [
     "packages/core/dist/index.js",
     "packages/asset-sourcing/dist/index.js",
@@ -1564,6 +1564,57 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      }
+    },
+    {
+      "name": "capcut.run_approved_adapter",
+      "category": "capcut",
+      "risk": "project_write",
+      "description": "Run a bounded CapCut CLI-style adapter when explicitly enabled, without raw draft/API proxying.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "backend": {
+            "enum": [
+              "capcut_cli",
+              "py_jianying_draft"
+            ],
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "draftManifestPath": {
+            "type": "string"
+          },
+          "executablePath": {
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "draft_manifest_validate",
+              "package_export",
+              "jianying_draft_write",
+              "manifest_validate"
+            ],
+            "type": "string"
+          },
+          "outputDirectory": {
+            "type": "string"
+          },
+          "requireEnabled": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "backend",
+          "operation",
+          "draftManifestPath"
+        ],
         "type": "object"
       }
     },

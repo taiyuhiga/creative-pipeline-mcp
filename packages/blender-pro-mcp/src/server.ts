@@ -1,4 +1,4 @@
 import { coreTools, McpServer } from "../../core/dist/index.js";
 import { blenderTools } from "./tools/assetTools.js";
 
-new McpServer("blender-pro-mcp", "1.1.6-alpha.0", [...coreTools, ...blenderTools]).runStdio();
+new McpServer("blender-pro-mcp", "1.1.7-alpha.0", [...coreTools, ...blenderTools]).runStdio();

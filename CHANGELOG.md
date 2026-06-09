@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-alpha.0
+
+### Added
+
+- Added `capcut.run_approved_adapter`, an experimental env-gated CapCut CLI adapter runner for bounded `capcut-cli` and `pyJianYingDraft` operations.
+- Added CapCut adapter run reports and provider simulator coverage without enabling raw CapCut API, GUI, cloud, or draft proxying.
+
 ## 1.1.6-alpha.0
 
 ### Added

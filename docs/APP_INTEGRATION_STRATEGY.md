@@ -19,7 +19,7 @@ CapCut, After Effects, Roblox, external Blender MCP, live Premiere CEP execution
 | Track | v0.3 status | Default |
 | --- | --- | --- |
 | Provider Registry | availability/resolution/report tools | enabled |
-| CapCut | social draft plan/manifest/QC | manifest-only |
+| CapCut | social draft plan/manifest/QC | env-gated approved CLI adapter |
 | After Effects | render plan/queue manifest/motion QC | env-gated approved-runner |
 | Roblox | read-only inspection/QC/command manifests | read-only |
 

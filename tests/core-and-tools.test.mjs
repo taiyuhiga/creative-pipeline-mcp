@@ -108,7 +108,8 @@ test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifact
     "capcut.create_social_draft",
     "capcut.resolve_adapter",
     "capcut.export_draft_package",
-    "capcut.run_delivery_qc"
+    "capcut.run_delivery_qc",
+    "capcut.run_approved_adapter"
   ]) {
     assert.ok(toolNames.includes(name), `${name} should be registered`);
   }
@@ -116,10 +117,12 @@ test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifact
   const adapter = capcutTools.find((tool) => tool.name === "capcut.resolve_adapter");
   const packageTool = capcutTools.find((tool) => tool.name === "capcut.export_draft_package");
   const deliveryQc = capcutTools.find((tool) => tool.name === "capcut.run_delivery_qc");
+  const runAdapter = capcutTools.find((tool) => tool.name === "capcut.run_approved_adapter");
   assert.ok(macro);
   assert.ok(adapter);
   assert.ok(packageTool);
   assert.ok(deliveryQc);
+  assert.ok(runAdapter);
   const result = await macro.execute(await context(), {
     title: "Vertical launch clip",
     deliveryProfile: "shorts_1080x1920_high_quality",
@@ -146,6 +149,22 @@ test("CapCut provider writes copy-on-write draft plan, manifest, and QC artifact
   });
   assert.equal(qcResult.ok, true);
   assert.equal(qcResult.data.report.status, "pass");
+  const projectRoot = await mkdtemp(join(tmpdir(), "creative-mcp-capcut-"));
+  const draftManifestPath = join(projectRoot, "draft_manifest.json");
+  await writeFile(draftManifestPath, JSON.stringify({ schema: "test.capcut.manifest", title: "Vertical launch clip" }), "utf8");
+  const disabledRun = await runAdapter.execute(await context(projectRoot), {
+    commandId: "capcut-test-disabled-run",
+    backend: "capcut_cli",
+    operation: "draft_manifest_validate",
+    draftManifestPath,
+    outputDirectory: "capcut/test-draft-package"
+  });
+  assert.equal(disabledRun.ok, true);
+  assert.equal(disabledRun.data.status.status, "blocked_env_disabled");
+  assert.equal(disabledRun.data.report.policy.rawProxy, false);
+  assert.equal(disabledRun.data.report.policy.shellString, false);
+  assert.equal(disabledRun.data.report.policy.liveExecutionClaim, false);
+  assert.ok(disabledRun.artifacts.some((artifact) => artifact.endsWith("capcut/adapter_run_report.json")));
 });
 
 test("After Effects provider writes render, queue, preview, and motion QC artifacts", async () => {

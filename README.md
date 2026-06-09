@@ -16,7 +16,7 @@ This repository implements a split creative pipeline architecture:
 - `provider-registry`: provider availability, resolution, and strategy reports for video, motion, and game workflows
 - `blender-pro-mcp`: Blender/glTF asset inspection, preview artifacts, validation, optimization/export fallbacks
 - `premiere-pro-mcp`: media ingest, ffprobe indexing, delivery QC, rough-cut OTIO plans, captions, audio/export plans
-- `capcut-social-mcp`: experimental CapCut social draft plans, copy-on-write manifests, and draft QC
+- `capcut-social-mcp`: experimental CapCut social draft plans, copy-on-write manifests, approved CLI adapter execution, and draft QC
 - `after-effects-mcp`: experimental After Effects render plans, aerender/nexrender queue manifests, env-gated approved runner execution, evidence, and motion QC
 - `roblox-pro-mcp`: experimental Roblox/Rojo project inspection, script indexing, Luau QC, Studio MCP session planning, and command manifests
 - `blender-gpl-adapters`: optional GPL adapter manifests kept separate from the core packages
@@ -29,7 +29,7 @@ This repository implements a split creative pipeline architecture:
 
 ## Status
 
-Current version: `1.1.6-alpha.0`
+Current version: `1.1.7-alpha.0`
 
 This is the first stable release for the QC-first pipeline surface. The stable v1 claim is intentionally limited to typed operations, artifacts, QC reports, approval policy, provider planning, and packaging. Live app execution surfaces remain experimental unless explicitly documented with runtime evidence.
 
@@ -66,7 +66,7 @@ The QC-first path runs without Blender or Premiere installed:
 - provider registry tools for app availability, video editor resolution, motion engine resolution, game engine resolution, and combined provider reports
 - provider workflow simulator for Provider Registry, CapCut, After Effects, Roblox, and Director artifact coverage without default live app execution claims
 - provider-aware `video.create_edit` package generation with Premiere-first selection and CapCut fallback draft artifacts
-- experimental CapCut provider tools for social draft plan, manifest, and QC artifacts
+- experimental CapCut provider tools for social draft plan, manifest, package handoff, env-gated approved adapter execution, and QC artifacts
 - experimental After Effects provider tools for render plan, frame preview plan, aerender/nexrender queue manifests, approved-runner execution plans, env-gated approved render execution, render status, output evidence, and motion QC
 - experimental Roblox provider tools for read-only project inspection, place-tree reports, script indexing, Luau QC, official Studio MCP session planning, Studio evidence, Rojo/Wally/Selene/Stylua command manifests, and combined project reports
 - MCP-style stdio JSON-RPC methods: `initialize`, `tools/list`, `tools/call`, `ping`
@@ -109,7 +109,7 @@ Premiere timeline mutation and export/brand-package requests are queued through 
 | Premiere timeline creation | Project delivery builder + CEP scaffold |
 | Premiere final export | Project export plan + CEP queue command |
 | Provider Registry | Stable for availability, resolution, and reports |
-| CapCut provider | Experimental, manifest-only draft planning/QC |
+| CapCut provider | Experimental, copy-on-write draft planning/QC and env-gated approved adapter execution |
 | After Effects provider | Experimental, render-plan, queue-manifest, and env-gated approved-runner execution |
 | Roblox provider | Experimental, read-only/QC and command-manifest only |
 | Full professional editing | Outside stable v1 |
@@ -232,7 +232,7 @@ Premiere CEP panel scaffold:
 ```bash
 npm run install:premiere-cep
 npm run package:premiere-cep -- --verify
-npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.6-alpha.0.zip
+npm run install:premiere-cep -- --package dist/premiere-cep/creative-pipeline-mcp-premiere-cep-panel-1.1.7-alpha.0.zip
 ```
 
 Release assets:

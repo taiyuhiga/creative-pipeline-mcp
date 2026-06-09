@@ -84,6 +84,13 @@ await run("capcut.create_social_draft", {
 });
 await run("capcut.resolve_adapter", { preferredBackend: "capcut_cli" });
 await run("capcut.export_draft_package", { title: "Provider Simulator Social Cut", backend: "manual" });
+await run("capcut.run_approved_adapter", {
+  commandId: "provider-simulator-capcut-run",
+  backend: "capcut_cli",
+  operation: "draft_manifest_validate",
+  draftManifestPath: join(artifactRoot, "capcut", "draft_manifest.json"),
+  outputDirectory: "capcut/adapter-output"
+});
 await run("capcut.run_delivery_qc", {
   title: "Provider Simulator Social Cut",
   outputPath: "artifacts/capcut/provider-output.mp4",
@@ -241,6 +248,7 @@ const summary = {
     capcut: commands.some((command) => command.action.startsWith("capcut.")),
     capcutAdapterResolution: commands.some((command) => command.action === "capcut.resolve_adapter"),
     capcutDraftPackage: commands.some((command) => command.action === "capcut.export_draft_package"),
+    capcutApprovedAdapter: commands.some((command) => command.action === "capcut.run_approved_adapter"),
     capcutDeliveryQc: commands.some((command) => command.action === "capcut.run_delivery_qc"),
     videoEditFallback: commands.some((command) => command.action === "video.create_edit"),
     afterEffects: commands.some((command) => command.action.startsWith("ae.")),

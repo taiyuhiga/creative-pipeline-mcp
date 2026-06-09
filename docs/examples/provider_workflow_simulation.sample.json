@@ -18,6 +18,12 @@
       "artifacts": ["capcut/draft_plan.json", "capcut/draft_manifest.json", "capcut/draft_qc_report.json"]
     },
     {
+      "action": "capcut.run_approved_adapter",
+      "ok": true,
+      "message": "Set CREATIVE_MCP_ENABLE_CAPCUT_APPROVED_ADAPTER=true to execute CapCut CLI adapters",
+      "artifacts": ["capcut/adapter_run_report.json", "capcut/draft_status.json"]
+    },
+    {
       "action": "video.create_edit",
       "ok": true,
       "message": "Video edit provider package written: capcut",
@@ -75,6 +81,7 @@
   "coverage": {
     "providerRegistry": true,
     "capcut": true,
+    "capcutApprovedAdapter": true,
     "videoEditFallback": true,
     "afterEffects": true,
     "afterEffectsRenderEvidence": true,

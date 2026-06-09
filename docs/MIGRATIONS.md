@@ -2,6 +2,21 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.7-alpha.0
+
+Changed:
+- Added `capcut.run_approved_adapter` for experimental env-gated `capcut-cli` and `pyJianYingDraft` execution.
+- Added `capcut/adapter_run_report.json` and `capcut/draft_status.json`.
+
+Migration:
+- No action is required for existing callers.
+- To execute real CapCut CLI adapters, set `CREATIVE_MCP_ENABLE_CAPCUT_APPROVED_ADAPTER=true`, provide a readable copy-on-write draft manifest, keep output directories inside artifact/workspace roots, and retain project-write approval.
+
+Compatibility:
+- Existing CapCut draft plan, manifest, package, and QC artifacts remain compatible.
+- Raw CapCut API, GUI, cloud, encrypted-draft, and full draft proxying remain unsupported.
+- CapCut execution remains outside the stable v1 surface.
+
 ## 1.1.6-alpha.0
 
 Changed:

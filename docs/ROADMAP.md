@@ -22,7 +22,7 @@
 - adapter availability JSON report
 - Asset Sourcing Layer for source priority planning, candidate scoring, provenance, license manifests, and fal fallback generation guardrails
 - Provider Registry for video editor, motion engine, and game engine availability/resolution/reporting
-- experimental CapCut social draft plan/manifest/QC provider
+- experimental CapCut social draft plan/manifest/env-gated approved-adapter/QC provider
 - experimental After Effects render plan/queue-manifest/env-gated approved-runner/motion-QC provider
 - experimental Roblox read-only inspection/Luau-QC/command-manifest provider
 - headless Blender, glTF optimizer, FFmpeg QC, thumbnail, and Premiere CEP queue adapters
