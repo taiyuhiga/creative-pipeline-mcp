@@ -2,6 +2,19 @@
 
 This file tracks public schema and artifact-layout changes that users may need to react to.
 
+## 1.1.5-alpha.0
+
+Changed:
+- Hosted Windows CI jobs now target `windows-2025-vs2026` explicitly.
+- Windows E2E documentation and compatibility evidence now reference the updated runner image and CI run.
+
+Migration:
+- No user action is required.
+
+Compatibility:
+- Public tool schemas are unchanged from `1.1.4-alpha.0`.
+- Existing CEP command, status, and artifact files remain compatible.
+
 ## 1.1.4-alpha.0
 
 Changed:

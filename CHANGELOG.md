@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5-alpha.0
+
+### Fixed
+
+- Pinned hosted Windows CI jobs to `windows-2025-vs2026` to avoid the `windows-latest` migration warning.
+- Updated Windows E2E and compatibility matrix docs to match the hosted Windows runner image and latest Windows Blender CI evidence.
+
 ## 1.1.4-alpha.0
 
 ### Fixed
